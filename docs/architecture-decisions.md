@@ -1,0 +1,100 @@
+# Architecture decisions
+
+This log records consequential technical choices and why we made them. Exact
+package versions belong in `package.json`.
+
+[Application architecture](architecture.md) defines the current implementation
+contract. This log records its rationale and consequential changes.
+
+## Hexagonal architecture and Clean Code
+
+- **Status:** Accepted
+- **Date:** 2026-09-09
+- **Decision:** Keep business rules and application use cases independent of
+  frameworks. Convex endpoints and adapters connect the core through narrow,
+  core-owned ports. Use cohesive modules, clear names, and explicit dependencies.
+- **Why:** Agents can extend and test business behavior without coupling it to UI,
+  persistence, or provider SDKs.
+- **Boundary:** Simple authorized read projections use Convex directly. Preserve
+  its transaction and reactive-query semantics. Do not add generic repositories,
+  containers, or empty feature scaffolding.
+
+## Architecture enforcement
+
+- **Status:** Accepted
+- **Date:** 2026-09-09
+- **Decision:** Use dependency-cruiser for import boundaries and runtime cycles,
+  isolated core TypeScript checks, and separate core/backend/architecture tests.
+- **Why:** Documentation alone cannot prevent dependency drift. Fixtures prove
+  rejection behavior even before product code exists.
+- **Boundary:** Inspect type-only imports for boundaries, but permit type-only
+  cycles. Review business-rule placement, feature ownership, and transaction
+  behavior separately; static checks do not prove them.
+
+## React, Vite, and TypeScript
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Decision:** Build the frontend with React, Vite, and strict TypeScript.
+- **Why:** The product is expected to be a highly interactive client application.
+  Vite keeps the build and deployment model simple.
+- **Boundary:** Add server rendering only if a concrete requirement justifies it.
+
+## Intent UI and Tailwind CSS
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Decision:** Use editable Intent UI components with Tailwind CSS.
+- **Why:** This provides accessible React Aria primitives and a matching Figma kit.
+- **Boundary:** Use only the components the product needs; prune unused source and
+  dependencies when the interface stabilizes.
+
+## Convex backend and API contract
+
+- **Status:** Accepted
+- **Date:** 2026-09-03
+- **Decision:** Use Convex for persistent application data, reactive queries,
+  mutations, actions, and backend workflows.
+- **Why:** Its reactive model fits a collaborative application and provides
+  generated end-to-end TypeScript types.
+- **Boundary:** Convex validators and generated bindings are the internal API
+  contract. Add OpenAPI only for a real external HTTP API.
+
+## Client state ownership
+
+- **Status:** Accepted
+- **Date:** 2026-09-04
+- **Decision:** Use feature-scoped Zustand stores for transient state shared across
+  components.
+- **Why:** Complex interactions need coordination without placing all state in one
+  global store.
+- **Boundary:** Convex owns durable shared state. URLs own shareable navigation
+  state. React components retain isolated presentation state.
+
+## Frontend hosting
+
+- **Status:** Accepted
+- **Date:** 2026-09-02
+- **Decision:** Plan to deploy the Vite frontend with Convex static hosting at a
+  `convex.site` address.
+- **Why:** This keeps the frontend and backend on one deployment platform.
+- **Boundary:** Hosting is not installed or deployed yet.
+
+## Routing
+
+- **Status:** Proposed
+- **Date:** 2026-09-04
+- **Decision:** Use TanStack Router with file-based routes.
+- **Why:** Typed paths and validated search parameters suit a larger application
+  with shareable view state.
+- **Revisit when:** The first route tree is defined.
+
+## Authentication
+
+- **Status:** Proposed
+- **Date:** 2026-09-04
+- **Decision:** Use Convex Auth with Google OAuth for a minimal sign-in flow.
+- **Why:** It keeps this Vite application self-contained and avoids building
+  password management.
+- **Boundary:** Authentication proves identity; Convex functions must still enforce
+  authorization. Reconsider WorkOS if durable organizations become central.

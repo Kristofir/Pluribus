@@ -1,0 +1,1080 @@
+{
+  "fileKey": "GKcLMKxdpBxMcSGL8iAdxV",
+  "fileUrl": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV",
+  "pageId": "5:33",
+  "status": "Draft; not published; no Code Connect",
+  "scope": "Representative desktop component specimens, not an exhaustive matrix of runtime and responsive states.",
+  "counts": {
+    "pageId": "5:33",
+    "componentSets": 94,
+    "variants": 303,
+    "variables": 335,
+    "unboundSolidPaints": 0,
+    "unboundGradientStops": 0,
+    "brokenAliases": [],
+    "duplicateSetNames": [],
+    "contrast": [
+      {
+        "mode": "Light",
+        "pair": "fg/bg",
+        "ratio": 17.73
+      },
+      {
+        "mode": "Light",
+        "pair": "muted-fg/bg",
+        "ratio": 4.83
+      },
+      {
+        "mode": "Light",
+        "pair": "primary-fg/primary",
+        "ratio": 5.26
+      },
+      {
+        "mode": "Light",
+        "pair": "success-fg/success",
+        "ratio": 3.67
+      },
+      {
+        "mode": "Light",
+        "pair": "warning-fg/warning",
+        "ratio": 8.73
+      },
+      {
+        "mode": "Light",
+        "pair": "danger-fg/danger",
+        "ratio": 4.36
+      },
+      {
+        "mode": "Dark",
+        "pair": "fg/bg",
+        "ratio": 17.99
+      },
+      {
+        "mode": "Dark",
+        "pair": "muted-fg/bg",
+        "ratio": 7.14
+      },
+      {
+        "mode": "Dark",
+        "pair": "primary-fg/primary",
+        "ratio": 5.26
+      },
+      {
+        "mode": "Dark",
+        "pair": "success-fg/success",
+        "ratio": 3.67
+      },
+      {
+        "mode": "Dark",
+        "pair": "warning-fg/warning",
+        "ratio": 8.73
+      },
+      {
+        "mode": "Dark",
+        "pair": "danger-fg/danger",
+        "ratio": 4.36
+      }
+    ]
+  },
+  "categories": [
+    {
+      "id": "76:114",
+      "name": "01 · Actions",
+      "families": 15,
+      "width": 5528,
+      "height": 3562
+    },
+    {
+      "id": "76:115",
+      "name": "02 · Forms",
+      "families": 21,
+      "width": 5528,
+      "height": 3754
+    },
+    {
+      "id": "76:116",
+      "name": "03 · Content",
+      "families": 14,
+      "width": 5528,
+      "height": 2837
+    },
+    {
+      "id": "76:117",
+      "name": "04 · Navigation",
+      "families": 12,
+      "width": 5528,
+      "height": 2069
+    },
+    {
+      "id": "76:118",
+      "name": "05 · Color",
+      "families": 7,
+      "width": 5528,
+      "height": 1595
+    },
+    {
+      "id": "76:119",
+      "name": "06 · Feedback",
+      "families": 7,
+      "width": 5528,
+      "height": 2234.375
+    },
+    {
+      "id": "76:120",
+      "name": "07 · Data",
+      "families": 8,
+      "width": 5528,
+      "height": 1610
+    },
+    {
+      "id": "76:121",
+      "name": "08 · Overlays",
+      "families": 10,
+      "width": 5528,
+      "height": 2279
+    }
+  ],
+  "sourceFiles": {
+    "AreaChart.tsx": ["Area Chart"],
+    "Avatar.tsx": ["Avatar"],
+    "Badge.tsx": ["Badge"],
+    "BarChart.tsx": ["Bar Chart"],
+    "BarList.tsx": ["Bar List"],
+    "Breadcrumbs.tsx": ["Breadcrumbs"],
+    "ButtonGroup.tsx": ["Button Group"],
+    "Button.tsx": [
+      "Button/primary",
+      "Button/secondary",
+      "Button/warning",
+      "Button/danger",
+      "Button/success",
+      "Button/outline",
+      "Button/plain"
+    ],
+    "Calendar.tsx": ["Calendar"],
+    "Card.tsx": ["Card"],
+    "Carousel.tsx": ["Carousel"],
+    "Chart.tsx": ["Area Chart", "Bar Chart", "Line Chart", "Pie Chart"],
+    "Checkbox.tsx": ["Checkbox"],
+    "ChoiceBox.tsx": ["Choice Box"],
+    "ColorArea.tsx": ["Color Area"],
+    "ColorField.tsx": ["Color Field"],
+    "ColorPicker.tsx": ["Color Picker"],
+    "ColorSlider.tsx": ["Color Slider"],
+    "ColorSwatchPicker.tsx": ["Color Swatch Picker"],
+    "ColorSwatch.tsx": ["Color Swatch"],
+    "ColorThumb.tsx": [
+      "Color Area",
+      "Color Slider",
+      "Color Wheel",
+      "Color Picker"
+    ],
+    "ColorWheel.tsx": ["Color Wheel"],
+    "ComboBox.tsx": ["Combo Box"],
+    "CommandMenu.tsx": ["Command Menu"],
+    "Container.tsx": ["Container"],
+    "ContextMenu.tsx": ["Context Menu"],
+    "DateField.tsx": ["Date Field"],
+    "DatePicker.tsx": ["Date Picker"],
+    "DateRangePicker.tsx": ["Date Range Picker"],
+    "DescriptionList.tsx": ["Description List"],
+    "Dialog.tsx": ["Dialog"],
+    "DisclosureGroup.tsx": ["Disclosure Group"],
+    "Drawer.tsx": ["Drawer"],
+    "DropZone.tsx": ["Drop Zone"],
+    "Dropdown.tsx": ["Select", "Combo Box", "List Box", "Menu", "Command Menu"],
+    "Field.tsx": ["Field"],
+    "FileTrigger.tsx": ["File Trigger"],
+    "GridList.tsx": ["Grid List"],
+    "Heading.tsx": ["Heading"],
+    "InputOtp.tsx": ["Input OTP"],
+    "Input.tsx": ["Input"],
+    "Keyboard.tsx": ["Keyboard"],
+    "Leaderboard.tsx": ["Leaderboard"],
+    "LineChart.tsx": ["Line Chart"],
+    "Link.tsx": ["Link"],
+    "ListBox.tsx": ["List Box"],
+    "Loader.tsx": ["Loader"],
+    "Menu.tsx": ["Menu"],
+    "Meter.tsx": ["Meter"],
+    "Modal.tsx": ["Modal"],
+    "MultipleSelect.tsx": ["Multiple Select"],
+    "NativeSelect.tsx": ["Native Select"],
+    "Navbar.tsx": ["Navbar"],
+    "Note.tsx": ["Note"],
+    "NumberField.tsx": ["Number Field"],
+    "Pagination.tsx": ["Pagination"],
+    "PieChart.tsx": ["Pie Chart"],
+    "Popover.tsx": ["Popover"],
+    "Preview.tsx": ["Preview"],
+    "ProgressBar.tsx": ["Progress Bar"],
+    "ProgressCircle.tsx": ["Progress Circle"],
+    "Radio.tsx": ["Radio"],
+    "RangeCalendar.tsx": ["Range Calendar"],
+    "ScrollArea.tsx": ["Scroll Area"],
+    "SearchField.tsx": ["Search Field"],
+    "Select.tsx": ["Select"],
+    "Separator.tsx": ["Separator"],
+    "Sheet.tsx": ["Sheet"],
+    "ShowMore.tsx": ["Show More"],
+    "Sidebar.tsx": ["Sidebar"],
+    "Skeleton.tsx": ["Skeleton"],
+    "Slider.tsx": ["Slider"],
+    "Snippet.tsx": ["Snippet"],
+    "Switch.tsx": ["Switch"],
+    "Table.tsx": ["Table"],
+    "Tabs.tsx": ["Tabs"],
+    "TagField.tsx": ["Tag Field"],
+    "TagGroup.tsx": ["Tag Group"],
+    "TextField.tsx": ["Text Field"],
+    "Text.tsx": ["Text"],
+    "Textarea.tsx": ["Textarea"],
+    "TimeField.tsx": ["Time Field"],
+    "Toast.tsx": ["Toast"],
+    "ToggleGroup.tsx": ["Toggle Group"],
+    "Toggle.tsx": ["Toggle/plain", "Toggle/outline"],
+    "Toolbar.tsx": ["Toolbar"],
+    "Tooltip.tsx": ["Tooltip"],
+    "Tracker.tsx": ["Tracker"],
+    "Tree.tsx": ["Tree"]
+  },
+  "components": {
+    "Badge": {
+      "source": "src/components/ui/Badge.tsx",
+      "componentSetId": "9:32",
+      "sectionId": "21:7",
+      "variantIds": [
+        "9:3",
+        "9:6",
+        "9:8",
+        "9:10",
+        "9:12",
+        "9:14",
+        "9:16",
+        "9:18",
+        "9:20",
+        "9:22",
+        "9:24",
+        "9:26",
+        "9:28",
+        "9:30"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=9-32"
+    },
+    "Loader": {
+      "source": "src/components/ui/Loader.tsx",
+      "componentSetId": "11:2",
+      "sectionId": "21:9",
+      "variantIds": ["10:3", "10:18"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=11-2"
+    },
+    "Button/primary": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "12:48",
+      "sectionId": "21:2",
+      "variantIds": [
+        "12:3",
+        "12:7",
+        "12:9",
+        "12:11",
+        "12:13",
+        "12:16",
+        "12:18",
+        "12:20",
+        "12:22",
+        "12:27",
+        "12:30",
+        "12:33",
+        "12:36",
+        "12:39",
+        "12:42",
+        "12:45"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=12-48"
+    },
+    "Checkbox": {
+      "source": "src/components/ui/Checkbox.tsx",
+      "componentSetId": "13:55",
+      "sectionId": "21:10",
+      "variantIds": ["13:3", "13:13", "13:24", "13:35", "13:46"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=13-55"
+    },
+    "Radio": {
+      "source": "src/components/ui/Radio.tsx",
+      "componentSetId": "14:42",
+      "sectionId": "21:11",
+      "variantIds": ["14:3", "14:12", "14:22", "14:33"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=14-42"
+    },
+    "Switch": {
+      "source": "src/components/ui/Switch.tsx",
+      "componentSetId": "14:95",
+      "sectionId": "21:12",
+      "variantIds": ["14:50", "14:64", "14:74", "14:84"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=14-95"
+    },
+    "Input": {
+      "source": "src/components/ui/Input.tsx",
+      "componentSetId": "15:20",
+      "sectionId": "21:13",
+      "variantIds": ["15:3", "15:7", "15:11", "15:16"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=15-20"
+    },
+    "Text Field": {
+      "source": "src/components/ui/TextField.tsx",
+      "componentSetId": "15:61",
+      "sectionId": "21:14",
+      "variantIds": ["15:28", "15:36", "15:44", "15:53"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=15-61"
+    },
+    "Textarea": {
+      "source": "src/components/ui/Textarea.tsx",
+      "componentSetId": "15:86",
+      "sectionId": "21:15",
+      "variantIds": ["15:69", "15:73", "15:77", "15:82"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=15-86"
+    },
+    "Avatar": {
+      "source": "src/components/ui/Avatar.tsx",
+      "componentSetId": "17:82",
+      "sectionId": "21:8",
+      "variantIds": [
+        "17:3",
+        "17:6",
+        "17:10",
+        "17:13",
+        "17:16",
+        "17:19",
+        "17:22",
+        "17:25",
+        "17:28",
+        "17:31",
+        "17:34",
+        "17:37",
+        "17:40",
+        "17:43",
+        "17:46",
+        "17:49",
+        "17:52",
+        "17:55",
+        "17:58",
+        "17:61",
+        "17:64",
+        "17:67",
+        "17:70",
+        "17:73",
+        "17:76",
+        "17:79"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=17-82"
+    },
+    "Button/secondary": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "18:57",
+      "sectionId": "21:3",
+      "variantIds": [
+        "18:16",
+        "18:19",
+        "18:21",
+        "18:23",
+        "18:25",
+        "18:27",
+        "18:29",
+        "18:31",
+        "18:33",
+        "18:36",
+        "18:39",
+        "18:42",
+        "18:45",
+        "18:48",
+        "18:51",
+        "18:54"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=18-57"
+    },
+    "Button/warning": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "19:45",
+      "sectionId": "21:5",
+      "variantIds": [
+        "19:3",
+        "19:6",
+        "19:8",
+        "19:10",
+        "19:12",
+        "19:14",
+        "19:16",
+        "19:18",
+        "19:20",
+        "19:24",
+        "19:27",
+        "19:30",
+        "19:33",
+        "19:36",
+        "19:39",
+        "19:42"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=19-45"
+    },
+    "Button/danger": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "19:95",
+      "sectionId": "21:6",
+      "variantIds": [
+        "19:53",
+        "19:56",
+        "19:58",
+        "19:60",
+        "19:62",
+        "19:64",
+        "19:66",
+        "19:68",
+        "19:70",
+        "19:74",
+        "19:77",
+        "19:80",
+        "19:83",
+        "19:86",
+        "19:89",
+        "19:92"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=19-95"
+    },
+    "Button/success": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "19:145",
+      "sectionId": "21:4",
+      "variantIds": [
+        "19:103",
+        "19:106",
+        "19:108",
+        "19:110",
+        "19:112",
+        "19:114",
+        "19:116",
+        "19:118",
+        "19:120",
+        "19:124",
+        "19:127",
+        "19:130",
+        "19:133",
+        "19:136",
+        "19:139",
+        "19:142"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=19-145"
+    },
+    "Button/outline": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "22:42",
+      "sectionId": "22:49",
+      "variantIds": [
+        "22:2",
+        "22:4",
+        "22:6",
+        "22:8",
+        "22:10",
+        "22:12",
+        "22:14",
+        "22:16",
+        "22:18",
+        "22:21",
+        "22:24",
+        "22:27",
+        "22:30",
+        "22:33",
+        "22:36",
+        "22:39"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=22-42"
+    },
+    "Button/plain": {
+      "source": "src/components/ui/Button.tsx",
+      "componentSetId": "23:43",
+      "sectionId": "23:50",
+      "variantIds": [
+        "23:2",
+        "23:5",
+        "23:7",
+        "23:9",
+        "23:11",
+        "23:13",
+        "23:15",
+        "23:17",
+        "23:19",
+        "23:22",
+        "23:25",
+        "23:28",
+        "23:31",
+        "23:34",
+        "23:37",
+        "23:40"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-43"
+    },
+    "Toggle/plain": {
+      "source": "src/components/ui/Toggle.tsx",
+      "componentSetId": "23:69",
+      "sectionId": "23:76",
+      "variantIds": [
+        "23:51",
+        "23:55",
+        "23:57",
+        "23:59",
+        "23:61",
+        "23:63",
+        "23:65",
+        "23:67"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-69"
+    },
+    "Toggle/outline": {
+      "source": "src/components/ui/Toggle.tsx",
+      "componentSetId": "23:93",
+      "sectionId": "23:100",
+      "variantIds": [
+        "23:77",
+        "23:79",
+        "23:81",
+        "23:83",
+        "23:85",
+        "23:87",
+        "23:89",
+        "23:91"
+      ],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-93"
+    },
+    "Field": {
+      "source": "src/components/ui/Field.tsx",
+      "componentSetId": "23:105",
+      "sectionId": "23:112",
+      "variantIds": ["23:101", "23:103"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-105"
+    },
+    "Search Field": {
+      "source": "src/components/ui/SearchField.tsx",
+      "componentSetId": "23:135",
+      "sectionId": "23:142",
+      "variantIds": ["23:113", "23:123"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-135"
+    },
+    "Number Field": {
+      "source": "src/components/ui/NumberField.tsx",
+      "componentSetId": "23:175",
+      "sectionId": "23:182",
+      "variantIds": ["23:143", "23:160"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-175"
+    },
+    "Date Field": {
+      "source": "src/components/ui/DateField.tsx",
+      "componentSetId": "23:198",
+      "sectionId": "23:205",
+      "variantIds": ["23:183"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-198"
+    },
+    "Time Field": {
+      "source": "src/components/ui/TimeField.tsx",
+      "componentSetId": "23:220",
+      "sectionId": "23:227",
+      "variantIds": ["23:206"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-220"
+    },
+    "Color Field": {
+      "source": "src/components/ui/ColorField.tsx",
+      "componentSetId": "23:234",
+      "sectionId": "23:241",
+      "variantIds": ["23:228"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=23-234"
+    },
+    "Select": {
+      "source": "src/components/ui/Select.tsx",
+      "componentSetId": "25:13",
+      "sectionId": "25:20",
+      "variantIds": ["25:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=25-13"
+    },
+    "Combo Box": {
+      "source": "src/components/ui/ComboBox.tsx",
+      "componentSetId": "26:12",
+      "sectionId": "26:19",
+      "variantIds": ["26:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=26-12"
+    },
+    "Tag Group": {
+      "source": "src/components/ui/TagGroup.tsx",
+      "componentSetId": "27:22",
+      "sectionId": "27:29",
+      "variantIds": ["27:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=27-22"
+    },
+    "Tag Field": {
+      "source": "src/components/ui/TagField.tsx",
+      "componentSetId": "27:51",
+      "sectionId": "27:58",
+      "variantIds": ["27:30"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=27-51"
+    },
+    "Meter": {
+      "source": "src/components/ui/Meter.tsx",
+      "componentSetId": "27:86",
+      "sectionId": "27:93",
+      "variantIds": ["27:59", "27:68", "27:77"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=27-86"
+    },
+    "Progress Bar": {
+      "source": "src/components/ui/ProgressBar.tsx",
+      "componentSetId": "27:126",
+      "sectionId": "27:133",
+      "variantIds": ["27:94", "27:104", "27:115"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=27-126"
+    },
+    "Progress Circle": {
+      "source": "src/components/ui/ProgressCircle.tsx",
+      "componentSetId": "27:146",
+      "sectionId": "27:153",
+      "variantIds": ["27:134", "27:138", "27:142"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=27-146"
+    },
+    "Slider": {
+      "source": "src/components/ui/Slider.tsx",
+      "componentSetId": "30:25",
+      "sectionId": "30:32",
+      "variantIds": ["30:2", "30:14"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=30-25"
+    },
+    "Note": {
+      "source": "src/components/ui/Note.tsx",
+      "componentSetId": "31:48",
+      "sectionId": "31:55",
+      "variantIds": ["31:2", "31:8", "31:18", "31:28", "31:38"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=31-48"
+    },
+    "Card": {
+      "source": "src/components/ui/Card.tsx",
+      "componentSetId": "31:71",
+      "sectionId": "31:78",
+      "variantIds": ["31:56"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=31-71"
+    },
+    "Calendar": {
+      "source": "src/components/ui/Calendar.tsx",
+      "componentSetId": "33:159",
+      "sectionId": "33:166",
+      "variantIds": ["33:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=33-159"
+    },
+    "Range Calendar": {
+      "source": "src/components/ui/RangeCalendar.tsx",
+      "componentSetId": "34:194",
+      "sectionId": "34:201",
+      "variantIds": ["34:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=34-194"
+    },
+    "Breadcrumbs": {
+      "source": "src/components/ui/Breadcrumbs.tsx",
+      "componentSetId": "34:234",
+      "sectionId": "34:241",
+      "variantIds": ["34:202", "34:218"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=34-234"
+    },
+    "Grid List": {
+      "source": "src/components/ui/GridList.tsx",
+      "componentSetId": "34:291",
+      "sectionId": "34:298",
+      "variantIds": ["34:263"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=34-291"
+    },
+    "Choice Box": {
+      "source": "src/components/ui/ChoiceBox.tsx",
+      "componentSetId": "35:16",
+      "sectionId": "35:23",
+      "variantIds": ["35:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=35-16"
+    },
+    "Disclosure Group": {
+      "source": "src/components/ui/DisclosureGroup.tsx",
+      "componentSetId": "35:46",
+      "sectionId": "35:53",
+      "variantIds": ["35:24"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=35-46"
+    },
+    "Text": {
+      "source": "src/components/ui/Text.tsx",
+      "componentSetId": "35:80",
+      "sectionId": "35:87",
+      "variantIds": ["35:74", "35:76", "35:78"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=35-80"
+    },
+    "Link": {
+      "source": "src/components/ui/Link.tsx",
+      "componentSetId": "35:90",
+      "sectionId": "35:97",
+      "variantIds": ["35:88"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=35-90"
+    },
+    "Keyboard": {
+      "source": "src/components/ui/Keyboard.tsx",
+      "componentSetId": "37:5",
+      "sectionId": "37:12",
+      "variantIds": ["37:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-5"
+    },
+    "Separator": {
+      "source": "src/components/ui/Separator.tsx",
+      "componentSetId": "37:14",
+      "sectionId": "37:21",
+      "variantIds": ["37:13"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-14"
+    },
+    "Skeleton": {
+      "source": "src/components/ui/Skeleton.tsx",
+      "componentSetId": "37:40",
+      "sectionId": "37:47",
+      "variantIds": ["37:32", "37:38"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-40"
+    },
+    "Show More": {
+      "source": "src/components/ui/ShowMore.tsx",
+      "componentSetId": "37:51",
+      "sectionId": "37:58",
+      "variantIds": ["37:48"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-51"
+    },
+    "Description List": {
+      "source": "src/components/ui/DescriptionList.tsx",
+      "componentSetId": "37:68",
+      "sectionId": "37:75",
+      "variantIds": ["37:59"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-68"
+    },
+    "Button Group": {
+      "source": "src/components/ui/ButtonGroup.tsx",
+      "componentSetId": "37:83",
+      "sectionId": "37:90",
+      "variantIds": ["37:76"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-83"
+    },
+    "Toggle Group": {
+      "source": "src/components/ui/ToggleGroup.tsx",
+      "componentSetId": "37:100",
+      "sectionId": "37:107",
+      "variantIds": ["37:91"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-100"
+    },
+    "Tracker": {
+      "source": "src/components/ui/Tracker.tsx",
+      "componentSetId": "37:158",
+      "sectionId": "37:165",
+      "variantIds": ["37:108"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-158"
+    },
+    "Bar List": {
+      "source": "src/components/ui/BarList.tsx",
+      "componentSetId": "37:194",
+      "sectionId": "37:201",
+      "variantIds": ["37:166"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-194"
+    },
+    "Leaderboard": {
+      "source": "src/components/ui/Leaderboard.tsx",
+      "componentSetId": "37:235",
+      "sectionId": "37:242",
+      "variantIds": ["37:202"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-235"
+    },
+    "Color Swatch": {
+      "source": "src/components/ui/ColorSwatch.tsx",
+      "componentSetId": "37:248",
+      "sectionId": "37:255",
+      "variantIds": ["37:243", "37:246", "37:247"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-248"
+    },
+    "Color Swatch Picker": {
+      "source": "src/components/ui/ColorSwatchPicker.tsx",
+      "componentSetId": "37:268",
+      "sectionId": "37:275",
+      "variantIds": ["37:256"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=37-268"
+    },
+    "Color Area": {
+      "source": "src/components/ui/ColorArea.tsx",
+      "componentSetId": "39:6",
+      "sectionId": "39:13",
+      "variantIds": ["39:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=39-6"
+    },
+    "Color Wheel": {
+      "source": "src/components/ui/ColorWheel.tsx",
+      "componentSetId": "39:20",
+      "sectionId": "39:27",
+      "variantIds": ["39:14"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=39-20"
+    },
+    "Color Slider": {
+      "source": "src/components/ui/ColorSlider.tsx",
+      "componentSetId": "41:17",
+      "sectionId": "41:24",
+      "variantIds": ["41:6"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=41-17"
+    },
+    "Table": {
+      "source": "src/components/ui/Table.tsx",
+      "componentSetId": "42:38",
+      "sectionId": "42:45",
+      "variantIds": ["42:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=42-38"
+    },
+    "Date Picker": {
+      "source": "src/components/ui/DatePicker.tsx",
+      "componentSetId": "42:65",
+      "sectionId": "42:72",
+      "variantIds": ["42:46"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=42-65"
+    },
+    "Date Range Picker": {
+      "source": "src/components/ui/DateRangePicker.tsx",
+      "componentSetId": "42:105",
+      "sectionId": "42:112",
+      "variantIds": ["42:73"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=42-105"
+    },
+    "Multiple Select": {
+      "source": "src/components/ui/MultipleSelect.tsx",
+      "componentSetId": "42:130",
+      "sectionId": "42:137",
+      "variantIds": ["42:113"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=42-130"
+    },
+    "Input OTP": {
+      "source": "src/components/ui/InputOtp.tsx",
+      "componentSetId": "42:165",
+      "sectionId": "42:172",
+      "variantIds": ["42:138"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=42-165"
+    },
+    "Tabs": {
+      "source": "src/components/ui/Tabs.tsx",
+      "componentSetId": "43:13",
+      "sectionId": "43:20",
+      "variantIds": ["43:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=43-13"
+    },
+    "Snippet": {
+      "source": "src/components/ui/Snippet.tsx",
+      "componentSetId": "43:38",
+      "sectionId": "43:45",
+      "variantIds": ["43:21"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=43-38"
+    },
+    "Toolbar": {
+      "source": "src/components/ui/Toolbar.tsx",
+      "componentSetId": "43:55",
+      "sectionId": "43:62",
+      "variantIds": ["43:46"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=43-55"
+    },
+    "Pagination": {
+      "source": "src/components/ui/Pagination.tsx",
+      "componentSetId": "43:85",
+      "sectionId": "43:92",
+      "variantIds": ["43:63"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=43-85"
+    },
+    "File Trigger": {
+      "source": "src/components/ui/FileTrigger.tsx",
+      "componentSetId": "44:6",
+      "sectionId": "44:13",
+      "variantIds": ["44:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=44-6"
+    },
+    "Drop Zone": {
+      "source": "src/components/ui/DropZone.tsx",
+      "componentSetId": "44:22",
+      "sectionId": "44:29",
+      "variantIds": ["44:14"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=44-22"
+    },
+    "Container": {
+      "source": "src/components/ui/Container.tsx",
+      "componentSetId": "44:33",
+      "sectionId": "44:40",
+      "variantIds": ["44:30"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=44-33"
+    },
+    "Scroll Area": {
+      "source": "src/components/ui/ScrollArea.tsx",
+      "componentSetId": "44:56",
+      "sectionId": "44:63",
+      "variantIds": ["44:41"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=44-56"
+    },
+    "Carousel": {
+      "source": "src/components/ui/Carousel.tsx",
+      "componentSetId": "44:83",
+      "sectionId": "44:90",
+      "variantIds": ["44:64"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=44-83"
+    },
+    "Navbar": {
+      "source": "src/components/ui/Navbar.tsx",
+      "componentSetId": "47:19",
+      "sectionId": "47:26",
+      "variantIds": ["47:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=47-19"
+    },
+    "Sidebar": {
+      "source": "src/components/ui/Sidebar.tsx",
+      "componentSetId": "49:27",
+      "sectionId": "49:34",
+      "variantIds": ["49:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=49-27"
+    },
+    "Bar Chart": {
+      "source": "src/components/ui/BarChart.tsx",
+      "componentSetId": "50:99",
+      "sectionId": "50:106",
+      "variantIds": ["50:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=50-99"
+    },
+    "Line Chart": {
+      "source": "src/components/ui/LineChart.tsx",
+      "componentSetId": "50:174",
+      "sectionId": "50:181",
+      "variantIds": ["50:107"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=50-174"
+    },
+    "Area Chart": {
+      "source": "src/components/ui/AreaChart.tsx",
+      "componentSetId": "50:253",
+      "sectionId": "50:260",
+      "variantIds": ["50:182"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=50-253"
+    },
+    "Pie Chart": {
+      "source": "src/components/ui/PieChart.tsx",
+      "componentSetId": "50:312",
+      "sectionId": "50:319",
+      "variantIds": ["50:261", "50:286"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=50-312"
+    },
+    "Dialog": {
+      "source": "src/components/ui/Dialog.tsx",
+      "componentSetId": "50:339",
+      "sectionId": "50:346",
+      "variantIds": ["50:320"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=50-339"
+    },
+    "Modal": {
+      "source": "src/components/ui/Modal.tsx",
+      "componentSetId": "52:27",
+      "sectionId": "52:34",
+      "variantIds": ["52:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=52-27"
+    },
+    "Drawer": {
+      "source": "src/components/ui/Drawer.tsx",
+      "componentSetId": "53:16",
+      "sectionId": "53:23",
+      "variantIds": ["53:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=53-16"
+    },
+    "Popover": {
+      "source": "src/components/ui/Popover.tsx",
+      "componentSetId": "53:40",
+      "sectionId": "53:47",
+      "variantIds": ["53:24"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=53-40"
+    },
+    "Tooltip": {
+      "source": "src/components/ui/Tooltip.tsx",
+      "componentSetId": "53:55",
+      "sectionId": "53:62",
+      "variantIds": ["53:48"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=53-55"
+    },
+    "Preview": {
+      "source": "src/components/ui/Preview.tsx",
+      "componentSetId": "55:10",
+      "sectionId": "55:17",
+      "variantIds": ["55:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=55-10"
+    },
+    "Menu": {
+      "source": "src/components/ui/Menu.tsx",
+      "componentSetId": "56:18",
+      "sectionId": "56:25",
+      "variantIds": ["56:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=56-18"
+    },
+    "Command Menu": {
+      "source": "src/components/ui/CommandMenu.tsx",
+      "componentSetId": "56:54",
+      "sectionId": "56:61",
+      "variantIds": ["56:26"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=56-54"
+    },
+    "Color Picker": {
+      "source": "src/components/ui/ColorPicker.tsx",
+      "componentSetId": "57:26",
+      "sectionId": "57:33",
+      "variantIds": ["57:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=57-26"
+    },
+    "Context Menu": {
+      "source": "src/components/ui/ContextMenu.tsx",
+      "componentSetId": "58:18",
+      "sectionId": "58:25",
+      "variantIds": ["58:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=58-18"
+    },
+    "Toast": {
+      "source": "src/components/ui/Toast.tsx",
+      "componentSetId": "59:49",
+      "sectionId": "59:56",
+      "variantIds": ["59:2", "59:9", "59:19", "59:29", "59:39"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=59-49"
+    },
+    "Sheet": {
+      "source": "src/components/ui/Sheet.tsx",
+      "componentSetId": "61:18",
+      "sectionId": "61:25",
+      "variantIds": ["61:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=61-18"
+    },
+    "Native Select": {
+      "source": "src/components/ui/NativeSelect.tsx",
+      "componentSetId": "63:18",
+      "sectionId": "63:25",
+      "variantIds": ["63:2", "63:10"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=63-18"
+    },
+    "Heading": {
+      "source": "src/components/ui/Heading.tsx",
+      "componentSetId": "63:59",
+      "sectionId": "63:66",
+      "variantIds": ["63:51", "63:53", "63:55", "63:57"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=63-59"
+    },
+    "Tree": {
+      "source": "src/components/ui/Tree.tsx",
+      "componentSetId": "67:23",
+      "sectionId": "67:30",
+      "variantIds": ["67:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=67-23"
+    },
+    "List Box": {
+      "source": "src/components/ui/ListBox.tsx",
+      "componentSetId": "69:14",
+      "sectionId": "69:21",
+      "variantIds": ["69:2"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=69-14"
+    },
+    "Icons": {
+      "source": "@heroicons/react",
+      "componentSetId": "74:14",
+      "sectionId": "74:21",
+      "variantIds": ["74:2", "74:5", "74:8", "74:11"],
+      "url": "https://www.figma.com/design/GKcLMKxdpBxMcSGL8iAdxV?node-id=74-14"
+    }
+  }
+}

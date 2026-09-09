@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.convex/
+.agents/
+.claude/
+convex/_generated/
+package-lock.json
+skills-lock.json
