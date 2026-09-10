@@ -2,7 +2,9 @@
 
 Working document for discussion. This is not an implementation specification.
 
-See [User journeys](journeys.md) for detailed journey mapping.
+See [User journeys](journeys.md) for detailed journey mapping and
+[Provisional domain vocabulary](vocabulary.md) for candidate concepts and open
+modeling questions.
 
 ## Where we are
 

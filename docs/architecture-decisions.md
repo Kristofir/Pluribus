@@ -6,6 +6,19 @@ package versions belong in `package.json`.
 [Application architecture](architecture.md) defines the current implementation
 contract. This log records its rationale and consequential changes.
 
+## Frontend and backend workspaces
+
+- **Status:** Accepted
+- **Date:** 2026-09-09
+- **Decision:** Use npm workspaces for `apps/frontend` and `apps/backend`, with
+  separate dependencies and configuration and one root lockfile.
+- **Why:** Make application ownership explicit while keeping coordinated development
+  and Convex's generated TypeScript contract.
+- **Boundary:** The backend package exports generated client bindings and data-model
+  types only. Existing dependency checks still prohibit importing backend
+  implementations into the frontend. Reserve `packages/core` for real business
+  logic; no empty package or additional build orchestrator is needed.
+
 ## Hexagonal architecture and Clean Code
 
 - **Status:** Accepted
@@ -91,10 +104,14 @@ contract. This log records its rationale and consequential changes.
 
 ## Authentication
 
-- **Status:** Proposed
-- **Date:** 2026-09-04
-- **Decision:** Use Convex Auth with Google OAuth for a minimal sign-in flow.
-- **Why:** It keeps this Vite application self-contained and avoids building
-  password management.
+- **Status:** Accepted; Google OAuth configuration and live round-trip verification pending
+- **Date:** 2026-09-09
+- **Decision:** Use Convex Auth v1 with Google OAuth for a minimal sign-in flow.
+  Use its application-schema tables, not the v2 component API.
+- **Why:** The product lead selected v1 for the hackathon. Google follows the
+  existing sign-in proposal and avoids building password management.
 - **Boundary:** Authentication proves identity; Convex functions must still enforce
   authorization. Reconsider WorkOS if durable organizations become central.
+  Authentication remains in frontend/backend adapters, with no core auth framework.
+  The frontend handles callback codes explicitly to display recoverable failures
+  without repeating the exchange under React StrictMode.

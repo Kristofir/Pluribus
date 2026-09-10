@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import App from "./App";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toast } from "@/components/ui/Toast";
@@ -13,9 +14,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
       {client ? (
-        <ConvexProvider client={client}>
+        <ConvexAuthProvider client={client} shouldHandleCode={false}>
           <App />
-        </ConvexProvider>
+        </ConvexAuthProvider>
       ) : (
         <main className="scaffold">
           <h1>Project scaffold</h1>

@@ -8,11 +8,11 @@
 - **Frontend:** Convex static hosting
 - **Convex deployment:** not deployed
 - **Components:** none
-- **Convex features:** empty schema, query, realtime client connection
-- **Auth:** none
+- **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime client connection
+- **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-09T06:07:28Z
+- **Last updated:** 2026-09-09T20:35:11Z
 
 ## Log
 
@@ -75,3 +75,37 @@ Architecture checks scanned 98 source files; all 24 tests and the build passed.
 The full check reaches formatting and fails on 92 pre-existing research files,
 which were left unchanged. The build also reports unresolved texture-asset warnings.
 No product APIs, tables, integrations, deployment, commit, or push were added.
+
+### 2026-09-09 - working tree - authentication
+
+Integrated Convex Auth v1 with Google, account controls, callback error recovery,
+and an identity-derived current-user query. Pinned patched auth dependencies.
+The local backend accepted the schema and functions; type checks, 27 tests,
+build, auth discovery endpoints, and browser failure-state checks passed.
+Google client configuration and a successful sign-in/sign-out remain pending.
+The existing 92 research formatting failures and texture warnings remain;
+no cloud deployment, commit, or push was performed.
+
+### 2026-09-09 - working tree - frontend and backend workspaces
+
+Separated React/Vite and Convex into `apps/frontend` and `apps/backend`, each with
+its own dependencies and configuration, coordinated by npm workspaces and one lockfile.
+Preserved the existing auth implementation and moved local backend state intact.
+Updated architecture checks, client package exports, development commands, and design references.
+All 28 tests, type checks, frontend build, local Convex setup, browser connection,
+and the design gallery passed. Full formatting still flags 92 existing research files.
+Google OAuth configuration remains pending; no cloud deployment, commit, or push.
+
+### 2026-09-09 - working tree - Google OAuth verified locally
+
+Configured the Google consent screen, a local web OAuth client, and test-user access.
+Installed client credentials only on the local Convex backend and removed temporary credential files.
+Chrome verified Google sign-in, the authenticated callback, reload and second-tab
+persistence, and sign-out across both tabs. Second-account and long-lived renewal
+checks remain pending; no application deployment, commit, or push was performed.
+
+### 2026-09-09 - working tree - provisional vocabulary
+
+Captured six provisional domain concepts, their working meanings, and open questions
+in `docs/research/vocabulary.md`, linked from the product notes. Added a discussion
+record for future decisions; no domain entities or product behavior were implemented.

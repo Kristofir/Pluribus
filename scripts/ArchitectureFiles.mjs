@@ -8,7 +8,10 @@ export function sourceFiles(directory) {
   if (!existsSync(directory)) return [];
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
-    if (entry.name === "node_modules" || path === join("convex", "_generated"))
+    if (
+      entry.name === "node_modules" ||
+      path === join("apps", "backend", "convex", "_generated")
+    )
       return [];
     if (entry.isDirectory()) return sourceFiles(path);
     return /\.[cm]?[jt]sx?$/.test(entry.name) ? [path] : [];

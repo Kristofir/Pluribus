@@ -13,11 +13,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["core/**/*"],
+  "include": ["packages/core/**/*"],
   "exclude": [
-    "core/**/*.test.*",
-    "core/**/*.spec.*",
-    "core/**/__tests__/**",
-    "core/**/test-support/**"
+    "packages/core/**/*.test.*",
+    "packages/core/**/*.spec.*",
+    "packages/core/**/__tests__/**",
+    "packages/core/**/test-support/**"
   ]
 }

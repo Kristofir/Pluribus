@@ -1,20 +1,26 @@
 import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
+  root: fileURLToPath(new URL(".", import.meta.url)),
   test: {
     projects: [
       {
         test: {
           name: "core",
           environment: "node",
-          include: ["core/**/*.{test,spec}.{ts,tsx,mts,cts,js,mjs,cjs}"],
+          include: [
+            "packages/core/**/*.{test,spec}.{ts,tsx,mts,cts,js,mjs,cjs}",
+          ],
         },
       },
       {
         test: {
           name: "backend",
           environment: "edge-runtime",
-          include: ["convex/**/*.{test,spec}.{ts,tsx,mts,cts,js,mjs,cjs}"],
+          include: [
+            "apps/backend/convex/**/*.{test,spec}.{ts,tsx,mts,cts,js,mjs,cjs}",
+          ],
         },
       },
       {

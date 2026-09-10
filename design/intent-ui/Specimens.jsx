@@ -9,12 +9,15 @@ import {
   Cog6ToothIcon,
 } from "@heroicons/react/20/solid";
 import { toast } from "sonner";
-import { ThemeProvider } from "../../src/components/ThemeProvider";
-import "../../src/Styles.css";
+import { ThemeProvider } from "../../apps/frontend/src/components/ThemeProvider";
+import "../../apps/frontend/src/Styles.css";
 
-const modules = import.meta.glob("../../src/components/ui/*.tsx", {
-  eager: true,
-});
+const modules = import.meta.glob(
+  "../../apps/frontend/src/components/ui/*.tsx",
+  {
+    eager: true,
+  },
+);
 const U = Object.assign({}, ...Object.values(modules));
 const fixtures = {};
 const selectedFamily = new URLSearchParams(location.search).get("family");

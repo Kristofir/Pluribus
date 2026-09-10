@@ -2,7 +2,9 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { sourceFiles, testPath } from "./ArchitectureFiles.mjs";
 
-const files = sourceFiles("core").filter((file) => !testPath.test(file));
+const files = sourceFiles("packages/core").filter(
+  (file) => !testPath.test(file),
+);
 if (!files.length) {
   console.log(
     "Core typecheck: no production core files yet; skipping empty compilation.",

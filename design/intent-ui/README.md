@@ -32,10 +32,10 @@ on an Organization or Enterprise plan.
 
 ## Local reference gallery
 
-Run `npm run dev:frontend`, then open:
+Run `npm run dev:design`, then open:
 
 ```
-http://127.0.0.1:5173/design/intent-ui/index.html?family=Button%2Fprimary
+http://127.0.0.1:5175/design/intent-ui/index.html?family=Button%2Fprimary
 ```
 
 The gallery renders the actual installed React components. `Specimens.jsx`

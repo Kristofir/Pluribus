@@ -1,7 +1,8 @@
 import { useConvexConnectionState, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
+import { api } from "@pluribus/backend/api";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
+import { AuthPanel } from "@/features/auth/AuthPanel";
 
 export default function App() {
   const health = useQuery(api.Health.check);
@@ -24,6 +25,7 @@ export default function App() {
           <p className="text-muted-fg">
             Framework only. No product features yet.
           </p>
+          <AuthPanel />
         </CardContent>
       </Card>
     </main>

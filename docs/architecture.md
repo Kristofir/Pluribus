@@ -5,10 +5,18 @@ The app is currently a framework scaffold; the layout below applies as features
 arrive. Create directories only when they contain real code.
 
 See [Architecture decisions](architecture-decisions.md) for rationale and decision
-status. Routing, authentication provider, collaboration and canvas behavior, AI
+status. Routing, collaboration and canvas behavior, AI
 responsibilities, and production deployment remain unresolved or unimplemented.
+Convex Auth v1 with Google is integrated; see [Authentication](authentication.md)
+for configuration and the remaining live verification.
 
 ## Boundaries
+
+The repository uses npm workspaces: `apps/frontend` owns React/Vite and
+`apps/backend` owns Convex. Each app has its own package and environment files;
+the root owns the lockfile and coordinating commands. The backend exports only
+`@pluribus/backend/api` and type-only `@pluribus/backend/dataModel` to consumers.
+The future `packages/core` remains framework-independent and is not yet a package.
 
 Use hexagonal architecture: the core owns business behavior and the interfaces
 it needs; adapters connect that behavior to technology. Use plain functions and
@@ -25,14 +33,14 @@ flowchart LR
   A --> D
 ```
 
-| Area                    | Location                                             | Owns                                                          |
-| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
-| Domain                  | `core/<feature>/domain/`                             | Business concepts, invariants, pure decisions                 |
-| Application             | `core/<feature>/application/`                        | Use cases and narrow port interfaces                          |
-| Backend adapters        | `convex/<feature>/`                                  | Endpoints, persistence, identity integration, service calls   |
-| Frontend                | `src/features/<feature>/`                            | Components, integration hooks, interactions, transient stores |
-| Shared domain utilities | `core/shared/`, only when needed                     | Pure concepts with a specific shared responsibility           |
-| Shared UI               | Existing `src/components/`, `src/hooks/`, `src/lib/` | Reusable presentation code                                    |
+| Area                    | Location                                                                                       | Owns                                                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Domain                  | `packages/core/<feature>/domain/`                                                              | Business concepts, invariants, pure decisions                 |
+| Application             | `packages/core/<feature>/application/`                                                         | Use cases and narrow port interfaces                          |
+| Backend adapters        | `apps/backend/convex/<feature>/`                                                               | Endpoints, persistence, identity integration, service calls   |
+| Frontend                | `apps/frontend/src/features/<feature>/`                                                        | Components, integration hooks, interactions, transient stores |
+| Shared domain utilities | `packages/core/shared/`, only when needed                                                      | Pure concepts with a specific shared responsibility           |
+| Shared UI               | Existing `apps/frontend/src/components/`, `apps/frontend/src/hooks/`, `apps/frontend/src/lib/` | Reusable presentation code                                    |
 
 - Domain code depends only on domain code and pure shared utilities. Application
   code depends on domain code and core-owned interfaces.
@@ -109,6 +117,12 @@ keep storage metadata and provider-specific representations outside the core.
 
 ## Effects and state
 
+Authentication is an adapter concern. Convex Auth v1 owns its schema tables,
+OAuth exchange, and session lifecycle. The frontend uses `ConvexAuthProvider`;
+backend reads derive the user with `getAuthUserId`, never a caller-supplied ID.
+Auth internals remain outside the core. A signed-in user is not automatically
+authorized for future workspace data; each feature must enforce its access rules.
+
 The core receives time and randomness as explicit values or dependencies; it does
 not read a clock, generate randomness, access the environment, or perform I/O.
 Transaction retries must not repeat external effects.
@@ -136,8 +150,8 @@ state when identity or workspace changes.
 
 ## Enforcement and verification
 
-`npm run check:architecture` scans every authored source file under `src`, `convex`,
-and `core`, including unreachable files. Dependency-cruiser checks type-only imports
+`npm run check:architecture` scans every authored source file under `apps/frontend/src`, `apps/backend/convex`,
+and `packages/core`, including unreachable files. Dependency-cruiser checks type-only imports
 for boundaries and uses a separate runtime graph for cycles. Type-only cycles are
 allowed. It checks edges into generated bindings but stops at generated internals.
 

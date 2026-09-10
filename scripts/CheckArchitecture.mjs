@@ -3,7 +3,11 @@ import ts from "typescript";
 import config, { runtimeRules } from "../.dependency-cruiser.mjs";
 import { sourceFiles, testPath } from "./ArchitectureFiles.mjs";
 
-const files = ["src", "convex", "core"].flatMap(sourceFiles);
+const files = [
+  "apps/frontend/src",
+  "apps/backend/convex",
+  "packages/core",
+].flatMap(sourceFiles);
 const read = ts.readConfigFile("tsconfig.json", ts.sys.readFile);
 if (read.error)
   throw new Error(

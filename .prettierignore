@@ -4,6 +4,6 @@ coverage/
 .convex/
 .agents/
 .claude/
-convex/_generated/
+apps/backend/convex/_generated/
 package-lock.json
 skills-lock.json
