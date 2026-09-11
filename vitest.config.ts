@@ -7,6 +7,13 @@ export default defineConfig({
     projects: [
       {
         test: {
+          name: "frontend",
+          environment: "node",
+          include: ["apps/frontend/src/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "core",
           environment: "node",
           include: [

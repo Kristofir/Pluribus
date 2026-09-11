@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-09T20:35:11Z
+- **Last updated:** 2026-09-11T08:08:34Z
 
 ## Log
 
@@ -109,3 +109,11 @@ checks remain pending; no application deployment, commit, or push was performed.
 Captured six provisional domain concepts, their working meanings, and open questions
 in `docs/research/vocabulary.md`, linked from the product notes. Added a discussion
 record for future decisions; no domain entities or product behavior were implemented.
+
+### 2026-09-11 - working tree - typed frontend routing
+
+Added TanStack Router with a code-defined typed route tree and an inline agent style guide.
+The home route validates auth search values; unknown URLs offer a typed return link.
+OAuth callback codes retain their exact string value, with regression coverage for numeric codes.
+Browser checks verified navigation, back/forward, callback cleanup, Google sign-in,
+reload persistence, and sign-out. No deployment, commit, or push was performed.

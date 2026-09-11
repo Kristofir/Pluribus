@@ -46,7 +46,9 @@ with `npm run dev:frontend -- --port 5174`. If you change the port, update
 ## Behavior and verification
 
 `ConvexAuthProvider` owns token storage and renewal. `AuthPanel` handles callback
-codes once, removes auth query parameters, and displays loading and retry states.
+codes once, removes auth query parameters through TanStack replacement navigation,
+and displays loading and retry states. The router preserves opaque callback codes
+as strings before validating search input, including numeric-looking codes.
 The current-user query derives identity server-side and returns only the caller's
 name and email. No user listing or workspace permissions are exposed.
 

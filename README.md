@@ -26,6 +26,13 @@ The frontend runs at http://127.0.0.1:5173. `npm run dev` starts both developmen
 processes; Ctrl+C stops both. They can also run separately using
 `npm run dev:frontend` and `npm run dev:backend`.
 
+## Routing
+
+TanStack Router defines the typed route tree in `apps/frontend/src/Router.tsx`.
+Its inline style guide covers adding routes, typed navigation, URL validation,
+auth callbacks, and Convex boundaries. Currently `/` renders the scaffold; unknown
+paths show a recovery link. The deployment host must serve `index.html` for deep links.
+
 ## UI components
 
 Intent UI components live in `apps/frontend/src/components/ui/` as editable source. Tailwind CSS
@@ -58,7 +65,7 @@ npm run build
 ```
 
 `check` runs dependency-boundary checks, frontend/backend and isolated core
-type-checking, tests, then formatting. Tests have separate Node core and architecture
+type-checking, tests, then formatting. Tests have separate Node frontend, core, and architecture
 projects and an edge-runtime backend project. An empty core is explicitly skipped
 by its compiler, while architecture fixtures still run.
 

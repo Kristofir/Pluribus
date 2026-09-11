@@ -5,7 +5,7 @@ The app is currently a framework scaffold; the layout below applies as features
 arrive. Create directories only when they contain real code.
 
 See [Architecture decisions](architecture-decisions.md) for rationale and decision
-status. Routing, collaboration and canvas behavior, AI
+status. Collaboration and canvas behavior, AI
 responsibilities, and production deployment remain unresolved or unimplemented.
 Convex Auth v1 with Google is integrated; see [Authentication](authentication.md)
 for configuration and the remaining live verification.
@@ -114,6 +114,14 @@ Use generated API types for frontend contracts and read projections. Introduce
 core-owned types only for business behavior. Preserve distinct identifier types in
 the core; localize validated conversions to adapters. Map only needed fields and
 keep storage metadata and provider-specific representations outside the core.
+
+## Routing
+
+TanStack Router uses an explicit typed tree in `apps/frontend/src/Router.tsx`.
+Read its inline style guide before adding routes. Use typed links/navigation and
+route-owned search validators; avoid raw browser history updates. Components use
+`getRouteApi` to avoid importing the router back into its own page dependencies.
+Convex subscriptions and authorization remain outside the routing layer.
 
 ## Effects and state
 

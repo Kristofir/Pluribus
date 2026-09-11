@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from "react";
+import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@pluribus/backend/api";
 import { Button } from "@/components/ui/Button";
 
+const homeRoute = getRouteApi("/");
+
 export function AuthPanel() {
+  const search = homeRoute.useSearch();
+  const navigate = homeRoute.useNavigate();
+  const router = useRouter();
   const { signIn, signOut } = useAuthActions();
   const { isLoading, isAuthenticated } = useConvexAuth();
   const user = useQuery(api.Users.current, isAuthenticated ? {} : "skip");
-  const [callback] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return { code: params.get("code"), returned: params.has("authReturn") };
-  });
+  const [callback] = useState(() => ({
+    code: search.code,
+    returned: search.authReturn,
+  }));
   const [exchangingCode, setExchangingCode] = useState(Boolean(callback.code));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(
@@ -26,10 +32,15 @@ export function AuthPanel() {
     callbackStarted.current = true;
     if (!callback.code && !callback.returned) return;
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete("code");
-    url.searchParams.delete("authReturn");
-    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        code: undefined,
+        authReturn: undefined,
+      }),
+      hash: true,
+      replace: true,
+    });
 
     // Handle the exchange here so expired codes show a recoverable error.
     // The ref prevents duplicate exchanges under React StrictMode.
@@ -42,13 +53,17 @@ export function AuthPanel() {
         .catch(() => setError("Couldn’t complete sign-in. Please try again."))
         .finally(() => setExchangingCode(false));
     }
-  }, [callback, signIn]);
+  }, [callback, navigate, signIn]);
 
   async function startSignIn() {
     setError(null);
     setPending(true);
     try {
-      const result = await signIn("google", { redirectTo: "/?authReturn=1" });
+      const redirectTo = router.buildLocation({
+        to: "/",
+        search: { authReturn: true },
+      }).href;
+      const result = await signIn("google", { redirectTo });
       if (!result.redirect && !result.signingIn) {
         setError("Couldn’t start Google sign-in. Please try again.");
       }

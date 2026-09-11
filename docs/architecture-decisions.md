@@ -95,12 +95,16 @@ contract. This log records its rationale and consequential changes.
 
 ## Routing
 
-- **Status:** Proposed
-- **Date:** 2026-09-04
-- **Decision:** Use TanStack Router with file-based routes.
-- **Why:** Typed paths and validated search parameters suit a larger application
-  with shareable view state.
-- **Revisit when:** The first route tree is defined.
+- **Status:** Accepted
+- **Date:** 2026-09-11
+- **Decision:** Use TanStack Router with a code-defined typed route tree in
+  `apps/frontend/src/Router.tsx`; its inline comment is the routing style guide.
+- **Why:** Typed paths and validated search parameters support shareable view
+  state. An explicit tree keeps the current scaffold small and reviewable. This
+  supersedes the earlier file-based proposal; revisit generation as routes grow.
+- **Boundary:** Routing owns navigation, layouts, and validated URL state. Convex
+  retains reactive data and authorization. OAuth cleanup uses router replacement
+  navigation. Hosts must serve the SPA entry point for application deep links.
 
 ## Authentication
 

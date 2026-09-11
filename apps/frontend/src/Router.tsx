@@ -1,0 +1,84 @@
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Link,
+  Outlet,
+} from "@tanstack/react-router";
+import App from "./App";
+import { parseAuthSearch } from "./features/auth/ParseAuthSearch";
+
+/**
+ * Routing style guide for future agents
+ *
+ * - This is the frontend's code-defined route tree. Register each route beneath
+ *   its actual parent with getParentRoute and addChildren. Keep inferred types;
+ *   do not widen routes to AnyRoute or cast navigation targets to bypass checks.
+ * - Keep route configuration here and page UI in feature modules. Split route
+ *   definitions when needed; feature components use getRouteApi("/route") rather
+ *   than importing this router (which would create a runtime import cycle).
+ * - Use TanStack Link for internal links and route-scoped useNavigate for actions.
+ *   Pass literal `to` paths and typed `params`/`search`, not interpolated URLs.
+ *   Use ordinary anchors for external links. buildLocation produces typed URLs
+ *   when an external API, such as OAuth redirectTo, requires a string.
+ * - Validate untrusted search values at their owning route with validateSearch.
+ *   Return an explicit shape and sensible defaults; never cast raw URL input.
+ *   Path params identify resources; search holds shareable view state. Ephemeral
+ *   interaction state stays in React/Zustand. Never put secrets in URLs.
+ * - Change URLs through the router, not window.history. Use replace for cleanup
+ *   (especially one-time OAuth codes), and push for user navigation. Preserve
+ *   unrelated validated search state and hashes when updating part of a URL.
+ * - Convex owns reactive data and server authorization. Route guards improve UX
+ *   but are not a security boundary. Do not duplicate subscriptions in a router
+ *   cache or introduce loaders unless navigation genuinely needs them.
+ * - Add only real routes, with nested layouts using Outlet. Keep the global
+ *   not-found recovery usable. Hosting must serve index.html for app deep links.
+ * - Verify direct URLs, back/forward, unknown paths, malformed search, and auth
+ *   callbacks when changing routing. The Register augmentation below makes Link,
+ *   navigation and route hooks check against this exact tree application-wide.
+ */
+const rootRoute = createRootRoute({
+  component: Outlet,
+  notFoundComponent: () => (
+    <main className="scaffold">
+      <h1>Page not found</h1>
+      <Link to="/" search={{}}>
+        Return home
+      </Link>
+    </main>
+  ),
+});
+
+const homeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): {
+    code?: string;
+    authReturn?: boolean;
+  } => ({
+    code:
+      typeof search.code === "string" && search.code.length > 0
+        ? search.code
+        : undefined,
+    authReturn:
+      search.authReturn === true ||
+      search.authReturn === 1 ||
+      search.authReturn === "1"
+        ? true
+        : undefined,
+  }),
+  component: App,
+});
+
+export const router = createRouter({
+  routeTree: rootRoute.addChildren([homeRoute]),
+  parseSearch: parseAuthSearch,
+});
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
