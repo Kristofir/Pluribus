@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-11T08:08:34Z
+- **Last updated:** 2026-09-14T22:47:30Z
 
 ## Log
 
@@ -117,3 +117,24 @@ The home route validates auth search values; unknown URLs offer a typed return l
 OAuth callback codes retain their exact string value, with regression coverage for numeric codes.
 Browser checks verified navigation, back/forward, callback cleanup, Google sign-in,
 reload persistence, and sign-out. No deployment, commit, or push was performed.
+
+### 2026-09-14 - working tree - shared canvas model
+
+Recorded entity hierarchy and element-kind diagrams in `docs/research/canvas-model.md`,
+linked from the vocabulary and architecture contract. Distinguished canvas placement
+from editable content, and agreed direction from proposed relationships and element
+kinds. Added the Web source element, dated page captures, and prompt-based extraction
+results as working concepts. This is documentation only; no product schema,
+synchronization, or Firecrawl integration was implemented.
+Architecture checks, type checks, 31 tests, and the build passed. The full check
+stopped on unrelated formatting in `convex/_generated/ai/guidelines.md`.
+
+### 2026-09-14 - working tree - prototype register
+
+Added `docs/research/prototypes.md` with a staged content-anchoring experiment,
+expected evidence, and candidate experiments for human/AI edits, dependencies,
+web captures, and canvas sessions. Prioritized a two-client rectangle canvas as
+P00, before text work; deferred the formal state machine and conflict policies.
+Scoped P00 to anonymous participants on one canvas, without sign-in or permissions.
+Recorded a later integration scenario.
+All experiments remain unstarted; this update only documents the research plan.

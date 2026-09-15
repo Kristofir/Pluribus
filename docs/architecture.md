@@ -10,6 +10,11 @@ responsibilities, and production deployment remain unresolved or unimplemented.
 Convex Auth v1 with Google is integrated; see [Authentication](authentication.md)
 for configuration and the remaining live verification.
 
+The [shared canvas model](research/canvas-model.md) records working entity diagrams
+and distinguishes agreed product direction from unresolved relationships.
+The [prototype register](research/prototypes.md) defines isolated experiments for
+unproven concepts before integration.
+
 ## Boundaries
 
 The repository uses npm workspaces: `apps/frontend` owns React/Vite and

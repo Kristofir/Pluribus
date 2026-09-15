@@ -5,6 +5,7 @@ they are not agreed entities, database tables, or implementation requirements.
 Started 2026-09-09.
 
 See [Product proposition](product.md) and [User journeys](journeys.md) for context.
+The [shared canvas model](canvas-model.md) records the current entity diagrams.
 The [architecture contract](../architecture.md) governs implementation boundaries.
 
 ## Candidate concepts
@@ -27,8 +28,10 @@ The [architecture contract](../architecture.md) governs implementation boundarie
 - **Source and artifact:** these describe different roles. We have not decided
   whether the same content can serve both roles or how that relationship works.
 
-No container hierarchy or relationship cardinalities have been agreed. Avoid adding
-organizations, projects, and cases until a concrete workflow needs those distinctions.
+The shared canvas model establishes that a canvas contains multiple text and
+non-text elements. Its outer workspace hierarchy and one-document-per-text-element
+relationship remain proposals. Avoid adding organizations, projects, and cases
+until a concrete workflow needs those distinctions.
 
 ## How we will refine this
 
@@ -44,3 +47,6 @@ of a term alone does not authorize implementation.
 
 - **2026-09-09:** Captured the six candidate concepts from the architecture
   discussion. All remain provisional; no entity model has been selected.
+- **2026-09-14:** Recorded the shared canvas diagrams. Canvas element is the
+  general concept; text element references editable content. Non-text kinds and
+  content deletion rules remain open.

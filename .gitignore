@@ -9,3 +9,6 @@ coverage/
 *.log
 *.tsbuildinfo
 .DS_Store
+
+# Local competitive research
+/.competitive-research/
