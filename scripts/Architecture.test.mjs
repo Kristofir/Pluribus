@@ -263,3 +263,31 @@ test("new core tests are automatically discovered and execute in Node", () => {
   );
   expect(output).toContain("1 passed");
 });
+
+test("public endpoints require designated files, including aliases and re-exports", () => {
+  const root = fixture({
+    "apps/backend/convex/Canvas.ts":
+      "import { queryGeneric } from 'convex/server'; export const list = queryGeneric({ args: {}, handler: () => [] });",
+    "apps/backend/convex/helpers.ts":
+      "import { internalMutationGeneric } from 'convex/server'; export const internal = internalMutationGeneric({ args: {}, handler: () => null }); export const helper = () => true;",
+  });
+  expect(run("CheckArchitecture.mjs", root).status).toBe(0);
+  writeFileSync(
+    join(root, "apps/backend/convex/leaks.ts"),
+    `
+    import { queryGeneric as register, mutationGeneric } from 'convex/server';
+    import * as convex from 'convex/server';
+    export const alias = register({ args: {}, handler: () => null });
+    export const mutation = mutationGeneric({ args: {}, handler: () => null });
+    export const action = convex.actionGeneric({ args: {}, handler: () => null });
+    export { list as reexported } from './canvas';
+  `,
+  );
+  const result = run("CheckArchitecture.mjs", root);
+  expect(result.status).toBe(1);
+  for (const name of ["alias", "mutation", "action", "reexported"]) {
+    expect(result.output).toContain(
+      `public-api-entrypoints-only: apps/backend/convex/leaks.ts exports ${name}`,
+    );
+  }
+});

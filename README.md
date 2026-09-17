@@ -2,7 +2,8 @@
 
 React + Vite + TypeScript frontend with a Convex backend. The page checks
 backend connectivity and integrates Convex Auth v1 with Google sign-in.
-There are no product tables or product write APIs. Google sign-in is configured
+The shared rectangle canvas at `/canvas` uses core domain rules and use cases,
+Convex persistence, and a feature-scoped Zustand interaction store. Google sign-in is configured
 and verified locally; see [Authentication](docs/authentication.md) for fresh setup.
 
 ## Develop
@@ -30,8 +31,20 @@ processes; Ctrl+C stops both. They can also run separately using
 
 TanStack Router defines the typed route tree in `apps/frontend/src/Router.tsx`.
 Its inline style guide covers adding routes, typed navigation, URL validation,
-auth callbacks, and Convex boundaries. Currently `/` renders the scaffold; unknown
-paths show a recovery link. The deployment host must serve `index.html` for deep links.
+auth callbacks, and Convex boundaries. The home route renders the scaffold; `/canvas` loads the multiplayer
+canvas. Unknown paths show a recovery link. The deployment host must serve `index.html` for deep links.
+
+## Shared canvas
+
+Open `/canvas` in two local browser sessions. Add rectangles, drag them,
+resize a selected rectangle with its handles, and delete with the toolbar or
+Delete/Backspace. Pan, zoom, and selection belong to each client. Shared geometry
+is saved in the existing local Convex deployment; the latest accepted update wins.
+Editing pauses offline; already-submitted writes may finish after reconnecting.
+The canvas is limited to 200 rectangles. Its current core access policy explicitly
+allows anonymous participants; workspace membership/isolation is not implemented.
+The previous `/prototypes/p00` URL redirects to `/canvas`.
+See [P00 evidence and repeatable checks](docs/research/prototypes.md#p00--multiplayer-canvas-basics).
 
 ## UI components
 
@@ -85,17 +98,17 @@ root. Each app declares its own dependencies and owns its runtime configuration:
 
 - `apps/frontend/`: React/Vite app; package `@pluribus/frontend`.
 - `apps/backend/`: Convex app; package `@pluribus/backend`.
+- `packages/core/`: framework-independent canvas rules and use cases; package `@pluribus/core`.
 - Root scripts coordinate development, builds, and checks.
 
 The frontend imports `@pluribus/backend/api` and may import types from
 `@pluribus/backend/dataModel`. These are the backend package's only exports;
-server implementations are private. `packages/core/` is reserved for future
-business logic and is not created until it contains real code.
+server implementations are private. `packages/core/` contains framework-independent canvas rules and write use cases.
 
 - `apps/frontend/src/`: React entry point, auth provider, status page, and account UI.
-- `apps/backend/convex/`: auth schema and endpoints, current-user query, health query, and tests.
+- `apps/backend/convex/`: auth, health, canvas endpoints and persistence adapters, migrations component, and tests.
 - `apps/backend/convex/_generated/`: CLI-generated bindings and backend guidance; retain in Git.
-- `packages/core/`: future pure domain rules and application use cases; created with real features.
+- `packages/core/`: dependency-free canvas domain rules, access policy, use cases, and persistence ports.
 - `scripts/`: architecture checks and their fixtures.
 - `.agents/skills/`: project-local agent instructions.
 - `hackathon.md`: evidence-based build log.
@@ -107,3 +120,20 @@ this automatically. Convex-managed instructions can be refreshed with
 The intended frontend host is Convex static hosting (`convex.site`). Hosting and
 production deployment are not configured. Verify sign-in and add resource-level
 authorization before exposing private product data or product write APIs.
+
+## Collaborative document
+
+Open `/canvas` in two browser sessions and edit the same document card. Cards
+support headings, bold, lists, per-client undo/redo and **Show authors**. Convex
+ProseMirror Sync stores incremental edit steps and periodic snapshots. “Saved”
+means the editor has no unacknowledged steps. Editing pauses offline; keep the tab
+open for pending edits to recover. Pending work is not stored durably offline.
+
+## Documents on the canvas
+
+Use **Add document** for up to two child cards. Drag by the header and edit inside;
+text undo belongs to the focused editor. Removed cards retain their saved text and
+offer Restore. If another client removes a card with unsaved edits, copy the local
+recovery JSON before discarding it or opening restored content. Recovery is not
+persisted across reload. `/document` redirects to `/canvas`; the standalone editor
+page is retired. Existing standalone stored content is retained.

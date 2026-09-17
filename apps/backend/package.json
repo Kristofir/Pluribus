@@ -22,7 +22,15 @@
   "dependencies": {
     "@auth/core": "0.41.3",
     "@convex-dev/auth": "0.0.95",
-    "convex": "^1.45.0"
+    "@convex-dev/migrations": "^0.3.6",
+    "@convex-dev/presence": "^0.4.0",
+    "@convex-dev/prosemirror-sync": "^0.2.6",
+    "@pluribus/core": "*",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3",
+    "convex": "^1.45.0",
+    "@pluribus/editor": "*"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

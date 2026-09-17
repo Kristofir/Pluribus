@@ -2,17 +2,17 @@
 
 - **Project:** ConvexHackathon
 - **Event:** Convex All Gas Hackathon
-- **What it does:** Framework scaffold with a React frontend and local Convex backend; no product features yet.
+- **What it does:** React frontend with Google sign-in and local multiplayer canvas and collaborative rich-text features.
 - **Live app:** not deployed
-- **Repo:** none
+- **Repo:** https://github.com/Kristofir/Pluribus
 - **Frontend:** Convex static hosting
 - **Convex deployment:** not deployed
-- **Components:** none
-- **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime client connection
+- **Components:** @convex-dev/migrations, @convex-dev/prosemirror-sync, @convex-dev/presence
+- **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime queries, rectangle table and mutations
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-14T22:47:30Z
+- **Last updated:** 2026-09-17T01:40:54Z
 
 ## Log
 
@@ -138,3 +138,181 @@ P00, before text work; deferred the formal state machine and conflict policies.
 Scoped P00 to anonymous participants on one canvas, without sign-in or permissions.
 Recorded a later integration scenario.
 All experiments remain unstarted; this update only documents the research plan.
+
+### 2026-09-15 - working tree - P00 multiplayer rectangles
+
+Implemented the anonymous React Flow canvas at `/prototypes/p00` with rectangle
+CRUD and reactive geometry in the existing local Convex backend. Two browser
+clients verified live movement/resize, independent and same-object edits, deletion
+during dragging, reload persistence, personal viewports, and disconnect recovery.
+Architecture/type checks, 45 tests, and the build passed. The full check still
+flags existing formatting in `convex/_generated/ai/guidelines.md`. Human usability
+evaluation remains pending; this prototype does not establish workspace authorization or a final
+canvas model. No cloud deployment, commit, or push was performed.
+
+### 2026-09-15 - working tree - canvas architecture correction
+
+Moved the runtime feature to `/canvas` with core domain rules, write use cases,
+transaction-bound Convex adapters, and a feature-scoped Zustand interaction store.
+Removed the P00 architectural exception; anonymous access is an explicit core policy.
+Used the official migrations component to preserve both legacy rectangles exactly
+in `rectangles`, then retired the old schema and migration. Old bookmarks redirect.
+Architecture checks, isolated core compilation, 52 tests, and build passed; two
+browser clients reverified manipulation, concurrency, persistence, disconnect
+recovery, and navigation. The existing generated-guidance formatting issue remains.
+Human usability evaluation is pending. No cloud deployment, commit, or push.
+
+### 2026-09-15 - working tree - explicit canvas API
+
+Collected public canvas declarations in `apps/backend/convex/Canvas.ts`, with
+ordinary handlers in `canvas/Handlers.ts` and frontend calls through `api.Canvas`.
+Added a type-aware architecture rule rejecting public endpoints outside designated
+entrypoints, including aliases and re-exports. Generated bindings and the local
+canvas query verified successfully. Architecture/type checks, 53 tests, and build
+passed; the existing generated-guidance formatting issue remains.
+
+### 2026-09-15 - working tree - Collaborative text
+
+Added a standalone shared Tiptap document at `/document`, backed by Convex
+ProseMirror Sync steps and snapshots. Core owns identity/access/initialization;
+explicit backend endpoints validate sync content and preserve native rebasing.
+Sixty tests pass, including concurrency, per-client undo, malformed writes, and
+snapshot reconstruction. Browser checks confirm two-client edits, per-user undo,
+reload, pending-navigation blocking, and offline/reconnect behavior. Architecture,
+type checks, and build pass; formatting retains the pre-existing generated-guidance
+warning. No cloud deployment.
+
+### 2026-09-15 - working tree - Backend documentation
+
+Focused JSDoc on public backend APIs, core use cases, architectural boundaries,
+and non-obvious transaction/sync behavior. Removed repetitive comments on payloads,
+validators, and wrappers. Generated files and runtime behavior are unchanged.
+
+### 2026-09-16 - working tree - presence model
+
+Documented proposed sessions, context participation, and typed activity in the
+shared canvas model. Updated its diagram and recorded anonymous identity defaults
+and unresolved visibility/mapping questions. No presence implementation added.
+
+### 2026-09-16 - working tree - Presence implementation
+
+Added shared session/context presence with official component expiry, capability
+checks, independent activity channels, and reference-counted frontend leases.
+Canvas shows pointers, selections, and manipulation; documents show mapped remote
+carets/ranges without adding editor history. Hidden/reconnect behavior drops stale
+activity. Seventy-three tests pass, including real component expiry and delayed
+ordering. Local browser checks verify multiple guests/tabs, canvas activity, text
+selection/undo, reconnect, and simulated hidden expiry. Delayed text acknowledgements
+produced no passive-viewer presence writes or roster updates. Cost observations and
+unverified scale/background behavior are recorded in the prototype register.
+No cloud deployment, commit, or push.
+
+### 2026-09-16 - working tree - Canvas document ownership
+
+Recorded documents as child canvas elements containing collaborative text.
+Updated entity diagrams, vocabulary, architecture, and the decision record.
+Geometry and text retain separate synchronization; no runtime changes or embedding.
+
+### 2026-09-16 - working tree - Canvas document children
+
+Embedded two canvas-owned collaborative document cards, preserving rectangles and
+standalone text. Atomic creation and inherited canvas access protect ownership;
+reversible removal retains saved text and rejects stale editing generations.
+Editors survive movement/offscreen positioning; remote removal preserves local
+recovery with explicit discard. Tests and two-client browser checks cover isolation,
+concurrent movement/typing, undo, removal/recovery, pending guards and reconnect.
+No cloud deployment, commit, or push.
+
+Validation: 76 tests pass with a 20 s timeout; default 5 s architecture fixtures
+hit timeouts on this machine. The architecture scan and build pass. Existing
+generated-guidance formatting and bundle-size warnings remain.
+
+### 2026-09-16 - working tree - Preserve recovery through query failures
+
+Canvas and document reads now report failures without unmounting loaded editors.
+Editing pauses while the last successful query value and local recovery remain.
+Initial snapshot loading is isolated per card; the official sync extension remains
+unchanged. Browser fault injection verified canvas/version errors preserve editor
+identity and recovery text, and restoration preserves saved content.
+
+Initial-snapshot fault injection also verified that another card keeps its editor,
+text synchronization, and undo history while the failed card recovers.
+
+Validation: all 78 tests pass, with architecture fixtures rerun at a 20 s timeout.
+Architecture scan, type checks and build pass; existing formatting/bundle warnings remain.
+
+### 2026-09-16 - working tree - Central presence policy
+
+Canvas, editor and browser handlers emit typed events. A pure core policy owns
+membership intent, channel ownership and activity clearing; the registry executes
+transport effects. Blur retains activity, while hidden tabs retain last accepted
+activity until official membership expiry. Late rejected writes cannot prematurely
+remove away presence. React alone owns editor attachment, preventing stale editor
+callbacks from disconnecting passive cursor rendering.
+
+Policy, registry, backend expiry and editor-attachment regression tests pass.
+Two-client browser checks verify editor/window blur, unfocused heartbeats, simulated
+hidden-tab retention/expiry and fresh return without changing text. Architecture,
+type checks and build pass; existing generated-guidance formatting and bundle-size
+warnings remain. No cloud deployment, commit or push.
+
+### 2026-09-16 - working tree - Quieter document cards
+
+Embedded document cards omit the collaborator bar and routine Saved/Saving status.
+Document presence remains active; connection/recovery messages remain available.
+The standalone document surface retains its existing controls.
+
+### 2026-09-16 - working tree - Current-text authorship prototype
+
+Added authored text spans, stable author credentials and operation receipts around
+the existing ProseMirror protocol. Shared editor adapters preserve operation intent;
+the backend validates attribution and restoration before atomically accepting text
+and evidence. The standalone editor has authorship display and explicit move controls.
+Six focused tests verify marking/rebase, undo/redo, atomic forgery rejection and
+explicit moves. Two-client browser checks verified typing, formatting, foreign-text
+undo, move/undo, display and reload; original content was restored. Architecture
+checks over 174 files, type checks, 91 tests and build pass. Existing generated-
+guidance formatting and bundle-size warnings remain. Activation is restricted
+server-side to the standalone document; canvas cards stay unchanged.
+
+Initial synthetic storage fixtures measured 1,024 bytes of one-author text as
+1,109 bytes of ordinary document JSON and 1,195 bytes with attribution. Alternating
+32-character authorship grew attributed JSON to 4,667 bytes; per-character
+fragmentation was much larger. The prototype register separates current content,
+author/session records, operation evidence and step payloads, and identifies unmeasured
+storage costs. No cloud deployment, commit or push.
+
+### 2026-09-17 - working tree - Canvas document authorship
+
+Moved author highlights and explicit moves into canvas document cards; retired the
+standalone page with a redirect. Cards share guest identity but use independent
+scoped sessions. Lifecycle tests reject old-session writes after restoration while
+retaining attribution. All 93 tests and build pass; two-client checks verified both
+cards, undo, highlights and reload. No cloud deployment, commit or push.
+
+### 2026-09-17 - working tree - Quiet canvas toolbar
+
+Removed routine Saved/Saving labels from the canvas toolbar. Disconnection and
+error messages remain available; synchronization behavior is unchanged.
+
+### 2026-09-17 - working tree - Grouped domain vocabulary
+
+Grouped existing models by responsibility and separated implemented concepts from
+product proposals. Document remains the canvas element; the proposed Document Card
+domain split is explicitly unresolved. No runtime behavior changed.
+
+### 2026-09-17 - working tree - Shared canvas element model
+
+Introduced ElementBase, DocumentElement and RectangleElement in the core domain,
+with a discriminated union consumed by canvas projection code. Core persistence
+contracts now reference the shared types. Storage, API contracts and deletion
+behavior remain unchanged. Vocabulary and architecture record the decision.
+
+### 2026-09-17 - working tree - Shared geometry rules and explicit dispatch
+
+Moved geometry validation into a shared domain module and routed canvas geometry
+writes by element kind. Queued document writes retain their captured generation;
+missing targets do not fall back to rectangle writes. Focused checks cover routing,
+generation capture, geometry bounds and existing canvas lifecycle behavior. All
+95 tests, typechecks and build pass; the local backend starts successfully and
+the canvas reconnects. The existing generated-guidelines formatting warning remains.

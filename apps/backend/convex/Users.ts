@@ -2,6 +2,11 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 
+/**
+ * Return the signed-in account display fields for the frontend account panel.
+ * Anonymous sessions and missing user records return null. This is an authorized
+ * read projection, not a workspace-membership or product-access decision.
+ */
 export const current = query({
   args: {},
   returns: v.union(

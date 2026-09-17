@@ -1,0 +1,69 @@
+.presence-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  font-size: 12px;
+}
+.presence-person {
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.presence-person i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.presence-bar label {
+  margin-left: auto;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.remote-pointer {
+  position: absolute;
+  pointer-events: none;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translate(0, -3px);
+}
+.remote-pointer span {
+  color: white;
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+.remote-element {
+  position: absolute;
+  pointer-events: none;
+  border: 2px dashed;
+  border-radius: 5px;
+}
+.remote-element span {
+  position: absolute;
+  bottom: 100%;
+  font-size: 11px;
+  white-space: nowrap;
+  color: white;
+  padding: 1px 4px;
+}
+.remote-caret {
+  border-left: 2px solid;
+  position: relative;
+  pointer-events: none;
+  margin-left: -1px;
+}
+.remote-caret-label {
+  position: absolute;
+  bottom: 100%;
+  left: -2px;
+  white-space: nowrap;
+  color: white;
+  font: 11px sans-serif;
+  padding: 2px 4px;
+  border-radius: 3px;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@pluribus/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./canvas/domain": "./canvas/domain/Index.ts",
+    "./canvas/access": "./canvas/domain/Access.ts",
+    "./canvas/application": "./canvas/application/Rectangles.ts",
+    "./documents/domain": "./documents/domain/Document.ts",
+    "./documents/application": "./documents/application/Documents.ts",
+    "./presence/domain": "./presence/domain/Activity.ts",
+    "./presence/application": "./presence/application/Publish.ts",
+    "./canvas/documents": "./canvas/application/Documents.ts",
+    "./documents/authorship": "./documents/domain/Authorship.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ../../tsconfig.core.json"
+  }
+}

@@ -2,11 +2,13 @@ import { cruise } from "dependency-cruiser";
 import ts from "typescript";
 import config, { runtimeRules } from "../.dependency-cruiser.mjs";
 import { sourceFiles, testPath } from "./ArchitectureFiles.mjs";
+import { publicApiViolations } from "./PublicApi.mjs";
 
 const files = [
   "apps/frontend/src",
   "apps/backend/convex",
   "packages/core",
+  "packages/editor",
 ].flatMap(sourceFiles);
 const read = ts.readConfigFile("tsconfig.json", ts.sys.readFile);
 if (read.error)
@@ -48,6 +50,15 @@ for (const runtimeOnly of [false, true]) {
     );
     errors++;
   }
+}
+for (const violation of publicApiViolations(
+  files.filter(
+    (file) => file.startsWith("apps/backend/convex/") && !testPath.test(file),
+  ),
+  parsed.options,
+)) {
+  console.error(violation);
+  errors++;
 }
 console.log(
   `Architecture: checked ${files.length} authored source files; ${errors} violations.`,

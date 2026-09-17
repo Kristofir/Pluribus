@@ -1,0 +1,121 @@
+.canvas {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #f7f8fa;
+  color: #202936;
+}
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #d7dce3;
+  background: white;
+  font-size: 14px;
+}
+.canvas-toolbar h1 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-right: auto;
+}
+.canvas-toolbar a {
+  text-decoration: underline;
+}
+.canvas-toolbar button {
+  padding: 7px 12px;
+  border: 1px solid #bac2cf;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+.canvas-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.canvas-toolbar button:focus-visible,
+.canvas-toolbar a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}
+.canvas-session {
+  padding: 5px 8px;
+  border-radius: 5px;
+}
+.canvas-surface {
+  flex: 1;
+  min-height: 0;
+}
+.canvas-rectangle {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgb(0 0 0 / 20%);
+  border-radius: 4px;
+}
+.canvas-blue {
+  background: #c4dcff;
+}
+.canvas-coral {
+  background: #ffcbc1;
+}
+.canvas-gold {
+  background: #ffe39e;
+}
+.canvas .react-flow__node.selected .canvas-rectangle {
+  outline: 2px solid #2563eb;
+}
+.canvas-error {
+  padding: 8px 20px;
+  background: #fff1e8;
+  color: #943813;
+  font-size: 14px;
+}
+
+.canvas-document {
+  height: 100%;
+  background: white;
+  border: 1px solid #9ba8bb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #172033;
+}
+.document-drag-handle {
+  padding: 8px 12px;
+  background: #edf1f7;
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.document-card-content {
+  overflow: auto;
+  padding: 10px;
+  flex: 1;
+  min-height: 0;
+}
+.canvas-document .document-paper {
+  padding: 10px;
+  min-height: 100px;
+}
+.canvas-document .document-toolbar {
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.canvas-document .document-toolbar button {
+  padding: 3px 6px;
+  font-size: 12px;
+}
+.canvas-document .presence-bar {
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+.canvas-document.is-removed {
+  border-style: dashed;
+}
+.canvas-document textarea {
+  width: 100%;
+  min-height: 120px;
+}

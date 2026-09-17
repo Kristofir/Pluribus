@@ -3,6 +3,8 @@ import {
   createRoute,
   createRouter,
   Link,
+  lazyRouteComponent,
+  redirect,
   Outlet,
 } from "@tanstack/react-router";
 import App from "./App";
@@ -72,8 +74,36 @@ const homeRoute = createRoute({
   component: App,
 });
 
+const documentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/document",
+  beforeLoad: () => {
+    throw redirect({ to: "/canvas", replace: true });
+  },
+});
+
+const canvasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/canvas",
+  component: lazyRouteComponent(() => import("./features/canvas/CanvasPage")),
+});
+
+// Preserve existing prototype bookmarks while the feature lives at its durable route.
+const legacyPrototypeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/prototypes/p00",
+  beforeLoad: () => {
+    throw redirect({ to: "/canvas", replace: true });
+  },
+});
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([homeRoute]),
+  routeTree: rootRoute.addChildren([
+    homeRoute,
+    canvasRoute,
+    documentRoute,
+    legacyPrototypeRoute,
+  ]),
   parseSearch: parseAuthSearch,
 });
 

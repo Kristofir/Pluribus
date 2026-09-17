@@ -1,9 +1,25 @@
-const source = "^(packages/core|apps/frontend/src|apps/backend/convex)/";
+const source =
+  "^(packages/(core|editor)|apps/frontend/src|apps/backend/convex)/";
 const generated = "^apps/backend/convex/_generated/";
 const tests = "(^|/)(__tests__|test-support)/|\\.(test|spec)\\.[cm]?[jt]sx?$";
 const production = { path: source, pathNot: `${generated}|${tests}` };
 
 export const boundaryRules = [
+  {
+    name: "editor-adapter-does-not-import-apps",
+    severity: "error",
+    from: { path: "^packages/editor/", pathNot: tests },
+    to: { path: "^apps/" },
+  },
+  {
+    name: "editor-adapter-does-not-run-core-use-cases",
+    severity: "error",
+    from: { path: "^packages/editor/", pathNot: tests },
+    to: {
+      path: "^packages/core/",
+      pathNot: "^packages/core/([^/]+/domain/|shared/)",
+    },
+  },
   {
     name: "core-has-no-external-dependencies",
     severity: "error",

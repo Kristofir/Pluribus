@@ -119,3 +119,152 @@ contract. This log records its rationale and consequential changes.
   Authentication remains in frontend/backend adapters, with no core auth framework.
   The frontend handles callback codes explicitly to display recoverable failures
   without repeating the exchange under React StrictMode.
+
+## Canvas feature architecture
+
+- **Status:** Accepted; supersedes the P00 implementation exception
+- **Date:** 2026-09-15
+- **Decision:** Develop the shared canvas as a regular feature at `/canvas`, using
+  React Flow, the existing Convex backend, and the `@pluribus/core` workspace.
+  Follow the existing core/use-case/adapter boundaries and feature-scoped Zustand.
+- **Why:** The user requires strict architectural compliance and intends to expand
+  this feature. An experiment identifier must not define runtime ownership.
+- **Boundary:** The core owns rectangle rules and use cases; transaction-bound
+  Convex adapters own persistence and server-derived actor classification. The
+  explicit current policy permits anonymous and signed-in participants. This is
+  not permission to bypass future workspace authorization. Zustand owns transient
+  interaction state; Convex owns durable rectangles. No new Canvas, Workspace, or
+  Membership models are introduced by this refactor.
+- **Compatibility:** The former prototype URL redirects to `/canvas`. The two
+  local legacy rectangles were migrated to `rectangles` with their geometry and
+  colors verified unchanged. Record IDs changed; no routes reference them. The
+  one-time migration and empty legacy schema were retired after verification.
+  The official migrations component remains installed for subsequent migrations.
+- **Behavior:** Latest accepted geometry wins; updates cannot recreate deleted
+  rectangles. Existing capacity and geometry limits remain in the core. Long-term
+  canvas interaction and conflict policies remain subject to product evaluation.
+
+## Explicit Convex public API entrypoints
+
+- **Status:** Accepted
+- **Date:** 2026-09-15
+- **Decision:** Declare each feature's public queries, mutations, and actions in
+  one named entrypoint. Canvas uses `apps/backend/convex/Canvas.ts`; ordinary
+  handlers and adapters remain in `canvas/`.
+- **Why:** Keep client-callable operations easy to audit while retaining native
+  Convex subscriptions and generated types.
+- **Boundary:** Convex still derives names from files and exports. The architecture
+  check enforces an explicit entrypoint allowlist, including aliases and re-exports;
+  this does not introduce custom HTTP routes or move business rules out of core.
+
+## 2026-09-15 — Standalone collaborative text
+
+Accepted for implementation: Tiptap with Convex ProseMirror Sync, using incremental
+steps and periodic snapshots. Document identity/access/initialization live in core;
+editor schema and sync protocol remain adapter responsibilities. Explicit public
+endpoints validate submissions instead of exporting the component's API factory.
+Start with one anonymous shared document, independent of canvas. Range deletion
+can remove a concurrent insertion inside that range; convergence is not a promise
+to preserve every competing intention. Anchors and canvas embedding remain separate
+experiments, and changing editor schemas requires a content migration.
+
+## 2026-09-16 — Shared presence
+
+Accepted: official Convex Presence owns session liveness; application participation
+and independently sequenced activity channels serve canvas and documents. Core
+owns activity validation/ordering; adapters own component integration and editor
+mapping. Explicit reference-counted context leases separate participation from
+surface mounts. Anonymous guest identity is presentation, not authorization.
+Text cursors remain decorations mapped through the existing ProseMirror protocol;
+ambiguous ranges hide. No second text synchronization engine or workspace model.
+
+## 2026-09-16 — Documents belong to canvases
+
+Accepted: a document is a child canvas element, with position, size, and
+collaborative text inside it. Canvas synchronization handles geometry; ProseMirror
+Sync handles text. This supersedes the proposed independently placed document
+model. Separate storage does not change ownership. Cross-canvas document reuse
+is outside this model; deletion and recovery rules remain open. The standalone
+document prototype remains an implementation test surface; embedding is not built.
+
+## 2026-09-16 — Two embedded document children
+
+Accepted by Chris: embed up to two document children in the shared canvas, including
+retained removed children in the limit. Preserve rectangle data and the standalone
+document surface. Create child geometry and text atomically through owning-feature
+interfaces; text operations inherit canvas access. Keep editors mounted offscreen.
+Removal is reversible, retains confirmed content, and invalidates the old generation.
+Pending local edits block local removal; remote removal keeps a memory-only recovery
+copy with explicit discard/open-restored actions. No automatic replay after restore,
+permanent deletion, cross-canvas reuse, workspace model, or new sync protocol.
+
+## 2026-09-16 — Presence events and centralized policy
+
+Accepted: canvas, editor and browser integrations emit facts rather than decide
+when to clear activity. A pure core transition derives local activity and membership
+intent; the existing registry/queue execute effects. Blur preserves activity.
+Hidden tabs stop heartbeats and retain last accepted activity until component expiry;
+return/reconnect starts fresh participation. Surface release still clears its owned
+channels, and unsafe text ranges still hide. No new synchronization service.
+
+## 2026-09-16 — Current-text authorship
+
+Accepted for implementation: show authorship of surviving text using contiguous
+ProseMirror marks referencing stable author records. This is separate from source
+connections, ephemeral presence and a user-facing revision-history product.
+Legacy unmarked text remains unknown. Typing, replacement and ordinary paste
+belong to the writer; formatting preserves attribution. Explicit same-document
+moves and verified undo/redo preserve original attribution.
+
+The server derives the writer from authentication or a durable guest capability;
+a guest credential identifies its holder, not a verified person. Client IDs and
+client-supplied marks are not proof. Accepted steps, attribution and operation
+evidence commit atomically. Rejected or merely pending local edits create no
+durable shared history. Preserve native acknowledgement/rebasing and never silently
+rewrite accepted steps.
+
+Reuse canonical sync history with the minimum additional restoration evidence.
+Retain that evidence during the prototype, measuring its growth separately from
+current text; no automatic expiry, permanent-history product or unlimited undo is
+promised. Generation changes invalidate old pending operations and session undo,
+without erasing saved authorship. The prototype must prove forgery rejection,
+convergence and restore semantics before these become production guarantees.
+
+The shared `packages/editor` adapter owns the matching ProseMirror schema and
+authored-step wrapper; the core remains dependency-free. Stable operation IDs
+survive mapping, inversions reference their accepted operation, and step merging
+is disabled to preserve receipts. Restore validation maps recorded inverses through
+canonical steps. Explicit moves require saved state and a verifiable removal/
+insertion pair. Canonical component snapshots provide checkpoints; no parallel
+editable document table is introduced. Architecture checks must enforce this
+technology-specific package boundary.
+
+## 2026-09-17 — Canvas owns document editing
+
+Canvas is the sole product editing surface. Retire the standalone page and redirect
+`/document` bookmarks to `/canvas`. Keep the editor, schema, authorship and sync
+adapters reusable. Each card opens a generation-scoped author session; concurrent
+mounts share guest identity. Removal retains accepted attribution and local recovery;
+restoration starts a fresh session without reviving old pending steps or undo proof.
+Existing standalone stored text is retained, with no automatic content migration.
+
+## 2026-09-17 — Shared element types
+
+Accepted and implemented a base interface for spatial identity, canvas ownership,
+and geometry. `DocumentElement` and `RectangleElement` extend it with required,
+kind-specific fields; `CanvasElement` is their discriminated union. Core ports and
+frontend projection code consume these types, and branded element IDs remain
+separate from text-content IDs. `DocumentElementId` replaces the vague `ChildId`.
+
+Keep plain functions for operations. Shared structure does not impose shared
+removal semantics or a table migration: rectangles still delete and documents
+retain their existing reversible removal. A document remains one user-managed
+canvas element with internal text storage. The current canvas ID remains shared.
+
+## 2026-09-17 — Geometry rules and explicit mutation routing
+
+Document and rectangle use cases share `assertElementGeometry` and the same bounds.
+Rectangle capacity remains kind-specific. The frontend captures a typed geometry
+target for each gesture, dispatches by kind, and carries the original document
+generation through queued writes. Stale targets cannot silently switch kind or
+adopt a restored generation. Existing storage and removal behavior are unchanged.

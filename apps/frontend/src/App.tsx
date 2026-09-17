@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { api } from "@pluribus/backend/api";
 import { Badge } from "@/components/ui/Badge";
@@ -23,7 +24,7 @@ export default function App() {
             </Badge>
           </p>
           <p className="text-muted-fg">
-            Framework only. No product features yet.
+            <Link to="/canvas">Open the shared canvas →</Link>
           </p>
           <AuthPanel />
         </CardContent>

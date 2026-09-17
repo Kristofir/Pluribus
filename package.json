@@ -32,6 +32,7 @@
     "vitest": "^4.1.11"
   },
   "workspaces": [
-    "apps/*"
+    "apps/*",
+    "packages/*"
   ]
 }
