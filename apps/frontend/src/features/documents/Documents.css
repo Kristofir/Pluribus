@@ -65,3 +65,30 @@
   gap: 8px;
   margin: 8px 0;
 }
+
+.document-recovery-container {
+  position: fixed;
+  z-index: 1000;
+  bottom: 12px;
+  right: 12px;
+  max-width: 420px;
+  max-height: 50vh;
+  overflow: auto;
+}
+.document-recovery {
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid #bac2cf;
+  border-radius: 8px;
+  background: white;
+  color: #172033;
+  box-shadow: 0 4px 24px #0002;
+}
+.document-recovery button {
+  margin: 8px 8px 0 0;
+  text-decoration: underline;
+}
+.document-recovery textarea {
+  width: 100%;
+  min-height: 100px;
+}

@@ -354,3 +354,19 @@ and reloaded matching content. Temporary test text was removed and original cont
 restored. All 93 tests, architecture checks and typechecks pass; production build
 passes with a chunk-size warning. Formatting retains the pre-existing generated
 `convex/_generated/ai/guidelines.md` warning.
+
+### 2026-09-18: Document deletion history replaces removed-card placeholders
+
+The current implementation supersedes the embedded experiment's retained-card UI and
+capacity rule: deleted documents disappear, only active children occupy the two slots,
+and personal canvas-session Undo/Redo restores/deletes the same child. Backend receipts
+retain trusted content and generation evidence without time-based expiry or automatic
+purge. Reload/route exit clears command history; this is not persisted version history.
+
+Two-client browser verification covered delete disappearance, personal Undo availability,
+restored content, Redo and canvas keyboard Undo. Temporarily withholding one client's text
+submission proved that remote deletion preserves local recovery after card unmount;
+reconnection and Undo did not replay the pending text. Recovery survived navigation and
+was explicitly discarded. Test networking overrides were removed and both original
+documents were restored. Backend tests cover access, capacity, idempotency and stale
+history; existing authorship tests still reject old-generation restoration proofs.

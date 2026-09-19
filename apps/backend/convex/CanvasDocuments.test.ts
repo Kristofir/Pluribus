@@ -72,10 +72,14 @@ test("removal and restoration reject old text, geometry, snapshots and presence 
     guestId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
     tabId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
   });
-  await t.mutation(api.Canvas.changeDocument, {
+  const deletion = {
+    operation: crypto.randomUUID(),
+    secret: crypto.randomUUID(),
+  };
+  await t.mutation(api.Canvas.deleteDocument, {
     id: a.id,
     generation: 1,
-    change: { kind: "remove" },
+    ...deletion,
   });
   expect(await t.query(api.Presence.roster, { context })).toEqual([]);
   await expect(
@@ -86,11 +90,7 @@ test("removal and restoration reject old text, geometry, snapshots and presence 
       steps: [insert],
     }),
   ).rejects.toThrow("removed");
-  await t.mutation(api.Canvas.changeDocument, {
-    id: a.id,
-    generation: 2,
-    change: { kind: "restore" },
-  });
+  await t.mutation(api.Canvas.undoDeletion, deletion);
   expect(
     await t.mutation(api.Canvas.changeDocument, {
       id: a.id,

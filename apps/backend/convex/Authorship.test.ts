@@ -223,6 +223,10 @@ test("explicit moves preserve a foreign source; incomplete moves and spoofed und
   expect(await t.query(api.Documents.latestVersion, { id })).toBe(4);
   const undoAdd = add.invert(remove.apply(doc).doc!),
     undoRemove = remove.invert(doc);
+  // This inverse is valid, but accepting only half the move must roll back
+  // both its receipt and consumption of the original evidence.
+  await expect(submit(b, [undoAdd], 4)).rejects.toThrow("complete move");
+  expect(await t.query(api.Documents.latestVersion, { id })).toBe(4);
   await submit(b, [undoAdd, undoRemove], 4);
   expect(await t.query(api.Documents.latestVersion, { id })).toBe(6);
   await expect(submit(b, [remove.invert(doc)], 6)).rejects.toThrow();
@@ -478,10 +482,14 @@ test("canvas authorship survives restoration while old sessions and cross-card w
     submit(otherId, author, insert(author.author, "wrong card"), 1),
   ).rejects.toThrow("session");
   await submit(otherId, other, insert(other.author, "Other card"), 1);
-  await t.mutation(api.Canvas.changeDocument, {
+  const deletion = {
+    operation: crypto.randomUUID(),
+    secret: crypto.randomUUID(),
+  };
+  await t.mutation(api.Canvas.deleteDocument, {
     id: a.id,
     generation: 1,
-    change: { kind: "remove" },
+    ...deletion,
   });
   await expect(
     t.mutation(api.Documents.openAuthorship, {
@@ -489,11 +497,7 @@ test("canvas authorship survives restoration while old sessions and cross-card w
       guest: author.guest!,
     }),
   ).rejects.toThrow("removed");
-  await t.mutation(api.Canvas.changeDocument, {
-    id: a.id,
-    generation: 2,
-    change: { kind: "restore" },
-  });
+  await t.mutation(api.Canvas.undoDeletion, deletion);
   const restoredId = `${a.documentId}:3`;
   await expect(
     submit(oldId, author, insert(author.author, "stale"), 2),

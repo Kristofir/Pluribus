@@ -15,7 +15,9 @@ export function canvasDocuments(ctx: MutationCtx): CanvasDocuments {
       (
         await ctx.db
           .query("canvasDocuments")
-          .withIndex("by_canvas", (q) => q.eq("canvas", "shared"))
+          .withIndex("by_canvas_removed", (q) =>
+            q.eq("canvas", "shared").eq("removed", false),
+          )
           .take(2)
       ).length,
     insert: async (geometry) =>

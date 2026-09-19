@@ -1,4 +1,4 @@
-import { assertElementGeometry, type Geometry } from "../domain/Geometry";
+import { assertDocumentGeometry, type Geometry } from "../domain/Geometry";
 import { assertCanvasAccess, type CanvasActor } from "../domain/Access";
 import type { DocumentElement, DocumentElementId } from "../domain/Element";
 import type { DocumentId } from "../../documents/domain/Document";
@@ -20,43 +20,35 @@ export interface CanvasDocuments {
 export interface ChildText {
   create(owner: DocumentElementId): Promise<DocumentId>;
 }
+export type DocumentChange = { kind: "geometry"; geometry: Geometry };
+
 /** Both ports must share one transaction: failure leaves neither an orphan nor an empty card. */
 export async function createCanvasDocument(
+  { cards, text }: { cards: CanvasDocuments; text: ChildText },
   actor: CanvasActor,
-  cards: CanvasDocuments,
-  text: ChildText,
   geometry: Geometry,
 ) {
   assertCanvasAccess(actor);
-  assertElementGeometry(geometry);
-  // Retained removed children count too, bounding storage and mounted editor lifetime.
+  assertDocumentGeometry(geometry);
+  // Deleted children retain recovery data but do not occupy active canvas capacity.
   if ((await cards.count()) >= 2)
-    throw new Error(
-      "This experiment supports two document cards. Restore a removed card.",
-    );
+    throw new Error("This canvas supports two active document cards.");
   const id = await cards.insert(geometry);
   await cards.attach(id, await text.create(id));
   return id;
 }
 export async function changeCanvasDocument(
+  { cards }: { cards: CanvasDocuments },
   actor: CanvasActor,
-  cards: CanvasDocuments,
   id: DocumentElementId,
   generation: number,
-  change:
-    { kind: "geometry"; geometry: Geometry } | { kind: "remove" | "restore" },
+  change: DocumentChange,
 ) {
   assertCanvasAccess(actor);
   const current = await cards.get(id);
   if (!current || current.generation !== generation) return false;
-  if (change.kind === "geometry") {
-    assertElementGeometry(change.geometry);
-    if (current.removed) return false;
-    await cards.geometry(id, change.geometry);
-  } else {
-    const removed = change.kind === "remove";
-    if (removed === current.removed) return false;
-    await cards.lifecycle(id, removed, current.generation + 1);
-  }
+  assertDocumentGeometry(change.geometry);
+  if (current.removed) return false;
+  await cards.geometry(id, change.geometry);
   return true;
 }

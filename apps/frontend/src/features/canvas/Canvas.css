@@ -74,43 +74,36 @@
 
 .canvas-document {
   height: 100%;
+  padding: 24px;
   background: white;
   border: 1px solid #9ba8bb;
-  border-radius: 8px;
+  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   color: #172033;
-}
-.document-drag-handle {
-  padding: 8px 12px;
-  background: #edf1f7;
   cursor: grab;
-  display: flex;
-  justify-content: space-between;
-  flex-shrink: 0;
+}
+.canvas-document:focus-within {
+  border-color: #2563eb;
 }
 .document-card-content {
   overflow: auto;
-  padding: 10px;
   flex: 1;
   min-height: 0;
+  cursor: text;
 }
 .canvas-document .document-paper {
-  padding: 10px;
-  min-height: 100px;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
-.canvas-document .document-toolbar {
-  flex-wrap: wrap;
-  gap: 4px;
+.canvas-document .document-paper .tiptap {
+  min-height: 0;
+  padding: 0;
 }
-.canvas-document .document-toolbar button {
-  padding: 3px 6px;
-  font-size: 12px;
-}
-.canvas-document .presence-bar {
-  flex-wrap: wrap;
-  font-size: 11px;
+.canvas-document .document-paper .tiptap:focus-visible {
+  outline: none;
 }
 .canvas-document.is-removed {
   border-style: dashed;
@@ -118,4 +111,39 @@
 .canvas-document textarea {
   width: 100%;
   min-height: 120px;
+}
+
+.canvas-history {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 6px 20px;
+  font-size: 14px;
+}
+.canvas-history button {
+  padding: 4px 8px;
+  border: 1px solid #bac2cf;
+  border-radius: 6px;
+  background: white;
+}
+.canvas-history button:disabled {
+  opacity: 0.45;
+}
+
+.document-card-body {
+  display: flow-root;
+}
+.canvas-document .document-paper .tiptap {
+  display: flow-root;
+}
+
+.canvas-alignment-guides {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 10;
 }

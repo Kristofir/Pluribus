@@ -1,3 +1,10 @@
+import {
+  createCanvasDocument,
+  changeCanvasDocument,
+  type DocumentChange,
+} from "@pluribus/core/canvas/documents";
+import { canvasDocuments, toDocumentElementId } from "./Documents";
+import { childText } from "../documents/ChildText";
 import type { Infer } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -68,4 +75,53 @@ export async function remove(
     toRectangleId(id),
   );
   return null;
+}
+
+export async function createDocument(
+  ctx: MutationCtx,
+  args: { geometry: Infer<typeof geometryValidator> },
+) {
+  const id = await createCanvasDocument(
+    { cards: canvasDocuments(ctx), text: childText(ctx) },
+    await canvasActor(ctx),
+    args.geometry,
+  );
+  const stored = ctx.db.normalizeId("canvasDocuments", id);
+  if (!stored) throw new Error("Invalid child");
+  return stored;
+}
+export async function documentCards(ctx: QueryCtx) {
+  assertCanvasAccess(await canvasActor(ctx));
+  const rows = await ctx.db
+    .query("canvasDocuments")
+    .withIndex("by_canvas_removed", (q) =>
+      q.eq("canvas", "shared").eq("removed", false),
+    )
+    .take(2);
+  return rows.map((r) => {
+    if (!r.documentId) throw new Error("Incomplete document child");
+    return {
+      id: r._id,
+      documentId: r.documentId,
+      geometry: { x: r.x, y: r.y, width: r.width, height: r.height },
+      generation: r.generation,
+      removed: r.removed,
+    };
+  });
+}
+export async function changeDocument(
+  ctx: MutationCtx,
+  args: {
+    id: Id<"canvasDocuments">;
+    generation: number;
+    change: DocumentChange;
+  },
+) {
+  return changeCanvasDocument(
+    { cards: canvasDocuments(ctx) },
+    await canvasActor(ctx),
+    toDocumentElementId(args.id),
+    args.generation,
+    args.change,
+  );
 }

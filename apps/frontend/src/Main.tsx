@@ -7,6 +7,7 @@ import { router } from "./Router";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toast } from "@/components/ui/Toast";
 import "./Styles.css";
+import { DocumentRecoveryProvider } from "./features/documents/DocumentRecoveryProvider";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
 const client = convexUrl ? new ConvexReactClient(convexUrl) : null;
@@ -16,7 +17,9 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider>
       {client ? (
         <ConvexAuthProvider client={client} shouldHandleCode={false}>
-          <RouterProvider router={router} />
+          <DocumentRecoveryProvider>
+            <RouterProvider router={router} />
+          </DocumentRecoveryProvider>
         </ConvexAuthProvider>
       ) : (
         <main className="scaffold">

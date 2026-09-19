@@ -268,3 +268,48 @@ Rectangle capacity remains kind-specific. The frontend captures a typed geometry
 target for each gesture, dispatches by kind, and carries the original document
 generation through queued writes. Stale targets cannot silently switch kind or
 adopt a restored generation. Existing storage and removal behavior are unchanged.
+
+## 2026-09-17 — Application operations and cohesive frontend controllers
+
+Keep business coordination in plain core application functions with explicit ports.
+Standardize canvas document operations with rectangle use cases and move document
+endpoint implementations into canvas handlers. Authorship acceptance now owns
+receipt uniqueness, restoration authorization, complete-move restoration and evidence
+recording through transaction-bound ports. ProseMirror interprets opaque inverse
+proofs, validates steps/moves and maps canonical history; sync remains an adapter.
+
+Separate canvas commands/projection from subscription and gesture coordination,
+and editor lifecycle from rendering. Preserve editor identity, pending edits and
+presence leases. Keep native reads, routine sync and official presence lifecycle
+in adapters: forwarding services would add no business responsibility. No schema,
+public API, synchronization, retention or product behavior change is intended.
+
+## 2026-09-18: Personal document-deletion Undo
+
+Delete removes the child from the active canvas. Personal session history owns Undo
+and Redo; trusted backend receipts and retained canonical content authorize recovery.
+No ten-minute countdown, removed-card placeholder, universal undo framework, or version
+history. Undo advances generation; old editor capabilities stay invalid. Redo is a new
+deletion of the restored child, including intervening accepted edits. Active capacity
+is two; capacity rejection preserves the undo entry. Each deleted document is one entry.
+
+Pending local text moves to app-lifetime memory before editor unmount, survives route
+navigation, and is never automatically replayed. History is canvas-session-only; local
+recovery clears on reload/account change. Backend retention has no automatic purge yet;
+cleanup policy is deliberately separate from personal history availability.
+
+### 2026-09-18 — Content-sized document height
+
+Document cards use rendered text plus padding as their minimum height, grow when
+content no longer fits, and preserve extra height chosen by the user. Document
+height has no fixed upper cap; finite-value, width and coordinate validation
+remain. Browser layout owns text measurement; geometry continues through the
+existing generation-checked canvas write path. Rectangle limits are unchanged.
+
+### 2026-09-19 — Magnetic alignment
+
+Keep one persisted element geometry. Core resolves edge and center alignment from
+geometry and explicit constraints; frontend owns gesture candidates, frozen targets,
+6px acquisition/10px release thresholds, Alt bypass and guides. Group movement uses
+one bounds correction; resizing changes moving edges and respects content minimums.
+Existing throttled writes persist resolved geometry and flush on release.

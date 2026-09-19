@@ -1,14 +1,7 @@
-import {
-  createCanvasDocument,
-  changeCanvasDocument,
-} from "@pluribus/core/canvas/documents";
-import { assertCanvasAccess } from "@pluribus/core/canvas/access";
-import { canvasActor } from "./canvas/Actor";
-import { canvasDocuments, toDocumentElementId } from "./canvas/Documents";
-import { childText } from "./documents/ChildText";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import * as handlers from "./canvas/Handlers";
+import * as deletions from "./canvas/Deletions";
 import { color, geometry, rectangleView } from "./canvas/Model";
 
 /**
@@ -63,17 +56,7 @@ export const remove = mutation({
 export const createDocument = mutation({
   args: { geometry },
   returns: v.id("canvasDocuments"),
-  handler: async (ctx, args) => {
-    const id = await createCanvasDocument(
-      await canvasActor(ctx),
-      canvasDocuments(ctx),
-      childText(ctx),
-      args.geometry,
-    );
-    const stored = ctx.db.normalizeId("canvasDocuments", id);
-    if (!stored) throw new Error("Invalid child");
-    return stored;
-  },
+  handler: handlers.createDocument,
 });
 export const documentCards = query({
   args: {},
@@ -86,40 +69,40 @@ export const documentCards = query({
       removed: v.boolean(),
     }),
   ),
-  handler: async (ctx) => {
-    assertCanvasAccess(await canvasActor(ctx));
-    const rows = await ctx.db
-      .query("canvasDocuments")
-      .withIndex("by_canvas", (q) => q.eq("canvas", "shared"))
-      .take(2);
-    return rows.map((r) => {
-      if (!r.documentId) throw new Error("Incomplete document child");
-      return {
-        id: r._id,
-        documentId: r.documentId,
-        geometry: { x: r.x, y: r.y, width: r.width, height: r.height },
-        generation: r.generation,
-        removed: r.removed,
-      };
-    });
-  },
+  handler: handlers.documentCards,
 });
 export const changeDocument = mutation({
   args: {
     id: v.id("canvasDocuments"),
     generation: v.number(),
-    change: v.union(
-      v.object({ kind: v.literal("geometry"), geometry }),
-      v.object({ kind: v.union(v.literal("remove"), v.literal("restore")) }),
-    ),
+    change: v.object({ kind: v.literal("geometry"), geometry }),
   },
   returns: v.boolean(),
-  handler: async (ctx, args) =>
-    changeCanvasDocument(
-      await canvasActor(ctx),
-      canvasDocuments(ctx),
-      toDocumentElementId(args.id),
-      args.generation,
-      args.change,
-    ),
+  handler: handlers.changeDocument,
+});
+
+const deletionResult = v.object({
+  status: v.union(
+    v.literal("deleted"),
+    v.literal("restored"),
+    v.literal("conflict"),
+    v.literal("full"),
+  ),
+  generation: v.number(),
+});
+/** Personal deletion history uses a capability and trusted server-side recovery data. */
+export const deleteDocument = mutation({
+  args: {
+    id: v.id("canvasDocuments"),
+    generation: v.number(),
+    operation: v.string(),
+    secret: v.string(),
+  },
+  returns: deletionResult,
+  handler: deletions.deleteDocument,
+});
+export const undoDeletion = mutation({
+  args: { operation: v.string(), secret: v.string() },
+  returns: deletionResult,
+  handler: deletions.undoDeletion,
 });

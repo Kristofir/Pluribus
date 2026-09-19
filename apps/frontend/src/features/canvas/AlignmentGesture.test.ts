@@ -1,0 +1,72 @@
+import { expect, test } from "vitest";
+import { AlignmentGesture } from "./AlignmentGesture";
+import type { ElementId, Geometry } from "@pluribus/core/canvas/domain";
+const a = "a" as ElementId,
+  b = "b" as ElementId,
+  t = "t" as ElementId;
+const g = { x: 0, y: 0, width: 100, height: 100 };
+function updates(geometry: Geometry, active = true) {
+  return new Map([[a, { geometry, active }]]);
+}
+test("thresholds use screen pixels at different zoom levels", () => {
+  const targets = [{ id: t, geometry: { ...g, x: 200, y: 500 } }];
+  for (const zoom of [0.5, 1, 2]) {
+    const gesture = new AlignmentGesture(new Map([[a, g]]), targets, false);
+    const changes = updates({ ...g, x: 100 - 5 / zoom });
+    expect(gesture.resolve(changes, zoom, false)).toHaveLength(1);
+    expect(changes.get(a)!.geometry.x).toBe(100);
+  }
+});
+test("group snapping preserves spacing and Alt bypass returns the candidate", () => {
+  const gesture = new AlignmentGesture(
+    new Map([
+      [a, g],
+      [b, { ...g, x: 120 }],
+    ]),
+    [{ id: t, geometry: { ...g, x: 300, y: 500 } }],
+    false,
+  );
+  const changes = new Map([
+    [a, { geometry: { ...g, x: 76 }, active: true }],
+    [b, { geometry: { ...g, x: 196 }, active: true }],
+  ]);
+  gesture.resolve(changes, 1, false);
+  expect(changes.get(a)!.geometry.x).toBe(80);
+  expect(changes.get(b)!.geometry.x).toBe(200);
+  const bypass = new Map([
+    [a, { geometry: { ...g, x: 76 }, active: true }],
+    [b, { geometry: { ...g, x: 196 }, active: true }],
+  ]);
+  expect(gesture.resolve(bypass, 1, true)).toEqual([]);
+  expect(bypass.get(a)!.geometry.x).toBe(76);
+});
+test("resizing retains unsnapped candidates for release batches", () => {
+  const gesture = new AlignmentGesture(
+    new Map([[a, g]]),
+    [{ id: t, geometry: { ...g, x: 200, y: 500 } }],
+    true,
+  );
+  const changes = updates({ ...g, width: 196 });
+  gesture.resolve(changes, 1, false);
+  expect(changes.get(a)!.geometry.width).toBe(200);
+  expect(gesture.candidates.get(a)!.width).toBe(196);
+  const final = updates({ ...gesture.candidates.get(a)! }, false);
+  gesture.resolve(final, 1, false);
+  expect(final.get(a)!.geometry.width).toBe(200);
+});
+test("group snapping cannot move a member beyond the coordinate limit", () => {
+  const gesture = new AlignmentGesture(
+    new Map([
+      [a, g],
+      [b, { ...g, x: 120 }],
+    ]),
+    [{ id: t, geometry: { ...g, x: 304, y: 500 } }],
+    false,
+  );
+  const changes = new Map([
+    [a, { geometry: { ...g, x: 80 }, active: true }],
+    [b, { geometry: { ...g, x: 200 }, active: true }],
+  ]);
+  expect(gesture.resolve(changes, 1, false, { maxX: 200 })).toEqual([]);
+  expect(changes.get(b)!.geometry.x).toBe(200);
+});

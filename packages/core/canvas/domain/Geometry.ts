@@ -24,3 +24,10 @@ export function assertElementGeometry(value: Geometry): void {
   )
     throw new InvalidElementGeometry();
 }
+
+/** Documents can grow vertically with their content; rectangle bounds stay unchanged. */
+export function assertDocumentGeometry(value: Geometry): void {
+  assertElementGeometry({ ...value, height: geometryLimits.minSize });
+  if (!Number.isFinite(value.height) || value.height < geometryLimits.minSize)
+    throw new InvalidElementGeometry();
+}

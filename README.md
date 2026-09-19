@@ -131,9 +131,16 @@ open for pending edits to recover. Pending work is not stored durably offline.
 
 ## Documents on the canvas
 
-Use **Add document** for up to two child cards. Drag by the header and edit inside;
-text undo belongs to the focused editor. Removed cards retain their saved text and
-offer Restore. If another client removes a card with unsaved edits, copy the local
-recovery JSON before discarding it or opening restored content. Recovery is not
-persisted across reload. `/document` redirects to `/canvas`; the standalone editor
-page is retired. Existing standalone stored content is retained.
+Use **Add document** for up to two active child cards. Drag by the outer padding
+and edit the text directly. Delete removes a document from the canvas; **Undo delete**
+restores its saved text and position, and **Redo delete** deletes it again.
+Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z use this personal deletion history outside text inputs;
+focused editors keep their own text undo. Rectangle deletion is not part of this history.
+History lasts while this canvas is open; reloading or leaving the route clears it.
+There is no time-based expiry or automatic permanent purge yet.
+
+If another client deletes a document with pending edits, a local recovery notice
+retains a readable copy and JSON download. Recovery survives route changes until
+explicitly discarded, but is lost on reload or account change. Undo opens saved
+content with a fresh editing session and never replays old pending text.
+`/document` redirects to `/canvas`; existing standalone stored content is retained.

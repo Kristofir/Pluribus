@@ -67,6 +67,33 @@ flowchart LR
 - Shared modules must not depend on feature implementations. Do not move code into
   a shared folder merely to bypass a boundary.
 
+## Application operations and frontend controllers
+
+Application services are plain use-case functions, not service classes or another
+layer. They own business coordination, using explicit dependency objects and narrow
+transaction-bound ports. Canvas rectangle and document operations follow this form;
+`Canvas.ts` holds registration/validators and `canvas/Handlers.ts` composes adapters.
+Native authorized reads and routine text sync remain direct adapter operations.
+
+Authorship acceptance coordinates evidence and restoration policy in core; its
+batch-local ProseMirror adapter verifies and applies the exact submitted steps.
+The sync adapter still owns version checks, canonical reconstruction and component
+writes. Any rejection escapes the encompassing mutation, rolling back text and
+receipts together. Proof payloads are generic opaque values, never parsed by core.
+
+Frontend controllers own client interactions, not server business operations.
+`useCanvas` retains subscriptions and gesture lifetimes; `useCanvasCommands` owns
+create/delete/undo/redo commands and pending-edit guards. `canvasNodes` derives the
+React Flow projection from query results plus transient state. `useDocumentEditor`
+keeps editor creation, subscriptions, presence, undo/move controls and recovery in
+one lifecycle; `CollaborativeEditor` loads initial content and renders controls.
+Moving presentation must not remount the editor or recreate presence leases.
+
+Presence keeps its existing pure policy and activity publication use case.
+Membership tokens, component heartbeats/expiry and cleanup remain adapter mechanics;
+there is no second lifecycle service or duplicate registry. Extract new operations
+only when they coordinate real business behavior, not to make every feature match.
+
 ## Naming
 
 Use PascalCase for authored source filenames, retaining suffixes such as `.test.ts`
@@ -155,8 +182,18 @@ values. Frontend `ElementProjection.ts` maps generated API results into the same
 union for rendering and interactions, without storing a second editable copy.
 Tables, public API shapes, text storage, and lifecycle rules remain unchanged.
 
+Alignment anchors and the pure snapping resolver live in `canvas/domain/Alignment.ts`.
+Frontend gesture sessions freeze targets, retain unsnapped candidates, convert screen
+thresholds with viewport zoom, and draw local guides. Only resolved geometry enters
+the existing write path; elements retain one persisted geometry. Snap transitions use
+a 140ms browser animation of the local visual correction, with reduced-motion support;
+animation frames never enter React state or persistence.
+
 Shared geometry values, bounds and validation live in `canvas/domain/Geometry.ts`;
-rectangle capacity stays in the rectangle module. Frontend geometry mutations
+rectangle capacity stays in the rectangle module. Documents retain shared width and coordinate bounds but have no fixed height cap.
+The frontend measures intrinsic rendered content plus card padding to constrain resize
+and grow shared geometry when text overflows. Extra user-created height is retained;
+text deletion does not automatically shrink cards. Frontend geometry mutations
 dispatch by the captured element kind, never by the presence of generation metadata.
 Each queued document gesture retains its generation; removal or generation changes
 cancel pending gestures. Missing targets stop the write rather than defaulting to
@@ -286,14 +323,16 @@ No paragraph records or source anchors are included.
 
 Current-text authorship belongs to documents, independently of presence and source
 connections. Contiguous text marks reference stable authors; author display metadata
-is stored once. Legacy text without a mark remains unknown. Core owns a pure
-restoration authorization predicate over actor, session, scope and consumed state;
-there are no authorship ports yet. Mark/schema, move, inverse and mapping validation
+is stored once. Legacy text without a mark remains unknown. Core owns restoration authorization over actor, session, scope and consumed state.
+Its `acceptAuthoredOperations` application operation rejects duplicates, authorizes
+restoration, requires both halves of a restored move, and records accepted evidence.
+Narrow evidence and edit-verification ports share the sync transaction. Restoration
+proof is opaque to core; mark/schema, move-source, inverse and mapping validation
 remain editor/backend adapter responsibilities. Canvas cards activate the same
 protocol with document-and-generation-scoped sessions. Concurrent card mounts
-share a durable guest identity but never share an editing session. Removed cards
-can render saved content without opening a writable author session. Restoring a
-card opens a new session; old-generation writes and restoration proofs stay invalid.
+share a durable guest identity but never share an editing session. Deleted cards
+are absent from the canvas; their saved text remains in backend recovery storage.
+Undo opens a new session; old-generation writes and restoration proofs stay invalid.
 
 `packages/editor` is the shared ProseMirror adapter for matching client/server
 schemas and operation steps. It is deliberately technology-specific, outside the
@@ -400,18 +439,50 @@ generation. Text, snapshots, geometry and presence from older generations cannot
 write. Authorized reads remain available for recovery; saved text stays inside the
 removed canvas child, never becoming an independently managed document.
 
-The two-child limit includes removed children. Editors stay mounted across movement,
-resize, focus changes and offscreen movement. Header gestures control the canvas;
-text focus owns text deletion/history. The feature Zustand store owns active-document
-focus. Canvas presence remains acquired; document presence follows explicit editing.
+The two-child limit counts active children only. Indexed canvas reads exclude deleted
+children before applying the limit. Editors stay mounted across movement, resize,
+focus changes and offscreen movement; deletion unmounts them. A changed generation
+always mounts a fresh editor, including when a subscription skips the deleted state.
+Outer-padding gestures control the canvas; text focus owns text deletion/history.
+Canvas presence remains acquired; document presence follows explicit editing.
 Rendering cards alone adds no document participation or heartbeat.
 
-Local pending edits block removal and navigation. Remote removal freezes the editor
-and captures a local JSON recovery copy; this is memory-only and is lost on reload.
-Users can copy it, explicitly discard it, or restore the child and explicitly open
-its saved content. Old pending steps never replay into the restored generation.
-A removed card remains visible as a recovery placeholder for this bounded experiment;
-there is no permanent purge or general trash browser.
+### Personal document-deletion history
+
+`canvas/application/Deletions.ts` coordinates deletion and Undo with transaction-bound
+child and receipt ports. Delete advances generation and records an operation atomically;
+Undo restores the same child and saved content with another fresh generation. Receipts
+bind a unique request, child, deleted generation, authenticated owner (or anonymous
+capability holder), and hashed secret. Retry uses the same command; prior successful
+operations cannot affect later generations. A full active canvas rejects Undo without
+consuming it. Generic `changeDocument` now accepts geometry only, preventing lifecycle
+writes from bypassing history authorization.
+
+`DocumentHistory.ts` owns a personal stack for this mounted canvas, with one entry per
+deleted document. Undo and Redo buttons and canvas-focused shortcuts use it. Redo
+records a new deletion of the restored generation and retains whatever content was
+accepted since Undo. A new deletion clears redo. Rectangle actions and editor text
+history are separate; this is not a universal canvas history. Stale entries are retired;
+ambiguous failures retain the exact request for explicit retry. History clears on route
+exit, reload or account change. No timer invalidates an available Undo.
+
+The backend retains deleted children, canonical text, authorship and receipts; automatic
+purge and a retention policy remain deferred. There is no trash browser or version-history
+UI. Active reads remain bounded, but retained storage grows with deletion history. A
+future purge must protect exact deletion identity and enter an irreversible state before
+calling the component's asynchronous cleanup; it cannot invalidate live undo entries.
+Legacy removed children without receipts can be restored by the bounded internal
+compatibility migration; new deletions are never restored by that migration.
+
+Local pending edits block local deletion and normal editor navigation. Transaction and
+unmount callbacks synchronously capture pending JSON/text into `DocumentRecovery`, outside
+the card lifetime. Remote deletion detaches this copy before editor destruction. The
+app-level provider offers view/download and explicit discard across route changes, and
+warns before tab close. Copies stay in memory only and clear on reload or account change.
+A late acknowledgement cannot erase detached recovery; a fresh generation cannot overwrite
+it. Undo loads canonical saved text without replaying pending steps or reviving old
+text-undo sessions/proofs. Recovery may include an accepted edit whose acknowledgement
+was lost, so it is described as possibly unsaved rather than certainly missing.
 
 Canvas and document-version subscriptions report query errors without throwing
 through the editor tree. They retain the last successful value for the same query

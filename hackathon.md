@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-17T01:40:54Z
+- **Last updated:** 2026-09-19T05:03:04Z
 
 ## Log
 
@@ -316,3 +316,78 @@ missing targets do not fall back to rectangle writes. Focused checks cover routi
 generation capture, geometry bounds and existing canvas lifecycle behavior. All
 95 tests, typechecks and build pass; the local backend starts successfully and
 the canvas reconnects. The existing generated-guidelines formatting warning remains.
+
+### 2026-09-17 - working tree - Trackpad canvas controls
+
+Configured React Flow for two-finger scroll panning and pinch zooming. Ordinary
+scroll no longer zooms the canvas. Typechecks and build pass; physical trackpad
+gestures have not been manually verified.
+
+### 2026-09-17 - working tree - Application responsibilities
+
+Moved authorship acceptance and restoration coordination into core application
+operations with opaque proof and transaction-bound evidence ports. Standardized
+canvas handlers and separated frontend commands/projection and editor lifecycle
+from rendering. Existing sync, presence, schema and retention behavior remain.
+All 104 tests, typechecks and build pass; architecture checks cover 187 files.
+Local verification showed two-client edit/undo convergence, a stable editor node,
+author controls and retained read-only recovery. The existing generated-guidelines
+formatting failure and bundle-size warning remain.
+
+### 2026-09-17 - working tree - Canvas render isolation
+
+Preserved unchanged node and callback references, memoized node components, and
+separated toolbar/error subscriptions from scene updates. Cursor activity no longer
+rebuilds the scene when roster state is unchanged. Editors remain mounted offscreen.
+All 106 tests and build pass; browser checks retained both editor DOM instances
+through a temporary rectangle interaction and cleanup. Existing generated-file
+formatting and bundle-size warnings remain; no frame-rate benchmark was run.
+
+### 2026-09-18 - working tree - Text-only document cards
+
+Removed the title bar, formatting and authorship controls, and inset editor box
+from active canvas document cards. Outer padding provides the drag area; recovery
+and sync-error controls remain available when needed. Browser checks verified
+padding drag and editable text without remounting the editor. All 106 tests and
+build pass; the existing generated-file formatting warning remains.
+
+### 2026-09-18 - working tree - Personal document-deletion history
+
+Deleted document cards disappear and free active capacity. Personal Undo/Redo uses
+transactional backend receipts and retained saved text with fresh editing generations;
+there is no timer or automatic purge. Pending local text survives card unmount and
+route changes in memory. Two-client browser checks verified delete/Undo/Redo and keyboard
+Undo; withholding a text submission verified recovery without replay into restored text.
+Test overrides were removed and original documents restored. No commit or cloud deploy.
+
+Validation: 120 tests, architecture checks (196 source files), typechecks and production
+build pass. The existing generated-guidelines formatting failure and bundle-size warning
+remain. Local compatibility recovery found no legacy removed cards to restore.
+
+### 2026-09-19 - working tree - Content-sized document height
+
+Document cards cannot resize below rendered content plus padding and grow when
+new lines overflow. Extra height persists and the document-only height cap is
+removed. Browser checks measured an 89px minimum growing to 128px after a newline;
+a 500px card stayed 500px with spare room. Test edits and size were restored.
+All 120 tests and build pass; the existing generated-file formatting warning remains.
+
+### 2026-09-19 - working tree - Magnetic canvas alignment
+
+Elements snap to edges and centers during movement and resizing, with local guides
+and Alt/Option bypass. Group spacing and document content minimums are preserved.
+Core owns the pure geometry resolver; frontend owns gesture state and frozen targets.
+Persisted elements retain one geometry through the existing throttled write path.
+Browser checks verified snapping, release, modifier bypass, resizing and persistence
+after reload; the temporary test rectangle was removed. All 129 tests, typechecks,
+architecture checks and build pass. The existing generated-guidelines formatting
+failure and bundle-size warning remain.
+
+### 2026-09-19 - working tree - Smooth snapping
+
+Snap acquisition, release and Alt/Option changes ease over 140ms while ordinary
+pointer movement remains immediate. Browser animations affect presentation only,
+including resize correction; reduced-motion preferences disable motion. Browser
+checks sampled in-flight and settled geometry and verified reduced-motion behavior.
+The temporary test rectangle was removed. All 129 tests, typechecks and build pass;
+the existing generated-file formatting failure and bundle-size warning remain.

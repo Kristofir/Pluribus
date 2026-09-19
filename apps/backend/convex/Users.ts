@@ -3,7 +3,8 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 
 /**
- * Return the signed-in account display fields for the frontend account panel.
+ * Return the signed-in account identity and display fields. The stable ID also
+ * scopes transient recovery so it cannot carry over to another account.
  * Anonymous sessions and missing user records return null. This is an authorized
  * read projection, not a workspace-membership or product-access decision.
  */
@@ -12,6 +13,7 @@ export const current = query({
   returns: v.union(
     v.null(),
     v.object({
+      id: v.id("users"),
       name: v.optional(v.string()),
       email: v.optional(v.string()),
     }),
@@ -23,6 +25,6 @@ export const current = query({
     const user = await ctx.db.get("users", userId);
     if (user === null) return null;
 
-    return { name: user.name, email: user.email };
+    return { id: user._id, name: user.name, email: user.email };
   },
 });

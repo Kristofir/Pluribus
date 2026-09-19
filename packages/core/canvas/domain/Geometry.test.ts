@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   assertElementGeometry,
+  assertDocumentGeometry,
   InvalidElementGeometry,
   geometryLimits,
 } from "./Geometry";
@@ -22,4 +23,17 @@ test("geometry includes finite coordinates and the supported size boundaries", (
     expect(() => assertElementGeometry(geometry)).toThrow(
       InvalidElementGeometry,
     );
+});
+
+test("documents allow tall finite heights while retaining width and position limits", () => {
+  const geometry = { x: 0, y: 0, width: 430, height: 20000 };
+  expect(() => assertDocumentGeometry(geometry)).not.toThrow();
+  expect(() => assertElementGeometry(geometry)).toThrow(InvalidElementGeometry);
+  for (const height of [NaN, Infinity, -1, 39])
+    expect(() => assertDocumentGeometry({ ...geometry, height })).toThrow(
+      InvalidElementGeometry,
+    );
+  expect(() => assertDocumentGeometry({ ...geometry, width: 2001 })).toThrow(
+    InvalidElementGeometry,
+  );
 });

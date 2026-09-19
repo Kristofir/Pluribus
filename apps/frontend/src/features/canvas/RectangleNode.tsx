@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import {
   geometryLimits,
@@ -7,7 +8,10 @@ export type RectangleNode = Node<
   { color: RectangleColor; editable: boolean },
   "rectangle"
 >;
-export function Rectangle({ selected, data }: NodeProps<RectangleNode>) {
+export const Rectangle = memo(function Rectangle({
+  selected,
+  data,
+}: NodeProps<RectangleNode>) {
   return (
     <div className={`canvas-rectangle canvas-${data.color}`}>
       <NodeResizer
@@ -19,4 +23,4 @@ export function Rectangle({ selected, data }: NodeProps<RectangleNode>) {
       />
     </div>
   );
-}
+});

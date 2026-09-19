@@ -11,7 +11,9 @@
     "./documents/application": "./documents/application/Documents.ts",
     "./presence/domain": "./presence/domain/Activity.ts",
     "./presence/application": "./presence/application/Publish.ts",
+    "./canvas/deletions": "./canvas/application/Deletions.ts",
     "./canvas/documents": "./canvas/application/Documents.ts",
+    "./documents/acceptance": "./documents/application/Authorship.ts",
     "./documents/authorship": "./documents/domain/Authorship.ts"
   },
   "scripts": {

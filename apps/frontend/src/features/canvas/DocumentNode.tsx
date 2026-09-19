@@ -1,5 +1,5 @@
+import { memo, useLayoutEffect, useRef, useState } from "react";
 import { geometryLimits } from "@pluribus/core/canvas/domain";
-import { useState } from "react";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import type { Id } from "@pluribus/backend/dataModel";
 import { CollaborativeEditor } from "../documents/CollaborativeEditor";
@@ -13,78 +13,77 @@ export type DocumentNode = Node<
     editing: boolean;
     activate: (active: boolean) => void;
     pending: (value: boolean) => void;
-    restore: () => void;
+    contentHeight: (height: number) => void;
   },
   "document"
 >;
-/** The node stays mounted through geometry and lifecycle changes, retaining rejected local work. */
-export function DocumentCard({ data, selected }: NodeProps<DocumentNode>) {
-  const [generation, setGeneration] = useState(data.generation);
-  const [discarded, setDiscarded] = useState(false);
-  const expired = generation !== data.generation;
+/** Geometry preserves editor identity; a restored generation always opens a fresh editor. */
+export const DocumentCard = memo(function DocumentCard({
+  data,
+  selected,
+  height,
+}: NodeProps<DocumentNode>) {
+  const card = useRef<HTMLElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  const [minimumHeight, setMinimumHeight] = useState(
+    geometryLimits.minSize as number,
+  );
+  useLayoutEffect(() => {
+    const element = body.current;
+    const container = card.current;
+    if (!element || !container) return;
+    const measure = () => {
+      // Wait for the editor, so loading placeholders do not determine persisted size.
+      if (!element.querySelector(".tiptap")) return;
+      const style = getComputedStyle(container);
+      const inset =
+        parseFloat(style.paddingTop) +
+        parseFloat(style.paddingBottom) +
+        parseFloat(style.borderTopWidth) +
+        parseFloat(style.borderBottomWidth);
+      const minimum = Math.max(
+        geometryLimits.minSize,
+        Math.ceil(element.offsetHeight + inset),
+      );
+      setMinimumHeight(minimum);
+      data.contentHeight(minimum);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    measure();
+    return () => observer.disconnect();
+  }, [data.contentHeight, data.editable, height]);
   return (
-    <section className={`canvas-document ${data.removed ? "is-removed" : ""}`}>
+    <section
+      ref={card}
+      className="canvas-document document-drag-handle"
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) data.activate(false);
+      }}
+    >
       <NodeResizer
-        isVisible={selected && data.editable && !data.removed}
+        isVisible={selected && data.editable}
         minWidth={360}
-        minHeight={280}
+        minHeight={minimumHeight}
         maxWidth={geometryLimits.maxSize}
-        maxHeight={geometryLimits.maxSize}
       />
-      <header
-        className="document-drag-handle"
-        tabIndex={0}
-        onPointerDown={(event) => {
-          event.currentTarget.focus();
-          data.activate(false);
-        }}
-      >
-        {data.removed ? "Removed document" : "Document"}
-        {data.removed && (
-          <button className="nodrag" onClick={data.restore}>
-            Restore
-          </button>
-        )}
-      </header>
       <div
         className="document-card-content nodrag nowheel nopan"
         onPointerDown={() => data.activate(true)}
         onFocusCapture={() => data.activate(true)}
       >
-        {!discarded && (
+        <div ref={body} className="document-card-body">
           <CollaborativeEditor
-            key={generation}
+            key={data.generation}
             embedded
             id={data.documentId}
-            generation={generation}
-            participate={data.editing && !data.removed && !expired}
-            suspended={data.removed || expired}
+            generation={data.generation}
+            participate={data.editing && data.editable}
             paused={!data.editable}
             onPendingChange={data.pending}
           />
-        )}
-        {(data.removed || expired) && !discarded && (
-          <button
-            onClick={() => {
-              data.pending(false);
-              setDiscarded(true);
-            }}
-          >
-            Discard local recovery
-          </button>
-        )}
-        {!data.removed && (expired || discarded) && (
-          <button
-            onClick={() => {
-              setGeneration(data.generation);
-              setDiscarded(false);
-              data.pending(false);
-            }}
-          >
-            Open restored document (discard local recovery)
-          </button>
-        )}
+        </div>
       </div>
     </section>
   );
-}
+});

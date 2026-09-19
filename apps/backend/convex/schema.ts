@@ -42,6 +42,16 @@ export default defineSchema({
     "by_participationId_and_channel",
     ["participationId", "channel"],
   ),
+  canvasDeletions: defineTable({
+    operation: v.string(),
+    element: v.id("canvasDocuments"),
+    generation: v.number(),
+    owner: v.union(v.string(), v.null()),
+    proof: v.string(),
+    restoredGeneration: v.optional(v.number()),
+  })
+    .index("by_operation", ["operation"])
+    .index("by_element", ["element"]),
   canvasDocuments: defineTable(
     geometry.extend({
       canvas: v.literal("shared"),
@@ -49,7 +59,9 @@ export default defineSchema({
       removed: v.boolean(),
       generation: v.number(),
     }),
-  ).index("by_canvas", ["canvas"]),
+  )
+    .index("by_canvas", ["canvas"])
+    .index("by_canvas_removed", ["canvas", "removed"]),
   documents: defineTable({
     element: v.optional(v.id("canvasDocuments")),
     key: v.string(),
