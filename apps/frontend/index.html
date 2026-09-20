@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Project scaffold</title>
+    <script>
+      // Apply the saved preference before first paint; storage is optional.
+      let theme = "dark";
+      try {
+        const saved = localStorage.getItem("intent-ui-theme");
+        if (["light", "dark", "system"].includes(saved)) theme = saved;
+      } catch {}
+      const resolved =
+        theme === "system"
+          ? matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light"
+          : theme;
+      document.documentElement.classList.add(resolved);
+      document.documentElement.style.colorScheme = resolved;
+    </script>
   </head>
   <body>
     <div id="root"></div>

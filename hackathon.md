@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-19T05:03:04Z
+- **Last updated:** 2026-09-20T07:29:43Z
 
 ## Log
 
@@ -391,3 +391,137 @@ including resize correction; reduced-motion preferences disable motion. Browser
 checks sampled in-flight and settled geometry and verified reduced-motion behavior.
 The temporary test rectangle was removed. All 129 tests, typechecks and build pass;
 the existing generated-file formatting failure and bundle-size warning remain.
+
+### 2026-09-19 - working tree - Dark theme
+
+Connected canvas surfaces, cards, controls, guides and document recovery to shared
+theme tokens. Added Light/Dark/System selectors to the home page and canvas, with
+dark as the default for unsaved preferences and saved theme applied before first
+paint. Browser checks verified switching, live system changes and reload persistence.
+All 129 tests, typechecks, architecture checks and build pass; the existing generated
+guidelines formatting failure and bundle-size warning remain.
+
+### 2026-09-19 - working tree - Selection handle prototype reverted
+
+Tried small corner handles with larger grab areas, then reverted the prototype
+after user review. Original resize controls are restored; dark theme and snapping
+remain unchanged.
+
+### 2026-09-19 - working tree - Canvas behavior spec
+
+Added a concise behavior spec for navigation, geometry, snapping and document cards.
+Project instructions now require checking affected rules and reporting evidence or
+gaps. Initial source review informed the spec; this documentation change does not
+claim a fresh browser conformance audit.
+
+### 2026-09-19 - working tree - Element event tables
+
+Grouped conditional event behavior by canvas background, rectangle and document
+card in the behavior spec. Selection modifiers, double-click and keyboard movement
+remain explicitly undecided. Documentation only; no new interaction audit claimed.
+
+### 2026-09-19 - working tree - Navigation over elements
+
+Clarified pan/pinch behavior over rectangles and document text, including while
+editing. Recorded the document editor nowheel exclusion as an implementation gap;
+this spec update does not change runtime behavior.
+
+### 2026-09-19 - working tree - Navigation over document text
+
+Removed the editor wheel exclusion so pan/pinch reaches the canvas while text
+retains drag selection. Browser checks verified wheel navigation over elements and
+focused text, plus text selection without card movement. Physical trackpad gestures
+were not tested. All 129 tests and build pass; existing formatting and bundle-size
+warnings remain.
+
+### 2026-09-19 - working tree - Interaction modality grouping
+
+Organized each element event table into mouse/trackpad and keyboard groups.
+Disconnected-state rules remain shared across input methods. Documentation only;
+behavior and verification results are unchanged.
+
+### 2026-09-19 - working tree - Lifted elements
+
+Cards and rectangles scale visually to 1.015 with a subtle shadow when hovered or
+dragged. Reduced motion removes transitions. Browser checks verified hover entry/exit,
+dragging and unchanged geometry on hover; the temporary rectangle was removed.
+Updated the behavior spec with the Lifted state and focused evidence. All 129 tests
+and build pass; existing generated-file formatting and bundle warnings remain.
+
+### 2026-09-19 - working tree - Document click versus drag
+
+Document cards defer editing until release; movement beyond 5 screen pixels starts
+card dragging. Editing preserves text drag selection, padding movement and the mounted
+editor. Escape or outside click exits editing. Added interaction and Lifted flow
+diagrams to the spec. Four focused gesture tests and browser checks cover release,
+drag, cancellation, focus, text selection and editor identity. Test movement was
+restored without changing text. All 133 tests, typechecks and build pass; existing
+generated-file formatting and bundle-size warnings remain.
+
+### 2026-09-19 - working tree - Smooth element and cursor translation
+
+Added 50ms node translation and matching collaborator selection-outline transitions,
+plus 100ms collaborator cursor transitions using transforms. Reduced motion disables
+interpolation; authoritative geometry and presence publishing are unchanged. Browser
+checks measured in-flight and settled node positions and two-tab cursor interpolation.
+A temporary stylesheet regression was fixed before final checks; test geometry was
+removed. All 133 tests and build pass; existing formatting and bundle warnings remain.
+
+### 2026-09-20 - working tree - Buffered collaborator cursor playback
+
+Replaced cursor CSS transitions with bounded receive-time interpolation and corrected
+send scheduling to count request time toward cadence. User feedback reduced the
+playback buffer to 80ms and pointer cadence to 40ms; other channels remain 80ms.
+Backpressure, latest-only pending data, reduced motion and stale-gap reset remain.
+A local two-tab run measured 39.9ms mean arrival spacing and 37 moving frames for 16
+updates, then settled at the final coordinates. All 137 tests and build pass; existing
+generated-file formatting and bundle-size warnings remain.
+
+### 2026-09-19 - working tree - Dedicated History documentation
+
+Added a concise implementation spec in `docs/history.md`: deletion, Undo/Redo,
+retries, recovery, ownership and operation coverage. Requirements target Elements;
+current type-specific gaps remain explicit. Shared history has open
+grouping, concurrency and retention decisions. Linked from architecture; no runtime
+behavior changed.
+
+### 2026-09-19 - working tree - Element deletion History
+
+Extended personal deletion Undo/Redo to all current Element types. Rectangles now
+retain identity, geometry and color on removal; generations reject stale writes
+after restoration. A shared controller owns ordering/retries and a typed deletion
+handler owns operation behavior. Local browser buttons and keyboard pass; focused
+tests cover mixed ordering, capacity, credentials, retries and legacy records.
+All 144 tests pass across the full run and timeout retries; build passes. The
+existing generated-guidance formatting warning remains.
+
+### 2026-09-19 - working tree - Move and resize History
+
+Recorded move/resize gestures in shared Element History, including atomic group
+Undo/Redo. Backend receipts capture starting geometry and coalesce live writes;
+conditional restoration preserves later collaborator edits. No-ops are ignored,
+new accepted gestures clear Redo, and automatic text growth remains separate.
+Local two-client checks passed for exact geometry restoration, group Undo,
+document text preservation and conflict refusal. Temporary test Elements removed.
+Build and 159 tests pass across full/focused runs and timeout retries; existing
+generated-guidance formatting and bundle-size warnings remain.
+
+### 2026-09-20 - working tree - Creation History
+
+Canvas Add actions now record Element creation after backend acceptance. Atomic
+creation receipts prevent duplicate Elements on retry; Undo/Redo reuses soft
+deletion and restoration, preserving identity and saved content. Browser rectangle
+Add/Undo/Redo passes; both types pass backend tests. Build, architecture and types
+pass; 164 tests pass across the full run and architecture timeout retry. Existing
+generated-guidance formatting and bundle-size warnings remain.
+
+### 2026-09-20 - working tree - Session-scoped Canvas History
+
+Unified create, delete and geometry actions behind a compact History facade.
+Core handlers own continuity rules; Convex adapters atomically store actions,
+immutable attempt outcomes and session/Element bindings. Bounded gesture cursors,
+explicit closure and idle leases handle retries and interrupted gestures.
+Browser checks passed complete rectangle Undo/Redo and peer-edit conflict refusal;
+a mistaken document drag was superseded by later moves and those were preserved.
+All 176 tests pass with an increased timeout after two architecture fixture timeouts.
+Build, types and architecture pass; generated-guidance formatting and bundle-size warnings remain.

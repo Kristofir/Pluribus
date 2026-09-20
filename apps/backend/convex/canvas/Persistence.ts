@@ -23,7 +23,7 @@ export function rectanglePersistence(ctx: MutationCtx): RectanglePersistence {
       (
         await ctx.db
           .query("rectangles")
-          .withIndex("by_creation_time")
+          .withIndex("by_removed", (q) => q.eq("removed", undefined))
           .take(limit)
       ).length,
     get: async (id) => {
@@ -36,12 +36,25 @@ export function rectanglePersistence(ctx: MutationCtx): RectanglePersistence {
         canvasId: "shared",
         geometry: { x, y, width, height },
         color,
+        generation: record.generation ?? 1,
+        removed: record.removed ?? false,
       };
     },
     insert: async ({ geometry, color }) =>
-      toRectangleId(await ctx.db.insert("rectangles", { ...geometry, color })),
+      toRectangleId(
+        await ctx.db.insert("rectangles", {
+          ...geometry,
+          color,
+          generation: 1,
+        }),
+      ),
     updateGeometry: (id, geometry) =>
       ctx.db.patch("rectangles", storageId(id), geometry),
-    remove: (id) => ctx.db.delete("rectangles", storageId(id)),
+    lifecycle: (id, removed, generation) =>
+      ctx.db.patch("rectangles", storageId(id), {
+        activeDeletion: undefined,
+        removed: removed ? true : undefined,
+        generation,
+      }),
   };
 }

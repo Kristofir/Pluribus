@@ -118,7 +118,7 @@ and framework-required filenames unchanged, including Convex `schema.ts`, `http.
 ## Writes, reads, and contracts
 
 Public feature APIs have one explicit entrypoint, `apps/backend/convex/<feature>.ts`.
-For canvas, `Canvas.ts` declares `list`, `create`, `updateGeometry`, and `remove`;
+For canvas, `Canvas.ts` declares `list`, `create`, `updateGeometry`, and `deleteElement`;
 `canvas/Handlers.ts` contains ordinary implementation functions. Keep registration
 and validators in the entrypoint. Convex still derives callable names from the
 filename and exports; the explicit entrypoint makes that public surface reviewable.
@@ -172,22 +172,27 @@ workspace restrictions must be enforced through the same domain/application path
 
 `packages/core/canvas/domain/Element.ts` defines the shared `ElementBase` interface
 and the `CanvasElement` discriminated union. Rectangle and Document variants retain
-distinct IDs and required fields; geometry belongs to the base, while content and
-lifecycle fields belong to their variant. The canvas ID is currently `"shared"`.
+distinct IDs and required fields; geometry and lifecycle generation belong to the
+base, while content fields belong to their variant. The canvas ID is currently `"shared"`.
 Adding canvases still requires an explicit ownership/access design.
 
 Application ports derive their data contracts from these domain types and load only
 what their use cases need. Backend adapters convert storage records into domain
 values. Frontend `ElementProjection.ts` maps generated API results into the same
 union for rendering and interactions, without storing a second editable copy.
-Tables, public API shapes, text storage, and lifecycle rules remain unchanged.
+Element lifecycle operations share deletion receipts; text storage remains document-owned.
 
 Alignment anchors and the pure snapping resolver live in `canvas/domain/Alignment.ts`.
 Frontend gesture sessions freeze targets, retain unsnapped candidates, convert screen
 thresholds with viewport zoom, and draw local guides. Only resolved geometry enters
 the existing write path; elements retain one persisted geometry. Snap transitions use
 a 140ms browser animation of the local visual correction, with reduced-motion support;
-animation frames never enter React state or persistence.
+animation frames never enter React state or persistence. CSS interpolates node translation and selection outlines over 50ms. Remote cursors
+use a bounded receive-time sample buffer (80ms delay) and direct animation-frame DOM
+updates; reduced motion bypasses interpolation. Pointer publishing targets 40ms
+between send starts, with one in-flight request and one replaceable pending sample.
+Other activity channels retain their 80ms cadence. No clock synchronization or
+backend schema change is required.
 
 Shared geometry values, bounds and validation live in `canvas/domain/Geometry.ts`;
 rectangle capacity stays in the rectangle module. Documents retain shared width and coordinate bounds but have no fixed height cap.
@@ -195,7 +200,7 @@ The frontend measures intrinsic rendered content plus card padding to constrain 
 and grow shared geometry when text overflows. Extra user-created height is retained;
 text deletion does not automatically shrink cards. Frontend geometry mutations
 dispatch by the captured element kind, never by the presence of generation metadata.
-Each queued document gesture retains its generation; removal or generation changes
+Each queued Element gesture retains its generation; removal or generation changes
 cancel pending gestures. Missing targets stop the write rather than defaulting to
 a rectangle mutation.
 
@@ -443,46 +448,38 @@ The two-child limit counts active children only. Indexed canvas reads exclude de
 children before applying the limit. Editors stay mounted across movement, resize,
 focus changes and offscreen movement; deletion unmounts them. A changed generation
 always mounts a fresh editor, including when a subscription skips the deleted state.
-Outer-padding gestures control the canvas; text focus owns text deletion/history.
+Frontend pointer intent distinguishes a click from a drag at 5 screen pixels.
+Idle card contents are a drag surface; confirmed release enables the mounted editor
+and places its caret. While editing, text owns selection and deletion/history;
+padding still starts card gestures. Editor adapters own editability and caret placement.
 Canvas presence remains acquired; document presence follows explicit editing.
 Rendering cards alone adds no document participation or heartbeat.
 
-### Personal document-deletion history
+### Personal Element History
 
-`canvas/application/Deletions.ts` coordinates deletion and Undo with transaction-bound
-child and receipt ports. Delete advances generation and records an operation atomically;
-Undo restores the same child and saved content with another fresh generation. Receipts
-bind a unique request, child, deleted generation, authenticated owner (or anonymous
-capability holder), and hashed secret. Retry uses the same command; prior successful
-operations cannot affect later generations. A full active canvas rejects Undo without
-consuming it. Generic `changeDocument` now accepts geometry only, preventing lifecycle
-writes from bypassing history authorization.
+See [History](history.md) for requirements, ownership and operation coverage.
 
-`DocumentHistory.ts` owns a personal stack for this mounted canvas, with one entry per
-deleted document. Undo and Redo buttons and canvas-focused shortcuts use it. Redo
-records a new deletion of the restored generation and retains whatever content was
-accepted since Undo. A new deletion clears redo. Rectangle actions and editor text
-history are separate; this is not a universal canvas history. Stale entries are retired;
-ambiguous failures retain the exact request for explicit retry. History clears on route
-exit, reload or account change. No timer invalidates an available Undo.
+The client owns personal ordering and retry state behind a compact action facade.
+Core typed handlers own creation, lifecycle and geometry inverses. Transaction-bound
+adapters own session authentication, indexed persistence and scheduling. Canonical
+state, action revisions and durable attempt outcomes commit atomically.
 
-The backend retains deleted children, canonical text, authorship and receipts; automatic
-purge and a retention policy remain deferred. There is no trash browser or version-history
-UI. Active reads remain bounded, but retained storage grows with deletion history. A
-future purge must protect exact deletion identity and enter an irreversible state before
-calling the component's asynchronous cleanup; it cannot invalidate live undo entries.
-Legacy removed children without receipts can be restored by the bounded internal
-compatibility migration; new deletions are never restored by that migration.
+V2 stores sessions, discriminated action records, immutable durable attempt outcomes
+and session/Element continuity bindings. Exact retry acceptance is independent of
+present reversibility. A verified personal lifecycle inverse advances the binding
+and editing generation together, preserving earlier History eligibility; peer
+lifecycle changes invalidate that continuity. Editing generations never rewind.
+Geometry inverse conflicts still compare whole geometry; live gesture generations
+remain fixed even across personal restoration.
 
-Local pending edits block local deletion and normal editor navigation. Transaction and
-unmount callbacks synchronously capture pending JSON/text into `DocumentRecovery`, outside
-the card lifetime. Remote deletion detaches this copy before editor destruction. The
-app-level provider offers view/download and explicit discard across route changes, and
-warns before tab close. Copies stay in memory only and clear on reload or account change.
-A late acknowledgement cannot erase detached recovery; a fresh generation cannot overwrite
-it. Undo loads canonical saved text without replaying pending steps or reviving old
-text-undo sessions/proofs. Recovery may include an accepted edit whose acknowledgement
-was lost, so it is described as possibly unsaved rather than certainly missing.
+The gesture queue coalesces live updates into one action with a bounded latest-ACK
+cursor. Explicit close and a leased idle checker seal accepted geometry without
+rewriting it. Heartbeats and protocol reconciliation remain behind the frontend
+facade. Text undo/recovery and automatic text-height growth remain separate.
+
+Legacy receipts/endpoints remain isolated; no lineage is inferred from their owner.
+Personal stacks are session-local. Durable evidence and removed content have no
+automatic purge; future action kinds and retention policy are separate work.
 
 Canvas and document-version subscriptions report query errors without throwing
 through the editor tree. They retain the last successful value for the same query

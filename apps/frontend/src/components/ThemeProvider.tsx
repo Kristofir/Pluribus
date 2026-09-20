@@ -13,7 +13,7 @@ const ThemeContext = createContext<ThemeState | undefined>(undefined);
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
+  defaultTheme = "dark",
   storageKey = "intent-ui-theme",
 }: {
   children: ReactNode;

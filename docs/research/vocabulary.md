@@ -49,12 +49,12 @@ retain Document as the element until we explicitly decide otherwise.
 
 ### Collaboration — accepted edits and restoration
 
-| Term               | Meaning                                                                                               | Status                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| Author session     | A credentialed editing session scoped to one document and editing generation.                         | Implemented; distinct from an authentication or presence session |
-| Editing generation | A lifecycle counter that invalidates earlier editing sessions when a document is removed or restored. | Implemented                                                      |
-| Accepted operation | A backend-accepted edit with author/session evidence supporting verified undo and redo.               | Implemented; not a full revision-history product                 |
-| Move evidence      | Information linking the removal and insertion of an explicit move within one document.                | Implemented protocol data, not an independent entity             |
+| Term               | Meaning                                                                                                                        | Status                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| Author session     | A credentialed editing session scoped to one document and editing generation.                                                  | Implemented; distinct from an authentication or presence session |
+| Element generation | A lifecycle counter that invalidates stale writes on deletion/restoration; documents also invalidate earlier editing sessions. | Implemented                                                      |
+| Accepted operation | A backend-accepted edit with author/session evidence supporting verified undo and redo.                                        | Implemented; not a full revision-history product                 |
+| Move evidence      | Information linking the removal and insertion of an explicit move within one document.                                         | Implemented protocol data, not an independent entity             |
 
 Text, attribution and operation evidence commit together only after backend
 acceptance. Local pending steps are not accepted history. Explicit moves preserve

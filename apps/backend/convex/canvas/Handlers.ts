@@ -11,7 +11,6 @@ import type { QueryCtx, MutationCtx } from "../_generated/server";
 import {
   createRectangle,
   updateRectangleGeometry,
-  removeRectangle,
 } from "@pluribus/core/canvas/application";
 import { assertCanvasAccess } from "@pluribus/core/canvas/access";
 import { rectangleLimits } from "@pluribus/core/canvas/domain";
@@ -23,15 +22,16 @@ export async function list(ctx: QueryCtx) {
   assertCanvasAccess(await canvasActor(ctx));
   const records = await ctx.db
     .query("rectangles")
-    .withIndex("by_creation_time")
+    .withIndex("by_removed", (q) => q.eq("removed", undefined))
     .take(rectangleLimits.maxCount);
-  return records.map(({ _id, x, y, width, height, color }) => ({
+  return records.map(({ _id, x, y, width, height, color, generation }) => ({
     id: _id,
     x,
     y,
     width,
     height,
     color,
+    generation: generation ?? 1,
   }));
 }
 
@@ -56,27 +56,21 @@ export async function updateGeometry(
   {
     id,
     geometry,
-  }: { id: Id<"rectangles">; geometry: Infer<typeof geometryValidator> },
+    generation,
+  }: {
+    id: Id<"rectangles">;
+    geometry: Infer<typeof geometryValidator>;
+    generation: number;
+  },
 ) {
   return updateRectangleGeometry(
     { rectangles: rectanglePersistence(ctx) },
     await canvasActor(ctx),
     toRectangleId(id),
     geometry,
+    generation,
   );
 }
-export async function remove(
-  ctx: MutationCtx,
-  { id }: { id: Id<"rectangles"> },
-) {
-  await removeRectangle(
-    { rectangles: rectanglePersistence(ctx) },
-    await canvasActor(ctx),
-    toRectangleId(id),
-  );
-  return null;
-}
-
 export async function createDocument(
   ctx: MutationCtx,
   args: { geometry: Infer<typeof geometryValidator> },

@@ -1,24 +1,13 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { historyCredentials } from "./HistoryCredentials";
 import type { DeletionReceipts } from "@pluribus/core/canvas/deletions";
 import {
-  deleteCanvasDocument,
-  undoDocumentDeletion,
+  deleteCanvasElement,
+  undoElementDeletion,
 } from "@pluribus/core/canvas/deletions";
 import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { canvasDocuments, toDocumentElementId } from "./Documents";
+import { elementLifecycles, toElementId } from "./ElementLifecycles";
 
-/** Hash operation capabilities at the adapter boundary; raw secrets never enter storage. */
-async function proof(secret: string) {
-  if (!/^[0-9a-f-]{36}$/.test(secret))
-    throw new Error("Invalid deletion credential");
-  return Array.from(
-    new Uint8Array(
-      await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret)),
-    ),
-    (b) => b.toString(16).padStart(2, "0"),
-  ).join("");
-}
 function deletionReceipts(ctx: MutationCtx): DeletionReceipts {
   const find = (operation: string) =>
     ctx.db
@@ -31,7 +20,7 @@ function deletionReceipts(ctx: MutationCtx): DeletionReceipts {
       return row
         ? {
             operation: row.operation,
-            element: toDocumentElementId(row.element),
+            element: toElementId(row.element),
             generation: row.generation,
             owner: row.owner,
             proof: row.proof,
@@ -40,8 +29,10 @@ function deletionReceipts(ctx: MutationCtx): DeletionReceipts {
         : null;
     },
     async record(receipt) {
-      const element = ctx.db.normalizeId("canvasDocuments", receipt.element);
-      if (!element) throw new Error("Invalid child");
+      const element =
+        ctx.db.normalizeId("canvasDocuments", receipt.element) ??
+        ctx.db.normalizeId("rectangles", receipt.element);
+      if (!element) throw new Error("Invalid Element");
       await ctx.db.insert("canvasDeletions", { ...receipt, element });
     },
     async restore(operation, restoredGeneration) {
@@ -52,27 +43,24 @@ function deletionReceipts(ctx: MutationCtx): DeletionReceipts {
   };
 }
 async function context(ctx: MutationCtx, operation: string, secret: string) {
-  if (!/^[0-9a-f-]{36}$/.test(operation))
-    throw new Error("Invalid deletion operation");
-  const user = await getAuthUserId(ctx);
+  const { actor, credential } = await historyCredentials(
+    ctx,
+    operation,
+    secret,
+  );
   return {
     dependencies: {
-      cards: canvasDocuments(ctx),
+      elements: elementLifecycles(ctx),
       receipts: deletionReceipts(ctx),
     },
-    actor: {
-      access: user
-        ? { kind: "authenticated" as const }
-        : { kind: "anonymous" as const },
-      owner: user,
-    },
-    credential: { operation, proof: await proof(secret) },
+    actor,
+    credential,
   };
 }
-export async function deleteDocument(
+export async function deleteElement(
   ctx: MutationCtx,
   args: {
-    id: Id<"canvasDocuments">;
+    id: Id<"canvasDocuments"> | Id<"rectangles">;
     generation: number;
     operation: string;
     secret: string;
@@ -85,9 +73,9 @@ export async function deleteDocument(
     args.operation,
     args.secret,
   );
-  return deleteCanvasDocument(dependencies, actor, {
+  return deleteCanvasElement(dependencies, actor, {
     ...credential,
-    element: toDocumentElementId(args.id),
+    element: toElementId(args.id),
     generation: args.generation,
   });
 }
@@ -100,5 +88,8 @@ export async function undoDeletion(
     args.operation,
     args.secret,
   );
-  return undoDocumentDeletion(dependencies, actor, credential);
+  return undoElementDeletion(dependencies, actor, credential);
 }
+
+/** Compatibility endpoint for existing document clients; uses the shared Element policy. */
+export const deleteDocument = deleteElement;

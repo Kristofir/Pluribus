@@ -4,6 +4,7 @@ import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import type { Id } from "@pluribus/backend/dataModel";
 import { CollaborativeEditor } from "../documents/CollaborativeEditor";
 import "../documents/Documents.css";
+import { useDocumentInteraction } from "./UseDocumentInteraction";
 export type DocumentNode = Node<
   {
     documentId: Id<"documents">;
@@ -25,6 +26,7 @@ export const DocumentCard = memo(function DocumentCard({
 }: NodeProps<DocumentNode>) {
   const card = useRef<HTMLElement>(null);
   const body = useRef<HTMLDivElement>(null);
+  const interaction = useDocumentInteraction(card, data);
   const [minimumHeight, setMinimumHeight] = useState(
     geometryLimits.minSize as number,
   );
@@ -56,9 +58,21 @@ export const DocumentCard = memo(function DocumentCard({
   return (
     <section
       ref={card}
-      className="canvas-document document-drag-handle"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) data.activate(false);
+      className={`canvas-document document-drag-handle${data.editing ? " is-editing" : ""}`}
+      onPointerDown={interaction.onPointerDown}
+      onKeyDownCapture={(event) => {
+        if (
+          event.key === "Escape" &&
+          data.editing &&
+          !event.nativeEvent.isComposing
+        ) {
+          event.preventDefault();
+          event.stopPropagation();
+          data.activate(false);
+          card.current
+            ?.closest<HTMLElement>(".react-flow__node")
+            ?.focus({ preventScroll: true });
+        }
       }}
     >
       <NodeResizer
@@ -68,14 +82,14 @@ export const DocumentCard = memo(function DocumentCard({
         maxWidth={geometryLimits.maxSize}
       />
       <div
-        className="document-card-content nodrag nowheel nopan"
-        onPointerDown={() => data.activate(true)}
-        onFocusCapture={() => data.activate(true)}
+        className={`document-card-content${data.editing ? " nodrag nopan" : ""}`}
       >
         <div ref={body} className="document-card-body">
           <CollaborativeEditor
             key={data.generation}
             embedded
+            interactionEnabled={data.editing}
+            focusPoint={interaction.focusPoint}
             id={data.documentId}
             generation={data.generation}
             participate={data.editing && data.editable}

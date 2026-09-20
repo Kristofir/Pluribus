@@ -36,6 +36,8 @@ canvas. Unknown paths show a recovery link. The deployment host must serve `inde
 
 ## Shared canvas
 
+[Canvas behavior spec](docs/canvas-behavior.md) defines expected interactions and how to verify changes.
+
 Open `/canvas` in two local browser sessions. Add rectangles, drag them,
 resize a selected rectangle with its handles, and delete with the toolbar or
 Delete/Backspace. Pan, zoom, and selection belong to each client. Shared geometry
@@ -132,10 +134,18 @@ open for pending edits to recover. Pending work is not stored durably offline.
 ## Documents on the canvas
 
 Use **Add document** for up to two active child cards. Drag by the outer padding
-and edit the text directly. Delete removes a document from the canvas; **Undo delete**
-restores its saved text and position, and **Redo delete** deletes it again.
-Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z use this personal deletion history outside text inputs;
-focused editors keep their own text undo. Rectangle deletion is not part of this history.
+and edit the text directly. Delete removes a document from the canvas; **Undo**
+restores its saved text and position, and **Redo** deletes it again.
+Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z use personal Element History outside text inputs;
+focused editors keep their own text undo. The same history restores deleted rectangles,
+including their identity, color and geometry. Creation also records one entry: Undo
+hides the created Element; Redo restores its identity and saved content.
+Deletions produce one entry per Element;
+move/resize gestures produce one entry for the whole group. Geometry Undo/Redo is
+conditional: a later conflicting move or another session’s lifecycle change prevents
+restoration. Your own delete/restore cycles preserve earlier Canvas History.
+Accepted request retries keep their original outcome; interrupted gestures close
+at their last accepted geometry. Protocol bookkeeping stays behind the History facade.
 History lasts while this canvas is open; reloading or leaving the route clears it.
 There is no time-based expiry or automatic permanent purge yet.
 

@@ -1,3 +1,5 @@
+import { documentDragThreshold } from "./DocumentPress";
+import { ThemePicker } from "../../components/ThemePicker";
 import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
@@ -70,8 +72,9 @@ const CanvasScene = memo(function CanvasScene({
     stopEditing,
     deleteSelection,
     history,
-    undoDocument,
-    redoDocument,
+    pending,
+    undoElement,
+    redoElement,
     connected,
     selected,
     store,
@@ -114,8 +117,8 @@ const CanvasScene = memo(function CanvasScene({
         ) {
           event.preventDefault();
           if (event.shiftKey || event.key.toLowerCase() === "y")
-            void redoDocument();
-          else void undoDocument();
+            void redoElement();
+          else void undoElement();
           return;
         }
         if (
@@ -139,11 +142,11 @@ const CanvasScene = memo(function CanvasScene({
         addDocument={addDocument}
         deleteSelection={deleteSelection}
       />
-      <DocumentHistoryControls
+      <ElementHistoryControls
         history={history}
-        connected={connected}
-        undo={undoDocument}
-        redo={redoDocument}
+        connected={connected && pending === 0}
+        undo={undoElement}
+        redo={redoElement}
       />
       {roster}
       <CanvasError store={store} queryFailed={queryFailed} />
@@ -170,6 +173,8 @@ const CanvasScene = memo(function CanvasScene({
           edges={emptyEdges}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
+          nodeDragThreshold={documentDragThreshold}
+          nodeClickDistance={documentDragThreshold}
           nodesDraggable={connected}
           nodesConnectable={false}
           panOnScroll
@@ -222,6 +227,7 @@ const CanvasToolbar = memo(function CanvasToolbar({
         Home
       </Link>
       <h1>Shared canvas</h1>
+      <ThemePicker />
       <button
         onClick={() => void addRectangle()}
         disabled={
@@ -246,7 +252,7 @@ const CanvasToolbar = memo(function CanvasToolbar({
     </header>
   );
 });
-function DocumentHistoryControls({
+function ElementHistoryControls({
   history,
   connected,
   undo,
@@ -259,14 +265,14 @@ function DocumentHistoryControls({
 }) {
   const state = useStore(history.store);
   return (
-    <div className="canvas-history" aria-label="Document deletion history">
+    <div className="canvas-history" aria-label="Element history">
       <button
         onClick={() => void undo()}
         disabled={
           !connected || state.busy || !!state.retry || !state.undo.length
         }
       >
-        Undo delete
+        Undo
       </button>
       <button
         onClick={() => void redo()}
@@ -274,15 +280,15 @@ function DocumentHistoryControls({
           !connected || state.busy || !!state.retry || !state.redo.length
         }
       >
-        Redo delete
+        Redo
       </button>
       {state.error && <span role="alert">{state.error}</span>}
       {state.retry && (
         <button
           disabled={!connected || state.busy}
-          onClick={() => void state.retry?.()}
+          onClick={() => void history.retry()}
         >
-          Retry document action
+          Retry action
         </button>
       )}
     </div>

@@ -30,7 +30,9 @@
   pointer-events: none;
   font-size: 12px;
   white-space: nowrap;
-  transform: translate(0, -3px);
+  top: 0;
+  left: 0;
+  /* RemoteCursor owns buffered animation; do not double-interpolate in CSS. */
 }
 .remote-pointer span {
   color: white;
@@ -39,6 +41,9 @@
 }
 .remote-element {
   position: absolute;
+  top: 0;
+  left: 0;
+  transition: transform 50ms linear;
   pointer-events: none;
   border: 2px dashed;
   border-radius: 5px;
@@ -66,4 +71,11 @@
   font: 11px sans-serif;
   padding: 2px 4px;
   border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .remote-pointer,
+  .remote-element {
+    transition: none;
+  }
 }

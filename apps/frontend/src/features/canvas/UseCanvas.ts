@@ -23,6 +23,8 @@ import {
 } from "@pluribus/core/canvas/domain";
 import { createCanvasStore } from "./CanvasStore";
 import { createCanvasNodeProjector, type CanvasNode } from "./CanvasNodes";
+import { createCanvasGesture } from "./CanvasGesture";
+import type { Id } from "@pluribus/backend/dataModel";
 import { useCanvasCommands } from "./UseCanvasCommands";
 import { useSnapAnimation } from "./UseSnapAnimation";
 import type { InteractionEvent } from "@pluribus/core/presence/domain";
@@ -119,18 +121,28 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   );
   const state = useStore(
     store,
-    useShallow(({ gestures, selected, removing, editing, setEditing }) => ({
-      gestures,
-      selected,
-      removing,
-      editing,
-      setEditing,
-    })),
+    useShallow(
+      ({
+        gestures,
+        selected,
+        removing,
+        editing,
+        setEditing,
+        historyPending,
+      }) => ({
+        gestures,
+        historyPending,
+        selected,
+        removing,
+        editing,
+        setEditing,
+      }),
+    ),
   );
   const { gestures, selected, removing, setEditing } = state;
-  const pending = [...gestures.values()].filter(
-    (g) => g.sending || g.queued,
-  ).length;
+  const pending =
+    Number(state.historyPending) +
+    [...gestures.values()].filter((g) => g.sending || g.queued).length;
   const [session] = useState(() => ({
     id: crypto.randomUUID(),
     color: rectangleColors[Math.floor(Math.random() * rectangleColors.length)],
@@ -140,6 +152,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   useEffect(() => {
     store.getState().setEnabled(connected);
     if (!connected) {
+      geometryGesture.interrupt();
       manipulation.current.clear();
       alignment.current = null;
       setAlignmentGuides([]);
@@ -168,11 +181,11 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       const record = records.find((element) => element.id === id);
       if (
         !record ||
-        (record.kind === "document" &&
-          (record.removed ||
-            target.kind !== "document" ||
-            target.generation !== record.generation))
+        record.removed ||
+        target.kind !== record.kind ||
+        target.generation !== record.generation
       ) {
+        if (geometryGesture.has(id)) geometryGesture.interrupt();
         store.getState().cancel(id);
         if (alignment.current?.initial.has(id)) {
           alignment.current = null;
@@ -188,8 +201,8 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     addDocument,
     deleteSelection,
     history,
-    undoDocument,
-    redoDocument,
+    undoElement,
+    redoElement,
   } = useCanvasCommands({
     connected,
     records,
@@ -199,6 +212,21 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     surface,
     color: session.color,
   });
+  const [geometryGesture] = useState(() => createCanvasGesture(history));
+  useEffect(() => () => geometryGesture.dispose(), [geometryGesture]);
+  useEffect(() => {
+    const visibility = () => {
+      if (document.hidden) geometryGesture.interrupt();
+    };
+    document.addEventListener("visibilitychange", visibility);
+    return () => document.removeEventListener("visibilitychange", visibility);
+  }, [geometryGesture]);
+  const historyState = useStore(history.store);
+  const interactionEnabled =
+    connected &&
+    !historyState.busy &&
+    !historyState.retry &&
+    !(state.historyPending && !geometryGesture.active);
   const [projectNodes] = useState(createCanvasNodeProjector);
   const reportPending = useCallback((id: ElementId, value: boolean) => {
     pendingEditors.current.set(id, value);
@@ -219,12 +247,31 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       const gesture = current.gestures.get(id);
       const geometry = gesture?.geometry ?? record.geometry;
       if (geometry.height >= height) return;
+      if (geometryGesture.has(id)) {
+        geometryGesture.stage(
+          [
+            {
+              id: id as string as Id<"canvasDocuments">,
+              generation,
+              geometry: { ...geometry, height },
+            },
+          ],
+          geometryGesture.active,
+        );
+        return;
+      }
       geometryTargets.current.set(id, geometryTarget(record));
       current.stage(id, { ...geometry, height }, gesture?.active ?? false);
     },
-    [store],
+    [store, geometryGesture],
   );
-  const nodes = projectNodes(records, state, connected, {
+  useEffect(() => {
+    if (store.getState().historyPending) return;
+    // Width changes may reveal a larger text minimum while the final batch is pending.
+    for (const [id, minimum] of contentHeights.current)
+      reportContentHeight(id, minimum.generation, minimum.height);
+  }, [records, gestures, geometryGesture, reportContentHeight]);
+  const nodes = projectNodes(records, state, interactionEnabled, {
     pending: reportPending,
     contentHeight: reportContentHeight,
   });
@@ -236,13 +283,21 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       store
         .getState()
         .select(changes.filter((change) => change.type === "select"));
-      if (!connected) return;
+      if (
+        !connected ||
+        history.store.getState().busy ||
+        history.store.getState().retry
+      )
+        return;
+      if (geometryGesture.busy && !geometryGesture.active) return;
       const moving = changes.filter(
         (change) =>
           (change.type === "position" && change.dragging === true) ||
           (change.type === "dimensions" && change.resizing === true),
       );
       if (!alignment.current && moving.length) {
+        // Finish any automatic content-size write before starting a user operation.
+        if (store.getState().gestures.size && !geometryGesture.busy) return;
         const movingIds = new Set(
           moving.flatMap((change) => ("id" in change ? [change.id] : [])),
         );
@@ -250,23 +305,32 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         const initial = new Map<ElementId, Geometry>();
         const targets = [];
         for (const record of records ?? []) {
-          if (
-            current.removing.has(record.id) ||
-            (record.kind === "document" && record.removed)
-          )
-            continue;
+          if (current.removing.has(record.id) || record.removed) continue;
           const geometry = {
             ...(current.gestures.get(record.id)?.geometry ?? record.geometry),
           };
           if (movingIds.has(record.id)) initial.set(record.id, geometry);
           else targets.push({ id: record.id, geometry });
         }
-        if (initial.size)
+        if (initial.size) {
+          // Keep one operation for the complete selected group, with captured generations.
+          const updates = (records ?? [])
+            .filter((r) => initial.has(r.id))
+            .map((r) => ({
+              id: r.id as string as Id<"rectangles"> | Id<"canvasDocuments">,
+              generation: r.generation,
+              geometry: initial.get(r.id)!,
+            }));
+          if (!geometryGesture.start(updates)) return;
+          for (const r of records ?? [])
+            if (initial.has(r.id))
+              geometryTargets.current.set(r.id, geometryTarget(r));
           alignment.current = new AlignmentGesture(
             initial,
             targets,
             moving.some((change) => change.type === "dimensions"),
           );
+        }
       }
       // A resize can change position and dimensions together. Assemble the entire
       // batch before sending so a top/left resize stays one atomic geometry update.
@@ -280,18 +344,9 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         if (change.type === "dimensions" && change.resizing === undefined)
           continue;
         const record = records?.find((r) => r.id === change.id);
-        if (
-          !record ||
-          removing.has(record.id) ||
-          (record.kind === "document" && record.removed)
-        )
-          continue;
+        if (!record || removing.has(record.id) || record.removed) continue;
         const target = geometryTargets.current.get(record.id);
-        if (
-          record.kind === "document" &&
-          target?.kind === "document" &&
-          target.generation !== record.generation
-        )
+        if (target && target.generation !== record.generation)
           store.getState().cancel(record.id);
         geometryTargets.current.set(record.id, geometryTarget(record));
         const base =
@@ -373,7 +428,6 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         if (!active) alignment.current = null;
       }
       for (const [id, value] of updates) {
-        store.getState().stage(id, value.geometry, value.active);
         if (value.active)
           manipulation.current.set(
             id,
@@ -383,6 +437,16 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
           );
         else manipulation.current.delete(id);
       }
+      if (updates.size && geometryGesture.busy) {
+        geometryGesture.stage(
+          [...updates].map(([id, value]) => ({
+            id: id as string as Id<"rectangles"> | Id<"canvasDocuments">,
+            generation: geometryTargets.current.get(id)!.generation,
+            geometry: value.geometry,
+          })),
+          [...updates.values()].some((value) => value.active),
+        );
+      }
       if (updates.size)
         emit({
           type: "manipulation-changed",
@@ -390,7 +454,17 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
           operation: manipulation.current.values().next().value ?? null,
         });
     },
-    [store, connected, records, removing, emit, flow, snapAnimation],
+    [
+      store,
+      connected,
+      records,
+      removing,
+      emit,
+      flow,
+      snapAnimation,
+      geometryGesture,
+      history,
+    ],
   );
 
   useLayoutEffect(() => {
@@ -398,10 +472,9 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       const gesture = alignment.current;
       if (!gesture) return;
       for (const id of gesture.initial.keys()) {
-        const current = store.getState().gestures.get(id);
-        if (current) store.getState().stage(id, current.geometry, false);
         manipulation.current.delete(id);
       }
+      geometryGesture.interrupt();
       emit({ type: "manipulation-changed", elements: [], operation: null });
     };
     reapplyAlignment.current = () => {
@@ -425,7 +498,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       }
       onNodesChange(changes);
     };
-  }, [onNodesChange, store, emit]);
+  }, [onNodesChange, store, emit, geometryGesture]);
 
   return {
     alignmentGuides,
@@ -439,8 +512,8 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     addRectangle,
     deleteSelection,
     history,
-    undoDocument,
-    redoDocument,
+    undoElement,
+    redoElement,
     connected,
     selected,
     removing,

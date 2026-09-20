@@ -9,7 +9,7 @@ import type {
 } from "@pluribus/core/canvas/domain";
 
 export type GeometryTarget =
-  | Pick<RectangleElement, "kind" | "id">
+  | Pick<RectangleElement, "kind" | "id" | "generation">
   | Pick<DocumentElement, "kind" | "id" | "generation">;
 type Mutations = {
   rectangle: (
@@ -23,7 +23,11 @@ type Mutations = {
 export function geometryTarget(element: CanvasElement): GeometryTarget {
   switch (element.kind) {
     case "rectangle":
-      return { kind: element.kind, id: element.id };
+      return {
+        kind: element.kind,
+        id: element.id,
+        generation: element.generation,
+      };
     case "document":
       return {
         kind: element.kind,
@@ -45,6 +49,7 @@ export function sendGeometry(
     case "rectangle":
       return mutations.rectangle({
         id: target.id as string as Id<"rectangles">,
+        generation: target.generation,
         geometry,
       });
     case "document":

@@ -11,4 +11,7 @@ export const color = v.union(
   v.literal("gold"),
 );
 export const rectangle = geometry.extend({ color });
-export const rectangleView = rectangle.extend({ id: v.id("rectangles") });
+export const rectangleView = rectangle.extend({
+  id: v.id("rectangles"),
+  generation: v.number(),
+});

@@ -2,7 +2,6 @@ import { InvalidElementGeometry } from "../domain/Geometry";
 import { expect, test } from "vitest";
 import {
   createRectangle,
-  removeRectangle,
   updateRectangleGeometry,
   type RectanglePersistence,
 } from "./Rectangles";
@@ -18,7 +17,14 @@ function memoryPersistence() {
     get: async (id) => records.get(id) ?? null,
     insert: async (value) => {
       const id = String(++next) as RectangleId;
-      records.set(id, { id, kind: "rectangle", canvasId: "shared", ...value });
+      records.set(id, {
+        id,
+        kind: "rectangle",
+        canvasId: "shared",
+        generation: 1,
+        removed: false,
+        ...value,
+      });
       return id;
     },
     updateGeometry: async (id, geometry) => {
@@ -26,8 +32,9 @@ function memoryPersistence() {
       if (!record) throw new Error("Missing record");
       records.set(id, { ...record, geometry });
     },
-    remove: async (id) => {
-      records.delete(id);
+    lifecycle: async (id, removed, generation) => {
+      const record = records.get(id)!;
+      records.set(id, { ...record, removed, generation });
     },
   };
   return { rectangles, records };
@@ -58,19 +65,24 @@ test("the core preserves color and prevents a late update from recreating a dele
   const deps = memoryPersistence();
   const id = await createRectangle(deps, actor, input);
   expect(
-    await updateRectangleGeometry(deps, actor, id, {
-      ...input.geometry,
-      x: 15,
-    }),
+    await updateRectangleGeometry(
+      deps,
+      actor,
+      id,
+      {
+        ...input.geometry,
+        x: 15,
+      },
+      1,
+    ),
   ).toBe(true);
   expect(deps.records.get(id)).toMatchObject({
     color: "blue",
     geometry: { x: 15 },
   });
-  await removeRectangle(deps, actor, id);
-  await removeRectangle(deps, actor, id);
-  expect(await updateRectangleGeometry(deps, actor, id, input.geometry)).toBe(
-    false,
-  );
-  expect(deps.records.size).toBe(0);
+  await deps.rectangles.lifecycle(id, true, 2);
+  expect(
+    await updateRectangleGeometry(deps, actor, id, input.geometry, 1),
+  ).toBe(false);
+  expect(deps.records.get(id)?.removed).toBe(true);
 });

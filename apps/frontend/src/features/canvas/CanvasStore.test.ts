@@ -117,3 +117,21 @@ test("each mounted canvas has isolated interaction state and synchronous create 
   first.getState().retain(new Set());
   expect(first.getState().selected.size).toBe(0);
 });
+
+test("a History-owned preview cannot be flushed by an older automatic size-write completion", async () => {
+  let finish!: (value: boolean) => void;
+  const send = vi.fn(
+    () =>
+      new Promise<boolean>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const sync = createCanvasStore<string>(send);
+  sync.getState().setEnabled(true);
+  sync.getState().stage("a", geometry, false);
+  sync.getState().preview("a", { ...geometry, x: 100 }, true);
+  finish(true);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(sync.getState().gestures.get("a")?.geometry.x).toBe(100);
+});

@@ -1,3 +1,4 @@
+import { RemoteCursor } from "./RemoteCursor";
 import { ViewportPortal } from "@xyflow/react";
 import { guestProfile } from "@pluribus/core/presence/domain";
 import type { PresenceView } from "../presence/UsePresence";
@@ -20,9 +21,10 @@ export function CanvasPresence({
           const activity = presence.activities.filter(
             (a) => a.participationId === member.id,
           );
-          const pointer = activity.find(
+          const pointerUpdate = activity.find(
             (a) => a.activity.kind === "pointer",
-          )?.activity;
+          );
+          const pointer = pointerUpdate?.activity;
           const selection = activity.find(
             (a) => a.activity.kind === "selection",
           )?.activity;
@@ -32,16 +34,12 @@ export function CanvasPresence({
           return (
             <div key={member.id} data-presence-session={member.tabId}>
               {pointer?.kind === "pointer" && pointer.point && (
-                <div
-                  className="remote-pointer"
-                  style={{
-                    left: pointer.point.x,
-                    top: pointer.point.y,
-                    color: profile.color,
-                  }}
-                >
-                  ➤<span style={{ background: profile.color }}>{label}</span>
-                </div>
+                <RemoteCursor
+                  point={pointer.point}
+                  sequence={pointerUpdate!.sequence}
+                  color={profile.color}
+                  label={label}
+                />
               )}
               {selection?.kind === "selection" &&
                 selection.elements.map((id) => {
@@ -58,8 +56,7 @@ export function CanvasPresence({
                       className="remote-element"
                       data-element={id}
                       style={{
-                        left: node.position.x - 4,
-                        top: node.position.y - 4,
+                        transform: `translate3d(${node.position.x - 4}px, ${node.position.y - 4}px, 0)`,
                         width: (node.width ?? 0) + 8,
                         height: (node.height ?? 0) + 8,
                         borderColor: profile.color,

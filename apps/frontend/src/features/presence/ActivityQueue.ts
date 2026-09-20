@@ -14,6 +14,7 @@ export function createActivityQueue(
     {
       sequence: number;
       busy: boolean;
+      lastSentAt: number;
       pending: Activity | null;
       timer: ReturnType<typeof setTimeout> | null;
     }
@@ -26,6 +27,7 @@ export function createActivityQueue(
     const value = channel.pending;
     channel.pending = null;
     channel.busy = true;
+    channel.lastSentAt = performance.now();
     void send(value, ++channel.sequence)
       .catch(() => {
         if (live) failed();
@@ -35,9 +37,18 @@ export function createActivityQueue(
         if (live && channel.pending)
           schedule(
             kind,
-            isClear(channel.pending) ? 0 : presenceParameters.activityMs,
+            isClear(channel.pending)
+              ? 0
+              : remainingDelay(kind, channel.lastSentAt),
           );
       });
+  }
+  function remainingDelay(kind: Channel, lastSentAt: number) {
+    return Math.max(
+      0,
+      (kind === "pointer" ? 40 : presenceParameters.activityMs) -
+        (performance.now() - lastSentAt),
+    );
   }
   function schedule(kind: Channel, delay: number) {
     const channel = channels.get(kind)!;
@@ -46,15 +57,25 @@ export function createActivityQueue(
   }
   return {
     publish(activity: Activity) {
+      if (!live) return;
       let channel = channels.get(activity.kind);
       if (!channel) {
-        channel = { sequence: 0, busy: false, pending: null, timer: null };
+        channel = {
+          sequence: 0,
+          busy: false,
+          lastSentAt: performance.now(),
+          pending: null,
+          timer: null,
+        };
         channels.set(activity.kind, channel);
       }
       channel.pending = activity;
       if (isClear(activity)) schedule(activity.kind, 0);
       else if (channel.timer === null && !channel.busy)
-        schedule(activity.kind, presenceParameters.activityMs);
+        schedule(
+          activity.kind,
+          remainingDelay(activity.kind, channel.lastSentAt),
+        );
     },
     dispose() {
       live = false;

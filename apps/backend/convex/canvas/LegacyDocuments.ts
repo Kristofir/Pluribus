@@ -25,7 +25,7 @@ export const restoreLegacy = internalMutation({
         .query("canvasDeletions")
         .withIndex("by_element", (q) => q.eq("element", child._id))
         .first();
-      if (receipt) continue;
+      if (receipt || child.activeDeletion) continue;
       await ctx.db.patch(child._id, {
         removed: false,
         generation: child.generation + 1,

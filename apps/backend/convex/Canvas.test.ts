@@ -19,10 +19,12 @@ test("anonymous clients share records; separate edits preserve the other rectang
   });
   await t.mutation(api.Canvas.updateGeometry, {
     id: first,
+    generation: 1,
     geometry: { ...initial, x: 80 },
   });
   await t.mutation(api.Canvas.updateGeometry, {
     id: second,
+    generation: 1,
     geometry: { ...initial, width: 240 },
   });
   expect(await t.query(api.Canvas.list, {})).toMatchObject([
@@ -39,11 +41,13 @@ test("the latest accepted complete geometry wins, while color is preserved", asy
   });
   await t.mutation(api.Canvas.updateGeometry, {
     id,
+    generation: 1,
     geometry: { ...initial, x: 400, width: 300 },
   });
   const last = { x: -20, y: 50, width: 90, height: 200 };
   await t.mutation(api.Canvas.updateGeometry, {
     id,
+    generation: 1,
     geometry: last,
   });
   expect(await t.query(api.Canvas.list, {})).toMatchObject([
@@ -57,11 +61,18 @@ test("delete is idempotent and a late drag cannot resurrect its rectangle", asyn
     geometry: initial,
     color: "blue",
   });
-  await t.mutation(api.Canvas.remove, { id });
-  await t.mutation(api.Canvas.remove, { id });
+  const command = {
+    id,
+    generation: 1,
+    operation: crypto.randomUUID(),
+    secret: crypto.randomUUID(),
+  };
+  await t.mutation(api.Canvas.deleteElement, command);
+  await t.mutation(api.Canvas.deleteElement, command);
   expect(
     await t.mutation(api.Canvas.updateGeometry, {
       id,
+      generation: 1,
       geometry: initial,
     }),
   ).toBe(false);
@@ -86,7 +97,7 @@ test.each([
       color: "blue",
     });
     await expect(
-      t.mutation(api.Canvas.updateGeometry, { id, geometry }),
+      t.mutation(api.Canvas.updateGeometry, { id, geometry, generation: 1 }),
     ).rejects.toThrow();
     expect(await t.query(api.Canvas.list, {})).toMatchObject([initial]);
   },
@@ -118,7 +129,12 @@ test("signed-in and anonymous clients share the same canvas without caller-suppl
   expect(await t.query(api.Canvas.list, {})).toMatchObject([
     { id, color: "gold" },
   ]);
-  await t.mutation(api.Canvas.remove, { id });
+  await t.mutation(api.Canvas.deleteElement, {
+    id,
+    generation: 1,
+    operation: crypto.randomUUID(),
+    secret: crypto.randomUUID(),
+  });
   expect(await signedIn.query(api.Canvas.list, {})).toEqual([]);
 });
 

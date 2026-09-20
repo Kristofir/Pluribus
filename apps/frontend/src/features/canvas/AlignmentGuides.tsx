@@ -18,7 +18,7 @@ export const AlignmentGuides = memo(function AlignmentGuides({
             x2={guide.axis === "x" ? guide.coordinate : guide.to + 8 / zoom}
             y1={guide.axis === "y" ? guide.coordinate : guide.from - 8 / zoom}
             y2={guide.axis === "y" ? guide.coordinate : guide.to + 8 / zoom}
-            stroke="#d946ef"
+            stroke="var(--alignment-guide)"
             strokeWidth={1 / zoom}
           />
         ))}

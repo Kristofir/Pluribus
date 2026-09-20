@@ -18,6 +18,8 @@ export function rectangleElement(
     kind: "rectangle",
     geometry: { x: row.x, y: row.y, width: row.width, height: row.height },
     color: row.color,
+    generation: row.generation,
+    removed: false,
   };
 }
 export function documentElement(

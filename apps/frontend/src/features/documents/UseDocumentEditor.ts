@@ -30,6 +30,8 @@ export function useDocumentEditor({
   paused,
   onPendingChange,
   participate,
+  interactionEnabled,
+  focusPoint,
   content,
   extension,
   error,
@@ -37,6 +39,8 @@ export function useDocumentEditor({
 }: {
   id: Id<"documents">;
   participate: boolean;
+  interactionEnabled: boolean;
+  focusPoint?: { x: number; y: number } | null;
   authorSession: AuthorSession | null;
   syncId: string;
   suspended: boolean;
@@ -223,10 +227,37 @@ export function useDocumentEditor({
     },
     enableBeforeUnload: () => !!editor && sendableSteps(editor.state) !== null,
   });
-  useEffect(() => {
-    // Keep online editing/undo available so a rejected edit can be corrected.
-    editor?.setEditable(connected && !suspended && !readPaused);
-  }, [editor, connected, suspended, readPaused]);
+  useLayoutEffect(() => {
+    if (!editor) return;
+    const enabled =
+      connected && !suspended && !readPaused && interactionEnabled;
+    editor.setEditable(enabled);
+    if (!enabled && editor.isFocused) editor.commands.blur();
+    if (enabled && focusPoint) {
+      const bounds = editor.view.dom.getBoundingClientRect();
+      const position = editor.view.posAtCoords({
+        left: Math.max(
+          bounds.left + 1,
+          Math.min(focusPoint.x, bounds.right - 1),
+        ),
+        top: Math.max(
+          bounds.top + 1,
+          Math.min(focusPoint.y, bounds.bottom - 1),
+        ),
+      });
+      editor.commands.setTextSelection(
+        position?.pos ?? editor.state.doc.content.size,
+      );
+      editor.view.focus();
+    }
+  }, [
+    editor,
+    connected,
+    suspended,
+    readPaused,
+    interactionEnabled,
+    focusPoint,
+  ]);
   useEffect(() => {
     if (!state?.pending) setBlocked(false);
   }, [state?.pending]);

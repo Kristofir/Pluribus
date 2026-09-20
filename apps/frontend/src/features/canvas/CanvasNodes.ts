@@ -60,6 +60,7 @@ export function canvasNodes(
       return {
         id: r.id,
         type: "rectangle",
+        draggable: connected,
         position: { x: geometry.x, y: geometry.y },
         width: geometry.width,
         height: geometry.height,

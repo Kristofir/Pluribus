@@ -1,0 +1,158 @@
+# Canvas behavior
+
+Agreed behavior, not a description of whatever the code currently does. Update
+when a behavior decision changes; flag implementation mismatches instead of
+rewriting the spec to match them. Unspecified behavior remains undecided.
+
+**C1 — Navigation:** Two-finger trackpad movement pans and pinch zooms over the
+background or any element, including document text, whether selected or editing.
+
+## Canvas background
+
+- **C2 — Local view:** Pan, zoom, selection and theme are personal. Element geometry and document text are shared.
+
+| Event                        | Condition                         | Behavior                               |
+| ---------------------------- | --------------------------------- | -------------------------------------- |
+| **Mouse / trackpad**         |                                   |                                        |
+| Click                        | Background, no selection modifier | Clear selection and exit text editing. |
+| Two-finger trackpad movement | Pointer over background           | Pan the viewport.                      |
+| Pinch                        | Pointer over background           | Zoom the viewport.                     |
+
+Undecided: background drag versus marquee selection, modifier-click and double-click behavior.
+
+## Shared element rules
+
+- **E1 — Geometry:** Each element has one saved position and size. Drag/resize previews and animation are temporary; the settled geometry persists after reload.
+- **E2 — Alignment:** Movement snaps edges and centers independently on each axis. Group snapping preserves member spacing. Resize snapping changes only the moving edges and respects size constraints.
+- **E3 — Snap feedback:** Show alignment guides while snapped. Alt/Option bypasses snapping immediately. Guides clear on release, cancellation or disconnect; target positions remain fixed during a gesture.
+- **E4 — Motion:** Snap acquisition and release animate smoothly alongside short drag smoothing. Respect reduced motion. Current tuning: acquire within 6 screen pixels, release beyond 10, ease over 140ms regardless of zoom.
+- **E5 — Lifted:** Hovered or dragged elements scale to 1.015 with a subtle shadow. Stay lifted while either condition holds; return to rest when neither holds. This is visual only: saved geometry and snap targets do not change. Transition over 140ms; reduced motion removes the transition.
+
+- **E6 — Translation:** Element movement interpolates visually over 50ms; selection outlines move with it. Collaborator cursors play an 80ms buffer of receive-timestamped positions on animation frames. Pointer publishing targets 40ms between send starts with one request in flight and latest-only pending data. First appearance is immediate; no extrapolation, and gaps over 500ms reset the path. Reduced motion bypasses buffering. Saved geometry is unchanged.
+
+## Rectangles
+
+| Event                         | Condition                                   | Behavior                                                           |
+| ----------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| **Mouse / trackpad**          |                                             |                                                                    |
+| Pointer enters                | Over rectangle                              | Enter Lifted state.                                                |
+| Pointer leaves                | Not dragging                                | Return to resting appearance.                                      |
+| Drag starts / ends            | Element dragging                            | Stay Lifted during drag; on release remain Lifted only if hovered. |
+| Two-finger trackpad movement  | Pointer over rectangle                      | Pan the viewport.                                                  |
+| Pinch                         | Pointer over rectangle                      | Zoom the viewport.                                                 |
+| Click body                    | No selection modifier                       | Select rectangle; exit document text editing.                      |
+| Drag body                     | Editable                                    | Move with snapping; preserve spacing when moving a selected group. |
+| Drag resize control           | Selected and editable                       | Resize moving edges with snapping, within size limits.             |
+| Release drag                  | Moving or resizing                          | Save settled geometry; clear guides.                               |
+| **Keyboard**                  |                                             |                                                                    |
+| Press / release Alt or Option | Moving or resizing                          | Bypass / resume snapping immediately.                              |
+| Delete / Backspace            | Selected; focus outside a text input/editor | Delete selected element(s).                                        |
+
+When disconnected, dragging, resizing and deletion cannot change shared elements.
+
+Undo/Redo outside text inputs applies personal Element History: one entry per
+created or deleted Element, or per move/resize gesture (including a group drag). Geometry
+Undo/Redo changes the whole group only if every member still matches the expected
+geometry and verified session continuity; otherwise it changes nothing and retires that entry.
+Own delete/restore cycles preserve earlier History; another session’s lifecycle
+changes invalidate it. Live gestures always retain their original write generation.
+
+Undecided: modifier-click selection rules, double-click and keyboard movement.
+
+## Document cards
+
+- **D1 — Content:** Text directly on the card: no title bar, formatting toolbar or inset editor surface. Content may contain headings, lists and other text formatting.
+- **D2 — Interaction:** Outside editing, press anywhere on a card; release within 5 screen pixels to edit at that position, or move beyond 5 pixels to drag. Once dragging, returning to the start does not turn it into a click. While editing, text drag selects text; padding drag moves the card. Escape or clicking outside exits editing. Moving the card must not remount its editor or lose unsaved text.
+- **D3 — Height:** Minimum height fits rendered content plus padding. Users can make the card taller without a fixed height cap. Overflowing new text grows the card; spare height is preserved. Deleting text does not automatically shrink it. Width changes must also respect the content minimum.
+
+| Event                              | Condition                                                             | Behavior                                                                                  |
+| ---------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Mouse / trackpad**               |                                                                       |                                                                                           |
+| Pointer enters                     | Over element, including document text                                 | Enter Lifted state.                                                                       |
+| Pointer leaves                     | Not dragging                                                          | Return to resting appearance.                                                             |
+| Drag starts / ends                 | Element dragging                                                      | Stay Lifted during drag; on release remain Lifted only if hovered.                        |
+| Two-finger trackpad movement       | Pointer over card, including text while editing                       | Pan the viewport.                                                                         |
+| Pinch                              | Pointer over card, including text while editing                       | Zoom the viewport.                                                                        |
+| Pointer down                       | Idle card or padding while editing; primary button; editable          | Enter Pressed; defer editing. Resize controls and action buttons keep their own behavior. |
+| Pointer release                    | Pressed; movement never exceeded 5 screen pixels; release inside card | Enter Editing and place caret at release position.                                        |
+| Pointer moves                      | Pressed; exceeds 5 screen pixels                                      | Enter Dragging; move card with snapping.                                                  |
+| Pointer cancel / lost window focus | Pressed or dragging                                                   | Clear pending click intent; never enter editing from this press.                          |
+| Click text                         | Already editing                                                       | Place caret using normal editor behavior.                                                 |
+| Drag text                          | Already editing                                                       | Select text; do not move the card.                                                        |
+| Drag padding                       | Editable                                                              | Move with snapping; preserve spacing when moving a selected group.                        |
+| Drag resize control                | Selected and editable                                                 | Resize moving edges with snapping; content minimum takes precedence.                      |
+| Release drag                       | Dragging                                                              | Save settled geometry; clear guides; return Idle without entering editing.                |
+| **Keyboard**                       |                                                                       |                                                                                           |
+| Escape                             | Editing; not composing text                                           | Exit editing; keep the card selected.                                                     |
+| Press / release Alt or Option      | Moving or resizing                                                    | Bypass / resume snapping immediately.                                                     |
+| Type, paste or Enter               | Editor focused and editable                                           | Edit content; grow the card if content exceeds available height. Preserve spare height.   |
+| Delete / Backspace                 | Editor focused and editable                                           | Delete text; do not delete or automatically shrink the card.                              |
+| Delete / Backspace                 | Card selected; focus outside a text input/editor                      | Delete selected element(s).                                                               |
+| Undo / Redo                        | Focus outside a text input/editor                                     | Apply personal Element History for creation, deletion, movement and resizing.             |
+| Undo / Redo                        | Editor focused                                                        | Use editor history; do not invoke card-deletion history.                                  |
+
+When disconnected, pause shared edits, movement, resizing and deletion; retain pending local text.
+
+Undecided: modifier-click selection rules, card double-click behavior and keyboard movement.
+
+### Document interaction flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Pressed: Primary press on card
+    Pressed --> Editing: Release inside, movement at most 5px
+    Pressed --> Dragging: Movement exceeds 5px
+    Pressed --> Idle: Cancel or release outside
+    Dragging --> Idle: Release or cancel
+    Editing --> Editing: Click text or drag text selection
+    Editing --> Pressed: Press padding
+    Editing --> Idle: Escape or click outside
+```
+
+Resize controls bypass this flow. Disconnect prevents entry into editing or movement;
+pending click intent is canceled. The editor remains mounted in every state.
+
+### Lifted appearance (independent of editing)
+
+```mermaid
+flowchart LR
+    Input[Pointer or drag state changes] --> Active{Hovered or dragging?}
+    Active -->|Yes| Lifted[Scale 1.015 and shadow]
+    Active -->|No| Rest[Scale 1 and no shadow]
+```
+
+Selected editable rectangles and cards show resize controls. Exact control styling
+remains provisional; the custom corner-handle prototype was rejected. For either
+element, cancellation or disconnect clears alignment guides (E3).
+
+## Latest focused verification (2026-09-20)
+
+- **V2 History — Pass (browser + tests):** Create → move → delete → Undo all → Redo all restored exact rectangle geometry. A second session’s rectangle move prevented the first session’s Undo without changing peer geometry. Temporary rectangles removed. Backend tests cover both Element types, receipt replay after peer changes, lineage, legacy isolation, capacity and maximal groups. Queue tests cover cancellation, uncertain acknowledgements, disposal and idle closure. Physical offline/suspension and document creation UI were **not checked** in this run.
+- **Verification incident:** An initial coordinate-based peer drag targeted a document; Undo was refused after an intervening geometry change. Read-only local History inspection confirmed subsequent document moves superseded that drag; their newer state was left intact. Subsequent checks explicitly selected the test rectangle.
+
+- **Creation History — Pass:** Local browser Add rectangle → Undo → Redo → Undo passes against the running backend; the test Element was removed. Backend tests cover both Element types, identity restoration, capacity rejection, ownership and exact retries. Document creation UI was **not checked** because both user document slots were occupied; existing documents were preserved.
+
+- **Move/resize History and E1 — Pass (browser):** Rectangle move and resize restore exact position/dimensions through Undo/Redo. A group drag restores both members with one Undo. Document resize Undo restores geometry and preserves text. A second client's later move prevents Undo without changing that geometry. Test rectangles were removed; document geometry was restored. Backend/queue tests cover atomic groups, no-ops, retries, interrupted publication and stale generations. Physical offline transitions and additional text-growth stress cases were **not checked** in the browser.
+
+- **Element deletion History — Pass:** Local browser rectangle Delete/Undo/Redo passes with buttons and keyboard. Backend tests cover both types, receipt ownership, capacity, identity/content restoration and stale generations; frontend tests cover mixed ordering and exact retries. Mixed-selection browser gestures and offline transitions were **not checked** in this run.
+- **E1 — Pass (backend tests):** Undo preserves geometry; old-generation movement is rejected after restoration. The move/resize browser evidence above covers the extended History path.
+
+- **E6 — Pass (browser):** Drag frames interpolate over 50ms and settle at target coordinates. Buffered cursor verification (2026-09-20, local two-tab run): 16 received updates, 39.9ms mean interval, 37 moving frames, and final position within 0.01 canvas units of target. This is a local sample, not a network-wide latency guarantee. Timeline and queue tests cover irregular arrivals, stopping, stale samples, resets and backpressure.
+
+- **E5 — Pass (browser):** Document hover scales to 1.015 with shadow without changing node geometry; pointer exit restores scale 1. Rectangle dragging stays lifted and returns to rest afterward. Reduced motion removes transitions.
+- **C1 — Pass (browser events):** Pan and pinch wheel events change the viewport over background, rectangles and focused document text. Browser wheel input also pans over the editor. Physical trackpad gestures: **not checked**.
+- **D2 — Pass (browser + 4 gesture tests):** Holding does not edit; release focuses the clicked position. Dragging from idle text moves the card without editing on release; editor identity survives. Editing text drag selects without moving. Padding click, Escape, outside click and cancellation pass. Test movement was restored and text was unchanged.
+
+## Check changes against this spec
+
+Before canvas/element work, read the affected rules. Afterward, report **pass**,
+**mismatch**, or **not checked** for those rules, with evidence. Code inspection
+alone does not establish that a browser interaction works.
+
+- Navigation: try trackpad pan and pinch.
+- Geometry/snapping: drag, group-drag and resize; check guides, Alt, reduced motion, multiple zoom levels and reload. Use focused geometry tests for constraints.
+- Documents: edit, select text and drag padding; resize to minimum, add a line, add spare height, delete text and narrow the card.
+
+Run only the checks affected by the change. Record remaining gaps explicitly;
+do not claim complete conformance from passing unit tests alone.

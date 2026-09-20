@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import type { ElementId, Geometry } from "@pluribus/core/canvas/domain";
 import type { CanvasNode } from "./CanvasNodes";
 
-/** Animate only changes in snap correction; pointer motion and saved geometry stay immediate. */
+/** Animate snap correction independently of base translation; saved geometry stays immediate. */
 export function useSnapAnimation(
   surface: RefObject<HTMLDivElement | null>,
   nodes: CanvasNode[],

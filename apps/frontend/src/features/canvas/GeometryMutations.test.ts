@@ -9,6 +9,8 @@ const geometry = { x: 10, y: -20, width: 430, height: 500 };
 const rectangle: RectangleElement = {
   id: "rectangle" as RectangleElement["id"],
   kind: "rectangle",
+  generation: 1,
+  removed: false,
   canvasId: "shared",
   geometry,
   color: "blue",
@@ -41,6 +43,7 @@ test("geometry routes by kind, preserves both identities, and never guesses a mi
   await sendGeometry(geometryTarget(rectangle), geometry, mutations);
   expect(mutations.rectangle).toHaveBeenCalledExactlyOnceWith({
     id: "rectangle",
+    generation: 1,
     geometry,
   });
   expect(mutations.document).toHaveBeenCalledTimes(1);

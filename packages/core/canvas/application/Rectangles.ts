@@ -35,24 +35,14 @@ export async function updateRectangleGeometry(
   actor: CanvasActor,
   id: RectangleId,
   geometry: Geometry,
+  generation: number,
 ): Promise<boolean> {
   assertCanvasAccess(actor);
   assertElementGeometry(geometry);
-  if (!(await rectangles.get(id))) return false;
+  const element = await rectangles.get(id);
+  if (!element || element.removed || element.generation !== generation)
+    return false;
   // Server transaction order decides the winner. Updating never creates a record.
   await rectangles.updateGeometry(id, geometry);
   return true;
-}
-
-/**
- * Authorize deletion and remove the rectangle only if it still exists. Repeated
- * requests are harmless; existence checking and deletion share the caller transaction.
- */
-export async function removeRectangle(
-  { rectangles }: Dependencies,
-  actor: CanvasActor,
-  id: RectangleId,
-): Promise<void> {
-  assertCanvasAccess(actor);
-  if (await rectangles.get(id)) await rectangles.remove(id);
 }

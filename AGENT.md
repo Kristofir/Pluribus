@@ -9,6 +9,7 @@ at the beginning of a session.
 - Read `apps/backend/convex/_generated/ai/guidelines.md` before changing backend code.
 - Do not edit generated files by hand; use the Convex CLI. Run Convex commands from `apps/backend`, or use the root npm scripts that select that workspace.
 - Use PascalCase source filenames and camelCase functions, methods and variables; preserve generated and framework-required filenames.
+- Before canvas or element changes, read [the behavior spec](docs/canvas-behavior.md). Verify affected rules and report pass, mismatch, or not checked with evidence. Do not change the spec merely to match implementation drift.
 - Keep documentation succinct and human-readable. Use plain language and avoid unnecessary detail.
 - Keep secrets out of source, logs, and `hackathon.md`. Never expose secrets through `VITE_` variables.
 - Run `npm run check` and `npm run build` after changes; check affected behavior locally.

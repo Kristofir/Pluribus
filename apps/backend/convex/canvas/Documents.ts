@@ -44,7 +44,11 @@ export function canvasDocuments(ctx: MutationCtx): CanvasDocuments {
       await ctx.db.patch(stored(id), geometry);
     },
     lifecycle: async (id, removed, generation) => {
-      await ctx.db.patch(stored(id), { removed, generation });
+      await ctx.db.patch(stored(id), {
+        removed,
+        generation,
+        activeDeletion: undefined,
+      });
     },
   };
 }

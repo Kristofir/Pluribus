@@ -11,6 +11,8 @@ const rectangle = {
   id: "rectangle",
   canvasId: "shared",
   kind: "rectangle",
+  generation: 1,
+  removed: false,
   color: "blue",
   geometry: { x: 0, y: 0, width: 160, height: 100 },
 } as CanvasElement;

@@ -57,6 +57,13 @@
   --chart-4: oklch(0.809 0.105 251.813);
   --chart-5: oklch(0.882 0.059 254.128);
   --radius: 0.5rem;
+  --canvas-bg: #f7f8fa;
+  --canvas-grid: #c3c9d2;
+  --canvas-blue: #c4dcff;
+  --canvas-coral: #ffcbc1;
+  --canvas-gold: #ffe39e;
+  --canvas-card-border: rgb(0 0 0 / 20%);
+  --alignment-guide: #b42dcb;
 }
 
 body {
@@ -147,15 +154,22 @@ body {
 }
 
 .dark {
-  --bg: oklch(0.181 0.005 285.823);
-  --fg: oklch(0.985 0 0);
+  --canvas-bg: #16191b;
+  --canvas-grid: #343a40;
+  --canvas-blue: #294969;
+  --canvas-coral: #66423e;
+  --canvas-gold: #625333;
+  --canvas-card-border: rgb(255 255 255 / 18%);
+  --alignment-guide: #e879f9;
+  --bg: #16191b;
+  --fg: #eceff1;
   --primary: oklch(0.546 0.245 262.881);
   --primary-fg: oklch(1 0 0);
   --primary-subtle: oklch(0.623 0.214 259.815 / 0.1);
   --primary-subtle-fg: oklch(0.707 0.165 254.624);
   --secondary: oklch(0.244 0.006 286.033);
   --secondary-fg: oklch(0.985 0 0);
-  --overlay: oklch(0.21 0.006 285.885);
+  --overlay: #202527;
   --overlay-fg: oklch(0.985 0 0);
   --accent: oklch(0.274 0.006 286.033);
   --accent-fg: oklch(0.985 0 0);
@@ -175,9 +189,9 @@ body {
   --danger-fg: oklch(0.971 0.013 17.38);
   --danger-subtle: oklch(0.637 0.237 25.331 / 0.1);
   --danger-subtle-fg: oklch(0.704 0.191 22.216);
-  --border: oklch(0.27 0.013 285.805);
-  --input: oklch(0.31 0.013 285.805);
-  --ring: oklch(0.546 0.245 262.881);
+  --border: #343b40;
+  --input: #56616b;
+  --ring: #85b8ff;
   --navbar: oklch(0.19 0.006 285.885);
   --navbar-fg: oklch(0.985 0 0);
   --sidebar: oklch(0.18 0.006 285.885);
@@ -243,4 +257,24 @@ body {
     min-width: 44px;
     z-index: 9999;
   }
+}
+
+.theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted-fg);
+}
+.theme-picker select {
+  border: 1px solid var(--input);
+  border-radius: 6px;
+  background: var(--overlay);
+  color: var(--fg);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.theme-picker select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
 }

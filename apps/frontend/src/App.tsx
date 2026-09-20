@@ -1,3 +1,4 @@
+import { ThemePicker } from "./components/ThemePicker";
 import { Link } from "@tanstack/react-router";
 import { useConvexConnectionState, useQuery } from "convex/react";
 import { api } from "@pluribus/backend/api";
@@ -18,6 +19,7 @@ export default function App() {
           <p>React + Vite + TypeScript + Intent UI</p>
         </CardHeader>
         <CardContent className="space-y-4">
+          <ThemePicker />
           <p role="status">
             <Badge intent={connected ? "success" : "secondary"}>
               Convex: {connected ? "connected" : "connecting…"}

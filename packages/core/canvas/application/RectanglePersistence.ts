@@ -18,5 +18,9 @@ export interface RectanglePersistence {
     color: RectangleColor;
   }): Promise<RectangleId>;
   updateGeometry(id: RectangleId, geometry: Geometry): Promise<void>;
-  remove(id: RectangleId): Promise<void>;
+  lifecycle(
+    id: RectangleId,
+    removed: boolean,
+    generation: number,
+  ): Promise<void>;
 }

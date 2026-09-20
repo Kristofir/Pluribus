@@ -13,12 +13,14 @@ export type CanvasState<Id extends string> = {
   editing: string | null;
   setEditing: (id: string | null) => void;
   enabled: boolean;
+  historyPending: boolean;
   gestures: ReadonlyMap<Id, Gesture>;
   selected: ReadonlySet<string>;
   removing: ReadonlySet<Id>;
   creating: boolean;
   error: string | null;
   setEnabled: (enabled: boolean) => void;
+  preview: (id: Id, geometry: Geometry, active: boolean) => void;
   stage: (id: Id, geometry: Geometry, active: boolean) => void;
   cancel: (id: Id) => void;
   retain: (ids: ReadonlySet<Id>) => void;
@@ -41,6 +43,7 @@ export function createCanvasStore<Id extends string>(
     editing: null,
     setEditing: (editing) => set({ editing }),
     enabled: false,
+    historyPending: false,
     gestures: new Map(),
     selected: new Set(),
     removing: new Set(),
@@ -52,6 +55,22 @@ export function createCanvasStore<Id extends string>(
         timers.clear();
         set({ enabled, gestures: new Map() });
       } else set({ enabled });
+    },
+    preview: (id, geometry, active) => {
+      if (!get().enabled || get().removing.has(id)) return;
+      clearTimeout(timers.get(id));
+      timers.delete(id);
+      set({
+        gestures: new Map(get().gestures).set(id, {
+          token: {},
+          geometry,
+          active,
+          queued: true,
+          sending: false,
+          lastSentAt: 0,
+        }),
+        error: null,
+      });
     },
     stage: (id, geometry, active) => {
       if (!get().enabled || get().removing.has(id)) return;

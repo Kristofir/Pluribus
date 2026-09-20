@@ -20,7 +20,7 @@
   overflow-wrap: anywhere;
 }
 .document-paper .tiptap:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   border-radius: 8px;
 }
 .document-paper p {
@@ -78,10 +78,10 @@
 .document-recovery {
   margin-top: 8px;
   padding: 16px;
-  border: 1px solid #bac2cf;
+  border: 1px solid var(--input);
   border-radius: 8px;
-  background: white;
-  color: #172033;
+  background: var(--overlay);
+  color: var(--fg);
   box-shadow: 0 4px 24px #0002;
 }
 .document-recovery button {

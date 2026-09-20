@@ -16,6 +16,8 @@ import { useDocumentEditor } from "./UseDocumentEditor";
 export function CollaborativeEditor({
   id,
   participate,
+  interactionEnabled = true,
+  focusPoint,
   embedded = false,
   generation,
   suspended = false,
@@ -24,6 +26,8 @@ export function CollaborativeEditor({
 }: {
   id: Id<"documents">;
   participate: boolean;
+  interactionEnabled?: boolean;
+  focusPoint?: { x: number; y: number } | null;
   embedded?: boolean;
   generation?: number;
   suspended?: boolean;
@@ -100,6 +104,8 @@ export function CollaborativeEditor({
       paused={paused}
       onPendingChange={onPendingChange}
       participate={participate}
+      interactionEnabled={interactionEnabled}
+      focusPoint={focusPoint}
       embedded={embedded}
       content={seed.content}
       extension={extension}
@@ -117,6 +123,8 @@ function DocumentEditor({
   paused,
   onPendingChange,
   participate,
+  interactionEnabled,
+  focusPoint,
   embedded,
   content,
   extension,
@@ -125,6 +133,8 @@ function DocumentEditor({
 }: {
   id: Id<"documents">;
   participate: boolean;
+  interactionEnabled: boolean;
+  focusPoint?: { x: number; y: number } | null;
   authorSession: AuthorSession | null;
   embedded: boolean;
   syncId: string;
@@ -162,6 +172,8 @@ function DocumentEditor({
     paused,
     onPendingChange,
     participate,
+    interactionEnabled,
+    focusPoint,
     content,
     extension,
     error,

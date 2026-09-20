@@ -36,3 +36,36 @@ test("coalesces independently, prioritizes clear, and drops queued work when dis
   await vi.runAllTimersAsync();
   expect(send).toHaveBeenCalledTimes(3);
 });
+
+test("send cadence includes request time instead of adding another full delay", async () => {
+  vi.useFakeTimers();
+  let release!: () => void;
+  const send = vi.fn(
+    () =>
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+  );
+  const queue = createActivityQueue(send, () => {});
+  queue.publish({ kind: "pointer", point: { x: 1, y: 0 } });
+  await vi.advanceTimersByTimeAsync(40);
+  queue.publish({ kind: "pointer", point: { x: 2, y: 0 } });
+  await vi.advanceTimersByTimeAsync(20);
+  release();
+  await vi.advanceTimersByTimeAsync(19);
+  expect(send).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(send).toHaveBeenCalledTimes(2);
+  // A slow request never overlaps another, and only the latest pending point survives.
+  queue.publish({ kind: "pointer", point: { x: 3, y: 0 } });
+  queue.publish({ kind: "pointer", point: { x: 4, y: 0 } });
+  await vi.advanceTimersByTimeAsync(150);
+  expect(send).toHaveBeenCalledTimes(2);
+  release();
+  await vi.advanceTimersByTimeAsync(1);
+  expect(send.mock.calls[2]).toEqual([
+    { kind: "pointer", point: { x: 4, y: 0 } },
+    3,
+  ]);
+  queue.dispose();
+});

@@ -14,7 +14,13 @@
     "./canvas/deletions": "./canvas/application/Deletions.ts",
     "./canvas/documents": "./canvas/application/Documents.ts",
     "./documents/acceptance": "./documents/application/Authorship.ts",
-    "./documents/authorship": "./documents/domain/Authorship.ts"
+    "./documents/authorship": "./documents/domain/Authorship.ts",
+    "./canvas/geometryHistory": "./canvas/application/GeometryHistory.ts",
+    "./canvas/creations": "./canvas/application/Creations.ts",
+    "./canvas/history": "./canvas/domain/History.ts",
+    "./canvas/history/operations": "./canvas/application/history/Operations.ts",
+    "./canvas/history/geometry": "./canvas/application/history/Geometry.ts",
+    "./canvas/history/ports": "./canvas/application/history/Ports.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ../../tsconfig.core.json"

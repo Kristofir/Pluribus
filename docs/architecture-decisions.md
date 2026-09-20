@@ -286,6 +286,8 @@ public API, synchronization, retention or product behavior change is intended.
 
 ## 2026-09-18: Personal document-deletion Undo
 
+See [History](history.md) for the current implementation and proposed extensions.
+
 Delete removes the child from the active canvas. Personal session history owns Undo
 and Redo; trusted backend receipts and retained canonical content authorize recovery.
 No ten-minute countdown, removed-card placeholder, universal undo framework, or version
@@ -313,3 +315,45 @@ geometry and explicit constraints; frontend owns gesture candidates, frozen targ
 6px acquisition/10px release thresholds, Alt bypass and guides. Group movement uses
 one bounds correction; resizing changes moving edges and respects content minimums.
 Existing throttled writes persist resolved geometry and flush on release.
+
+## 2026-09-19: Element deletion History
+
+Accepted: use one personal History controller for all Element types. Keep request
+preparation, inverse operations and conflict interpretation in operation handlers;
+keep stack ordering and exact-request retry in the controller.
+
+Document and rectangle deletion share application policy and atomic receipts.
+Rectangle records now retain identity, geometry and color while removed; lifecycle
+generations reject old geometry writes after restoration. Optional storage fields
+preserve legacy rows without a backfill. Each selected Element produces one entry;
+partial failure stops the batch and preserves accepted entries. Create/move/resize
+history and grouped transactions remain future work. See [History](history.md).
+
+## 2026-09-19: Move and resize History
+
+Accepted: one entry per gesture, including multi-Element drags. Preserve live sync
+with one coalesced batch in flight; capture the starting geometry server-side.
+Undo/Redo is conditional on matching geometry and lifecycle generation for every
+member, and changes the group atomically. Conflicts retire the entry instead of
+reversing displacement across another participant's edits. A no-op adds no entry;
+a new accepted geometry action clears Redo. Automatic content-height growth stays
+outside History. Interrupted gestures seal only their last submitted geometry.
+
+## Element creation History
+
+Accepted: creation uses an atomic idempotency receipt; Undo and Redo reuse Element
+soft deletion and restoration. Redo preserves saved content and identity rather
+than recreating initial content. Personal ordering stays in the shared controller.
+
+## Session-scoped Canvas History protocol
+
+Accepted: keep a compact personal History facade over typed creation, deletion and
+geometry handlers. V2 separates immutable durable attempt results from current action
+state and reversibility. Session/Element lineage permits verified personal lifecycle
+Undo without reviving stale editor generations. Fixed gesture generations, explicit
+close, a latest-ACK cursor and idle leases protect interrupted live movement.
+
+Use four indexed records for distinct responsibilities: session authority, action
+state, durable attempt deduplication and per-Element continuity. Preserve legacy
+receipts separately. No event-sourcing framework, runtime handler registry, persistent
+personal stacks, property-specific conflict engine or automatic purge in this increment.
