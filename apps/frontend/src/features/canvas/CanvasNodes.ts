@@ -18,7 +18,10 @@ export function canvasNodes(
     CanvasState<ElementId>,
     "gestures" | "removing" | "selected" | "editing" | "setEditing"
   >,
-  connected: boolean,
+  {
+    interactionEnabled,
+    readPaused,
+  }: { interactionEnabled: boolean; readPaused: boolean },
   {
     pending,
     contentHeight,
@@ -41,12 +44,13 @@ export function canvasNodes(
           measured: { width: geometry.width, height: geometry.height },
           selected: selected.has(r.id),
           dragHandle: ".document-drag-handle",
-          draggable: connected && !r.removed && !removing.has(r.id),
+          draggable: interactionEnabled && !r.removed && !removing.has(r.id),
           data: {
             documentId: r.documentId as string as Id<"documents">,
             generation: r.generation,
             removed: r.removed,
-            editable: connected && !removing.has(r.id),
+            editable: interactionEnabled && !removing.has(r.id),
+            readPaused,
             editing: editing === r.id,
             activate: (active: boolean) => setEditing(active ? r.id : null),
             contentHeight: (height: number) =>
@@ -60,7 +64,7 @@ export function canvasNodes(
       return {
         id: r.id,
         type: "rectangle",
-        draggable: connected,
+        draggable: interactionEnabled,
         position: { x: geometry.x, y: geometry.y },
         width: geometry.width,
         height: geometry.height,
@@ -68,7 +72,7 @@ export function canvasNodes(
         // controlled nodes lets React Flow initialize dragging after every update.
         measured: { width: geometry.width, height: geometry.height },
         selected: selected.has(r.id),
-        data: { color: r.color, editable: connected },
+        data: { color: r.color, editable: interactionEnabled },
         ariaLabel: `${r.color} rectangle`,
       };
     });
@@ -106,6 +110,7 @@ export function createCanvasNodeProjector() {
           node.data.generation === old.data.generation &&
           node.data.removed === old.data.removed &&
           node.data.editable === old.data.editable &&
+          node.data.readPaused === old.data.readPaused &&
           node.data.editing === old.data.editing
         )
           node.data = old.data;

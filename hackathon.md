@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-20T07:29:43Z
+- **Last updated:** 2026-09-20T08:30:46Z
 
 ## Log
 
@@ -525,3 +525,20 @@ Browser checks passed complete rectangle Undo/Redo and peer-edit conflict refusa
 a mistaken document drag was superseded by later moves and those were preserved.
 All 176 tests pass with an increased timeout after two architecture fixture timeouts.
 Build, types and architecture pass; generated-guidance formatting and bundle-size warnings remain.
+
+### 2026-09-20 - working tree - Document editor recovery and focus
+
+Reconnection preserves the current caret; new clicks still place it normally.
+Confirmed synchronization clears errors, and saved-text snapshot failures no longer
+claim pending edits. Selection/presence transactions reuse authorship and recovery
+content. Browser and isolated-hook checks pass; all 176 tests pass across the full
+run and architecture timeout retry. Build and types pass; the existing generated
+guidance formatting and bundle-size warnings remain.
+
+### 2026-09-20 - working tree - Stable document text during dragging
+
+Separated temporary canvas interaction locks from failed document reads. Drag
+settlement no longer inserts a sync warning into document cards. Browser drag and
+release preserved text and editor identity; test geometry was restored with Undo.
+Six projection tests pass, including lock/read-failure transitions; build passes.
+The full check passed 175 tests and hit the same two architecture fixture timeouts.

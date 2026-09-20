@@ -11,6 +11,7 @@ export type DocumentNode = Node<
     generation: number;
     removed: boolean;
     editable: boolean;
+    readPaused: boolean;
     editing: boolean;
     activate: (active: boolean) => void;
     pending: (value: boolean) => void;
@@ -88,12 +89,12 @@ export const DocumentCard = memo(function DocumentCard({
           <CollaborativeEditor
             key={data.generation}
             embedded
-            interactionEnabled={data.editing}
+            interactionEnabled={data.editing && data.editable}
             focusPoint={interaction.focusPoint}
             id={data.documentId}
             generation={data.generation}
             participate={data.editing && data.editable}
-            paused={!data.editable}
+            paused={data.readPaused}
             onPendingChange={data.pending}
           />
         </div>

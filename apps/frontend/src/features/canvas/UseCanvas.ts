@@ -271,10 +271,15 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     for (const [id, minimum] of contentHeights.current)
       reportContentHeight(id, minimum.generation, minimum.height);
   }, [records, gestures, geometryGesture, reportContentHeight]);
-  const nodes = projectNodes(records, state, interactionEnabled, {
-    pending: reportPending,
-    contentHeight: reportContentHeight,
-  });
+  const nodes = projectNodes(
+    records,
+    state,
+    { interactionEnabled, readPaused: queryFailed },
+    {
+      pending: reportPending,
+      contentHeight: reportContentHeight,
+    },
+  );
   const snapAnimation = useSnapAnimation(surface, nodes, connected);
   const stopEditing = useCallback(() => setEditing(null), [setEditing]);
 

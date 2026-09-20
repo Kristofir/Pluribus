@@ -157,6 +157,7 @@ function DocumentEditor({
     readPaused,
     connected,
     status,
+    syncError,
     retry,
     showAuthors,
     setShowAuthors,
@@ -278,14 +279,16 @@ function DocumentEditor({
           {moveError && <span role="alert">{moveError}</span>}
         </div>
       )}
-      {(!embedded || readPaused || !connected || error) && (
+      {(!embedded || readPaused || !connected || syncError) && (
         <p role="status" className="document-status">
           {status}
         </p>
       )}
-      {error && (
+      {syncError && (
         <p role="alert">
-          Keep this tab open to preserve pending edits.{" "}
+          {state?.pending
+            ? "Keep this tab open to preserve pending edits."
+            : "Document updates could not be synchronized."}{" "}
           <button
             disabled={!connected || suspended || readPaused}
             onClick={retry}

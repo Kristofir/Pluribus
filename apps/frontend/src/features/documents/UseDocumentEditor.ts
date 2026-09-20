@@ -119,6 +119,22 @@ export function useDocumentEditor({
     collaborator.attach(editor);
     return () => collaborator.attach(null);
   }, [collaborator, editor]);
+  const authorIdsFor = useMemo(() => {
+    const cache = new WeakMap<import("@tiptap/pm/model").Node, string>();
+    return (doc: import("@tiptap/pm/model").Node) => {
+      const cached = cache.get(doc);
+      if (cached !== undefined) return cached;
+      const ids = new Set<string>();
+      doc.descendants((node) => {
+        const id = node.marks.find((mark) => mark.type.name === "authorship")
+          ?.attrs.author;
+        if (typeof id === "string") ids.add(id);
+      });
+      const result = JSON.stringify([...ids].sort());
+      cache.set(doc, result);
+      return result;
+    };
+  }, []);
   const state = useEditorState({
     editor,
     selector: ({ editor }) =>
@@ -132,16 +148,7 @@ export function useDocumentEditor({
             orderedList: editor.isActive("orderedList"),
             canUndo: editor.can().undo(),
             canRedo: editor.can().redo(),
-            authorIds: (() => {
-              const ids = new Set<string>();
-              editor.state.doc.descendants((node) => {
-                const id = node.marks.find(
-                  (mark) => mark.type.name === "authorship",
-                )?.attrs.author;
-                if (typeof id === "string") ids.add(id);
-              });
-              return JSON.stringify([...ids].sort());
-            })(),
+            authorIds: authorIdsFor(editor.state.doc),
           }
         : null,
   });
@@ -182,20 +189,34 @@ export function useDocumentEditor({
   }, [editor, moveSource]);
   useLayoutEffect(() => {
     if (!editor) return;
+    let lastPending: boolean | undefined;
+    let lastDoc: typeof editor.state.doc | undefined;
+    let lastCopy: { json: string; text: string } | undefined;
+    let lastVersion: number | undefined;
     const capture = () => {
       if (editor.isDestroyed) return;
       const pending = sendableSteps(editor.state) !== null;
-      onPendingChange?.(pending);
-      recoveryStore.getState().capture(
-        syncId,
-        pending
-          ? {
-              json: JSON.stringify(editor.getJSON(), null, 2),
-              text: editor.getText(),
-              version: getVersion(editor.state),
-            }
-          : null,
-      );
+      const version = getVersion(editor.state);
+      const doc = editor.state.doc;
+      if (pending !== lastPending) onPendingChange?.(pending);
+      // Metadata/selection transactions do not change the recovery copy. An
+      // acknowledgement can change pending/version without changing the doc.
+      if (pending) {
+        if (doc !== lastDoc || !lastCopy) {
+          lastCopy = {
+            json: JSON.stringify(editor.getJSON(), null, 2),
+            text: editor.getText(),
+          };
+        }
+        if (!lastPending || doc !== lastDoc || version !== lastVersion)
+          recoveryStore.getState().capture(syncId, { ...lastCopy, version });
+      } else if (lastPending !== false) {
+        recoveryStore.getState().capture(syncId, null);
+      }
+      lastPending = pending;
+      lastVersion = version;
+      lastDoc = doc;
+      if (!pending) lastCopy = undefined;
     };
     const detach = () => {
       capture();
@@ -227,13 +248,23 @@ export function useDocumentEditor({
     },
     enableBeforeUnload: () => !!editor && sendableSteps(editor.state) !== null,
   });
+  const appliedFocus = useRef<{
+    editor: typeof editor;
+    point: typeof focusPoint;
+  } | null>(null);
   useLayoutEffect(() => {
     if (!editor) return;
     const enabled =
       connected && !suspended && !readPaused && interactionEnabled;
     editor.setEditable(enabled);
     if (!enabled && editor.isFocused) editor.commands.blur();
-    if (enabled && focusPoint) {
+    if (
+      enabled &&
+      focusPoint &&
+      (appliedFocus.current?.editor !== editor ||
+        appliedFocus.current?.point !== focusPoint)
+    ) {
+      appliedFocus.current = { editor, point: focusPoint };
       const bounds = editor.view.dom.getBoundingClientRect();
       const position = editor.view.posAtCoords({
         left: Math.max(
@@ -285,12 +316,20 @@ export function useDocumentEditor({
     latest !== undefined &&
     latest !== null &&
     state.version >= latest;
+  // Snapshot maintenance can fail after every text step is acknowledged.
+  // A confirmed current version is sufficient evidence that text is safe.
+  const syncError = error && !saved;
+  useEffect(() => {
+    if (error && saved && connected && !readPaused) clearError();
+  }, [error, saved, connected, readPaused, clearError]);
   const status = readPaused
     ? "Updates unavailable — editing paused; local edits retained"
     : !connected
       ? "Disconnected — editing paused"
-      : error
-        ? "Sync error — edits retained in this tab"
+      : syncError
+        ? state?.pending
+          ? "Sync error — edits retained in this tab"
+          : "Sync error — document updates unavailable"
         : saved
           ? "Saved"
           : "Saving…";
@@ -331,6 +370,7 @@ export function useDocumentEditor({
     readPaused,
     connected,
     status,
+    syncError,
     retry,
     showAuthors,
     setShowAuthors,

@@ -31,7 +31,12 @@ function setup() {
   const actions = { pending: vi.fn(), contentHeight: vi.fn() };
   const project = createCanvasNodeProjector();
   const render = (records = [rectangle, document], connected = true) =>
-    project(records, store.getState(), connected, actions);
+    project(
+      records,
+      store.getState(),
+      { interactionEnabled: connected, readPaused: false },
+      actions,
+    );
   return { store, actions, render };
 }
 
@@ -95,4 +100,29 @@ test("deleted documents disappear and pending callbacks survive geometry and foc
     throw new Error("Expected documents");
   expect(focused[1].data.pending).toBe(before[1].data.pending);
   expect(render([rectangle, { ...document, removed: true }])).toHaveLength(1);
+});
+
+test("interaction locks and read failures remain distinct across cached projections", () => {
+  const { store, actions } = setup();
+  const project = createCanvasNodeProjector();
+  const render = (interactionEnabled: boolean, readPaused: boolean) => {
+    const node = project(
+      [document],
+      store.getState(),
+      { interactionEnabled, readPaused },
+      actions,
+    )[0];
+    if (node.type !== "document") throw new Error("Expected document");
+    return node;
+  };
+  const ready = render(true, false);
+  const locked = render(false, false);
+  expect(locked.data.editable).toBe(false);
+  expect(locked.data.readPaused).toBe(false);
+  expect(locked.data.generation).toBe(ready.data.generation);
+  const failed = render(false, true);
+  expect(failed.data.readPaused).toBe(true);
+  expect(failed).not.toBe(locked);
+  expect(render(false, false).data.readPaused).toBe(false);
+  expect(render(true, false).data.editable).toBe(true);
 });

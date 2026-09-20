@@ -92,6 +92,9 @@ Undecided: modifier-click selection rules, double-click and keyboard movement.
 | Undo / Redo                        | Editor focused                                                        | Use editor history; do not invoke card-deletion history.                                  |
 
 When disconnected, pause shared edits, movement, resizing and deletion; retain pending local text.
+Reconnection preserves the editor selection; only a new click-to-edit request places the caret from pointer coordinates.
+Confirmed text synchronization clears prior sync errors. Snapshot maintenance failures do not imply saved text is pending.
+Temporary canvas interaction locks must not show document-sync warnings or shift card content.
 
 Undecided: modifier-click selection rules, card double-click behavior and keyboard movement.
 
@@ -127,6 +130,10 @@ remains provisional; the custom corner-handle prototype was rejected. For either
 element, cancellation or disconnect clears alignment guides (E3).
 
 ## Latest focused verification (2026-09-20)
+
+- **D1/D2 — Pass (drag status):** Browser drag/release showed no document status message and preserved editor identity and text. Test geometry was restored with Undo. Projection tests distinguish interaction locks from read failures and verify recovery from both.
+
+- **Document editor — Pass:** Browser disconnect/reconnect preserved selection, editor identity and text; a new click still repositioned the caret. An isolated browser harness using the actual hook verified saved-text error suppression, pending-error visibility, automatic recovery, metadata-copy reuse and acknowledgment cleanup. Physical network loss and backend snapshot failure injection were not checked.
 
 - **V2 History — Pass (browser + tests):** Create → move → delete → Undo all → Redo all restored exact rectangle geometry. A second session’s rectangle move prevented the first session’s Undo without changing peer geometry. Temporary rectangles removed. Backend tests cover both Element types, receipt replay after peer changes, lineage, legacy isolation, capacity and maximal groups. Queue tests cover cancellation, uncertain acknowledgements, disposal and idle closure. Physical offline/suspension and document creation UI were **not checked** in this run.
 - **Verification incident:** An initial coordinate-based peer drag targeted a document; Undo was refused after an intervening geometry change. Read-only local History inspection confirmed subsequent document moves superseded that drag; their newer state was left intact. Subsequent checks explicitly selected the test rectangle.
