@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { documentSchema } from "@pluribus/editor/schema";
 import { convexTest } from "convex-test";
 import { register } from "@convex-dev/prosemirror-sync/test";
 import { expect, test } from "vitest";
@@ -100,7 +101,7 @@ test("step deltas rebase, snapshots cannot overwrite accepted content, and malfo
   await t.mutation(api.Documents.submitSnapshot, { id, version: 2, content });
   expect(await t.query(api.Documents.getSnapshot, { id })).toEqual({
     version: 2,
-    content,
+    content: JSON.stringify(documentSchema.nodeFromJSON(JSON.parse(content)).toJSON()),
   });
 });
 

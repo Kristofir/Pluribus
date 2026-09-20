@@ -1,3 +1,5 @@
+import { CanvasScope, useCanvasScope } from "./CanvasScope";
+import type { Id } from "@pluribus/backend/dataModel";
 import { documentDragThreshold } from "./DocumentPress";
 import { ThemePicker } from "../../components/ThemePicker";
 import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
@@ -33,7 +35,8 @@ const nodeExtent: CoordinateExtent = [
   [geometryLimits.maxCoordinate, geometryLimits.maxCoordinate],
 ];
 function Canvas() {
-  const presence = usePresence({ kind: "canvas", id: "shared" }, true);
+  const { workspaceId } = useCanvasScope();
+  const presence = usePresence({ kind: "canvas", id: workspaceId ?? "shared" }, true);
   const roster = useMemo(
     () => <PresenceRoster presence={presence} />,
     [
@@ -61,6 +64,7 @@ const CanvasScene = memo(function CanvasScene({
   presenceId: string | null;
   roster: ReactNode;
 }) {
+  const { onSelectionChange } = useCanvasScope();
   const flow = useReactFlow();
   const {
     nodes,
@@ -84,7 +88,8 @@ const CanvasScene = memo(function CanvasScene({
   } = useCanvas(emit);
   useEffect(() => {
     emit({ type: "selection-changed", elements: [...selected] });
-  }, [selected, emit, presenceId]);
+    onSelectionChange?.([...selected]);
+  }, [selected, emit, presenceId, onSelectionChange]);
   const onNodeClick = useCallback(
     (_: unknown, node: CanvasNode) => {
       if (node.type !== "document") stopEditing();
@@ -316,14 +321,15 @@ const CanvasActivity = memo(function CanvasActivity({
 }: {
   nodes: CanvasNode[];
 }) {
-  const presence = usePresence({ kind: "canvas", id: "shared" }, true);
+  const { workspaceId } = useCanvasScope();
+  const presence = usePresence({ kind: "canvas", id: workspaceId ?? "shared" }, true);
   return <CanvasPresence presence={presence} nodes={nodes} />;
 });
 
-export default function CanvasPage() {
+export default function CanvasPage({ workspaceId, onSelectionChange }: { workspaceId?: Id<"workspaces">; onSelectionChange?: (ids: string[]) => void } = {}) {
   return (
-    <ReactFlowProvider>
-      <Canvas />
-    </ReactFlowProvider>
+    <CanvasScope.Provider value={{ workspaceId, onSelectionChange }}>
+      <ReactFlowProvider key={workspaceId ?? "shared"}><Canvas /></ReactFlowProvider>
+    </CanvasScope.Provider>
   );
 }

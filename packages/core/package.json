@@ -20,7 +20,12 @@
     "./canvas/history": "./canvas/domain/History.ts",
     "./canvas/history/operations": "./canvas/application/history/Operations.ts",
     "./canvas/history/geometry": "./canvas/application/history/Geometry.ts",
-    "./canvas/history/ports": "./canvas/application/history/Ports.ts"
+    "./canvas/history/ports": "./canvas/application/history/Ports.ts",
+    "./workspaces/access": "./workspaces/domain/Access.ts",
+    "./documents/agentEdits": "./documents/domain/AgentEdits.ts",
+    "./sources/domain": "./sources/domain/Source.ts",
+    "./inbox/domain": "./inbox/domain/Send.ts",
+    "./inbox/delivery": "./inbox/application/Delivery.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ../../tsconfig.core.json"

@@ -1,3 +1,5 @@
+import { message, sendStatus } from "./inbox/Model";
+import { sourceStatus, capture } from "./sources/Model";
 import {
   actionPayload,
   actionState,
@@ -17,9 +19,24 @@ import { rectangle, geometry } from "./canvas/Model";
  */
 export default defineSchema({
   ...authTables,
+  workspaceInboxes: defineTable({workspaceId:v.id("workspaces"),providerInboxId:v.string(),revision:v.number(),status:v.union(v.literal("idle"),v.literal("loading"),v.literal("ready"),v.literal("failed")),error:v.optional(v.string())}).index("by_workspace",["workspaceId"]).index("by_provider",["providerInboxId"]),
+  inboxThreads: defineTable({workspaceId:v.id("workspaces"),inboxId:v.id("workspaceInboxes"),providerId:v.string(),subject:v.string(),messages:v.array(message),truncated:v.boolean(),draftDocumentId:v.optional(v.id("documents"))}).index("by_workspace",["workspaceId"]).index("by_inbox_provider",["inboxId","providerId"]),
+  sendIntents: defineTable({workspaceId:v.id("workspaces"),userId:v.id("users"),threadId:v.id("inboxThreads"),inboxId:v.id("workspaceInboxes"),providerMessageId:v.string(),documentId:v.id("documents"),generation:v.number(),requestId:v.string(),draftVersion:v.number(),text:v.string(),recipients:v.array(v.string()),status:sendStatus,reconciling:v.optional(v.boolean()),error:v.optional(v.string()),sentMessageId:v.optional(v.string())}).index("by_user_request",["userId","requestId"]).index("by_thread",["threadId"]),
+  sources: defineTable({ workspaceId:v.id("workspaces"),userId:v.id("users"),url:v.string(),prompt:v.optional(v.string()),status:sourceStatus,revision:v.number(),capture:v.optional(capture),error:v.optional(v.string()) }).index("by_workspace",["workspaceId"]),
+  agentGrants: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users"), documentIds: v.array(v.id("documents")), tokenHash: v.string(), revoked: v.boolean(), label: v.string() }).index("by_token", ["tokenHash"]).index("by_workspace_user", ["workspaceId", "userId"]),
+  agentContexts: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users"), documentIds: v.array(v.id("documents")), content: v.string() }).index("by_workspace_user", ["workspaceId", "userId"]),
+  agentChanges: defineTable({ workspaceId: v.id("workspaces"), documentId: v.id("documents"), generation: v.number(), grantId: v.id("agentGrants"), userId: v.id("users"), author: v.id("documentAuthors"), session: v.id("documentAuthorSessions"), operations: v.array(v.string()), createdParagraphIds: v.optional(v.array(v.string())), createdStructures:v.optional(v.array(v.object({id:v.string(),type:v.string(),attrs:v.string()}))), version: v.number(), undone: v.boolean() }).index("by_document", ["documentId"]).index("by_workspace", ["workspaceId"]),
+  agentRequests: defineTable({ grantId: v.id("agentGrants"), requestId: v.string(), fingerprint: v.string(), result: v.union(v.object({ status: v.literal("applied"), version: v.number(), operationGroupId: v.id("agentChanges") }), v.object({ status: v.literal("conflict"), currentVersion: v.number() })) }).index("by_grant_request", ["grantId", "requestId"]),
+  agentUndoRequests: defineTable({ userId: v.id("users"), requestId: v.string(), changeId: v.id("agentChanges"), version: v.number() }).index("by_user_request", ["userId", "requestId"]),
+  documentLinks: defineTable({ workspaceId: v.id("workspaces"), elementId: v.union(v.id("rectangles"), v.id("canvasDocuments")), documentId: v.id("documents"), paragraphId: v.string() }).index("by_workspace", ["workspaceId"]).index("by_element", ["elementId"]),
+  workspaces: defineTable({ name: v.string(), slug: v.string(), mainDocumentId: v.optional(v.id("documents")) }).index("by_slug", ["slug"]),
+  workspaceMembers: defineTable({ workspaceId: v.id("workspaces"), userId: v.id("users") }).index("by_workspace_user", ["workspaceId", "userId"]).index("by_user", ["userId"]),
+  workspaceAssignments: defineTable({ workspaceId: v.id("workspaces"), email: v.string(), admin: v.boolean() }).index("by_email", ["email"]).index("by_workspace_email", ["workspaceId", "email"]),
+  administrators: defineTable({ userId: v.id("users") }).index("by_user", ["userId"]),
   documentAuthors: defineTable({
-    kind: v.union(v.literal("guest"), v.literal("user")),
+    kind: v.union(v.literal("guest"), v.literal("user"), v.literal("agent")),
     userId: v.optional(v.id("users")),
+    grantId: v.optional(v.id("agentGrants")),
     secretHash: v.optional(v.string()),
     label: v.string(),
   }).index("by_user", ["userId"]),
@@ -27,7 +44,7 @@ export default defineSchema({
     author: v.id("documentAuthors"),
     scope: v.string(),
     secretHash: v.string(),
-  }),
+  }).index("by_scope_author", ["scope", "author"]),
   documentOperations: defineTable({
     document: v.id("documents"),
     scope: v.string(),
@@ -40,7 +57,7 @@ export default defineSchema({
     movePart: v.optional(v.union(v.literal("remove"), v.literal("insert"))),
     revertedBy: v.optional(v.string()),
     undoOf: v.optional(v.string()),
-  }).index("by_document_operation", ["document", "operation"]),
+  }).index("by_document_operation", ["document", "operation"]).index("by_document_author", ["document", "author"]),
   presenceParticipations: defineTable(participation).index("by_contextKey", [
     "contextKey",
   ]),
@@ -50,7 +67,7 @@ export default defineSchema({
   ),
   canvasHistorySessions: defineTable({
     nonce: v.string(),
-    scope: v.literal("shared"),
+    scope: v.string(),
     owner: v.union(v.string(), v.null()),
     proof: v.string(),
     version: v.literal(2),
@@ -110,28 +127,25 @@ export default defineSchema({
   })
     .index("by_operation", ["operation"])
     .index("by_element", ["element"]),
-  canvasDocuments: defineTable(
-    geometry.extend({
-      activeDeletion: v.optional(v.string()),
-      canvas: v.literal("shared"),
-      documentId: v.optional(v.id("documents")),
-      removed: v.boolean(),
-      generation: v.number(),
-    }),
-  )
-    .index("by_canvas", ["canvas"])
-    .index("by_canvas_removed", ["canvas", "removed"]),
+  canvasDocuments: defineTable(v.union(
+    geometry.extend({ activeDeletion: v.optional(v.string()), canvas: v.string(), documentId: v.optional(v.id("documents")), removed: v.boolean(), generation: v.number(), role: v.optional(v.literal("card")) }),
+    v.object({ canvas: v.string(), documentId: v.id("documents"), removed: v.boolean(), generation: v.number(), role: v.literal("main") }),
+    v.object({ canvas: v.string(), documentId: v.id("documents"), removed: v.boolean(), generation: v.number(), role: v.literal("reply"), threadId: v.id("inboxThreads") })
+  )).index("by_canvas", ["canvas"]).index("by_canvas_removed", ["canvas", "removed"]).index("by_canvas_role_removed", ["canvas", "role", "removed"]),
   documents: defineTable({
     element: v.optional(v.id("canvasDocuments")),
     key: v.string(),
-    access: v.literal("public"),
+    access: v.union(v.literal("public"), v.literal("workspace")),
+    workspaceId: v.optional(v.id("workspaces")),
     authorship: v.optional(v.literal(1)),
+    paragraphs: v.optional(v.literal(1)),
   }).index("by_key", ["key"]),
   rectangles: defineTable(
     rectangle.extend({
+      workspaceId: v.optional(v.id("workspaces")),
       activeDeletion: v.optional(v.string()),
       generation: v.optional(v.number()),
       removed: v.optional(v.literal(true)),
     }),
-  ).index("by_removed", ["removed"]),
+  ).index("by_removed", ["removed"]).index("by_workspace_removed", ["workspaceId", "removed"]),
 });

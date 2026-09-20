@@ -27,7 +27,7 @@ function ports(ctx: MutationCtx): GeometryHistoryPorts {
     elements: {
       async get(id) {
         const record = await ctx.db.get(storedId(id));
-        return record
+        return record && "x" in record && ("canvas" in record ? record.canvas === "shared" : !record.workspaceId)
           ? {
               kind: ctx.db.normalizeId("rectangles", id)
                 ? "rectangle"

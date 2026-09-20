@@ -1,3 +1,4 @@
+import { canvasScope, requireCanvas } from "../workspaces/Access";
 import { InvalidElementGeometry } from "@pluribus/core/canvas/domain";
 import { ConvexError, v, type Infer } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -63,7 +64,6 @@ async function authenticate(ctx: QueryCtx, args: Auth) {
     owner = await getAuthUserId(ctx);
   if (
     !row ||
-    row.scope !== "shared" ||
     row.owner !== owner ||
     row.proof !== (await hash(args.secret))
   )
@@ -74,8 +74,9 @@ async function authenticate(ctx: QueryCtx, args: Auth) {
   const actor = owner
     ? { kind: "authenticated" as const }
     : { kind: "anonymous" as const };
+  await requireCanvas(ctx, row.scope);
   assertCanvasAccess(actor);
-  return actor;
+  return { actor, scope: row.scope };
 }
 /** Wrap deterministic failures as terminal errors while preserving transaction rollback. */
 async function validated<T>(work: () => Promise<T>): Promise<T> {
@@ -97,8 +98,9 @@ async function validated<T>(work: () => Promise<T>): Promise<T> {
 }
 export async function openSession(
   ctx: MutationCtx,
-  args: { nonce: string; secret: string },
+  args: { nonce: string; secret: string; workspaceId?: Id<"workspaces"> },
 ) {
+  const scope = await canvasScope(ctx, args.workspaceId);
   uuid(args.nonce);
   uuid(args.secret);
   const owner = await getAuthUserId(ctx),
@@ -108,7 +110,7 @@ export async function openSession(
     .withIndex("by_nonce", (q) => q.eq("nonce", args.nonce))
     .unique();
   if (row) {
-    if (row.owner !== owner || row.proof !== proof)
+    if (row.owner !== owner || row.proof !== proof || row.scope !== scope)
       throw new ConvexError({
         code: "HISTORY_REJECTED",
         message: "History session identity was reused.",
@@ -119,7 +121,7 @@ export async function openSession(
     nonce: args.nonce,
     owner,
     proof,
-    scope: "shared",
+    scope,
     version: 2,
   });
 }
@@ -129,12 +131,12 @@ async function execute(
   command: DurableHistoryCommand,
 ) {
   return validated(async () => {
-    const actor = await authenticate(ctx, args);
+    const { actor, scope } = await authenticate(ctx, args);
     uuid(args.action);
     uuid(args.attempt);
     checkHistorySize(command);
     const result = await executeHistoryAttempt(
-      historyPorts(ctx, args.session, actor),
+      historyPorts(ctx, args.session, actor, scope),
       {
         action: args.action,
         attempt: args.attempt,
@@ -190,11 +192,11 @@ export function updateGeometry(
   },
 ) {
   return validated(async () => {
-    const actor = await authenticate(ctx, args);
+    const { actor, scope } = await authenticate(ctx, args);
     uuid(args.action);
     checkHistorySize(args.updates);
     return updateGesture(
-      historyPorts(ctx, args.session, actor),
+      historyPorts(ctx, args.session, actor, scope),
       args.action,
       args.sequence,
       await hash(canonical({ sequence: args.sequence, updates: args.updates })),
@@ -206,8 +208,8 @@ export async function heartbeat(
   ctx: MutationCtx,
   args: Auth & { action: string },
 ) {
-  const actor = await authenticate(ctx, args),
-    ports = historyPorts(ctx, args.session, actor),
+  const { actor, scope } = await authenticate(ctx, args),
+    ports = historyPorts(ctx, args.session, actor, scope),
     record = await ports.actions.get(args.action);
   if (!record || record.payload.kind !== "geometry" || record.state !== "open")
     return false;
@@ -232,6 +234,7 @@ export const expireGesture = internalMutation({
       ctx,
       args.session,
       row.owner ? { kind: "authenticated" } : { kind: "anonymous" },
+      row.scope,
     );
     const record = await ports.actions.get(args.action);
     if (
@@ -266,7 +269,7 @@ export async function readAction(
       )
       .unique();
     if (
-      !element ||
+      !element || !("x" in element) ||
       !binding ||
       binding.lineage !== target.lineage ||
       binding.generation !== (element.generation ?? 1) ||

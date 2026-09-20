@@ -1,3 +1,4 @@
+import { useCanvasScope } from "./CanvasScope";
 import {
   useCallback,
   useEffect,
@@ -37,6 +38,7 @@ export function useCanvasCommands({
   surface: RefObject<HTMLDivElement | null>;
   color: RectangleColor;
 }) {
+  const { workspaceId } = useCanvasScope();
   const open = useMutation(api.Canvas.openHistorySession);
   const apply = useMutation(api.Canvas.applyHistoryAction);
   const reverse = useMutation(api.Canvas.reverseHistoryAction);
@@ -46,7 +48,7 @@ export function useCanvasCommands({
   const [history] = useState(() =>
     createElementHistory(
       {
-        open,
+        open: args => open({ ...args, workspaceId }),
         apply,
         reverse,
         update,

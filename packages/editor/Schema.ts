@@ -1,3 +1,4 @@
+import { ParagraphAttributes } from "./Paragraphs";
 import { Mark, getSchema } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import "./Protocol";
@@ -20,5 +21,6 @@ export const documentExtensions = [
     underline: false,
   }),
   Authorship,
+  ParagraphAttributes,
 ];
 export const documentSchema = getSchema(documentExtensions);

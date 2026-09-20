@@ -8,11 +8,22 @@
  * @module
  */
 
+import type * as AgentAccess from "../AgentAccess.js";
 import type * as Canvas from "../Canvas.js";
 import type * as Documents from "../Documents.js";
 import type * as Health from "../Health.js";
+import type * as Inbox from "../Inbox.js";
 import type * as Presence from "../Presence.js";
+import type * as Sources from "../Sources.js";
 import type * as Users from "../Users.js";
+import type * as Workspaces from "../Workspaces.js";
+import type * as agentAccess_Access from "../agentAccess/Access.js";
+import type * as agentAccess_Context from "../agentAccess/Context.js";
+import type * as agentAccess_Edits from "../agentAccess/Edits.js";
+import type * as agentAccess_Mcp from "../agentAccess/Mcp.js";
+import type * as agentAccess_Model from "../agentAccess/Model.js";
+import type * as agentAccess_Tools from "../agentAccess/Tools.js";
+import type * as agentAccess_Undo from "../agentAccess/Undo.js";
 import type * as auth from "../auth.js";
 import type * as canvas_Actor from "../canvas/Actor.js";
 import type * as canvas_Creations from "../canvas/Creations.js";
@@ -32,12 +43,26 @@ import type * as documents_Access from "../documents/Access.js";
 import type * as documents_Authors from "../documents/Authors.js";
 import type * as documents_Authorship from "../documents/Authorship.js";
 import type * as documents_ChildText from "../documents/ChildText.js";
+import type * as documents_Paragraphs from "../documents/Paragraphs.js";
 import type * as documents_Persistence from "../documents/Persistence.js";
 import type * as documents_Sync from "../documents/Sync.js";
 import type * as http from "../http.js";
+import type * as inbox_AgentMail from "../inbox/AgentMail.js";
+import type * as inbox_Drafts from "../inbox/Drafts.js";
+import type * as inbox_Jobs from "../inbox/Jobs.js";
+import type * as inbox_Model from "../inbox/Model.js";
+import type * as inbox_Reconciliation from "../inbox/Reconciliation.js";
+import type * as inbox_Sends from "../inbox/Sends.js";
+import type * as integrations_Http from "../integrations/Http.js";
 import type * as presence_Access from "../presence/Access.js";
 import type * as presence_Handlers from "../presence/Handlers.js";
 import type * as presence_Model from "../presence/Model.js";
+import type * as sources_Firecrawl from "../sources/Firecrawl.js";
+import type * as sources_Jobs from "../sources/Jobs.js";
+import type * as sources_Model from "../sources/Model.js";
+import type * as workspaces_Access from "../workspaces/Access.js";
+import type * as workspaces_Handlers from "../workspaces/Handlers.js";
+import type * as workspaces_Provisioning from "../workspaces/Provisioning.js";
 
 import type {
   ApiFromModules,
@@ -46,11 +71,22 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  AgentAccess: typeof AgentAccess;
   Canvas: typeof Canvas;
   Documents: typeof Documents;
   Health: typeof Health;
+  Inbox: typeof Inbox;
   Presence: typeof Presence;
+  Sources: typeof Sources;
   Users: typeof Users;
+  Workspaces: typeof Workspaces;
+  "agentAccess/Access": typeof agentAccess_Access;
+  "agentAccess/Context": typeof agentAccess_Context;
+  "agentAccess/Edits": typeof agentAccess_Edits;
+  "agentAccess/Mcp": typeof agentAccess_Mcp;
+  "agentAccess/Model": typeof agentAccess_Model;
+  "agentAccess/Tools": typeof agentAccess_Tools;
+  "agentAccess/Undo": typeof agentAccess_Undo;
   auth: typeof auth;
   "canvas/Actor": typeof canvas_Actor;
   "canvas/Creations": typeof canvas_Creations;
@@ -70,12 +106,26 @@ declare const fullApi: ApiFromModules<{
   "documents/Authors": typeof documents_Authors;
   "documents/Authorship": typeof documents_Authorship;
   "documents/ChildText": typeof documents_ChildText;
+  "documents/Paragraphs": typeof documents_Paragraphs;
   "documents/Persistence": typeof documents_Persistence;
   "documents/Sync": typeof documents_Sync;
   http: typeof http;
+  "inbox/AgentMail": typeof inbox_AgentMail;
+  "inbox/Drafts": typeof inbox_Drafts;
+  "inbox/Jobs": typeof inbox_Jobs;
+  "inbox/Model": typeof inbox_Model;
+  "inbox/Reconciliation": typeof inbox_Reconciliation;
+  "inbox/Sends": typeof inbox_Sends;
+  "integrations/Http": typeof integrations_Http;
   "presence/Access": typeof presence_Access;
   "presence/Handlers": typeof presence_Handlers;
   "presence/Model": typeof presence_Model;
+  "sources/Firecrawl": typeof sources_Firecrawl;
+  "sources/Jobs": typeof sources_Jobs;
+  "sources/Model": typeof sources_Model;
+  "workspaces/Access": typeof workspaces_Access;
+  "workspaces/Handlers": typeof workspaces_Handlers;
+  "workspaces/Provisioning": typeof workspaces_Provisioning;
 }>;
 
 /**

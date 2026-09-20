@@ -12,7 +12,7 @@ export function toRectangleId(id: Id<"rectangles">): RectangleId {
  * Build the core canvas storage port for this mutation. All methods share its
  * transaction; never retain the context or hide external network effects.
  */
-export function rectanglePersistence(ctx: MutationCtx): RectanglePersistence {
+export function rectanglePersistence(ctx: MutationCtx, workspaceId?: Id<"workspaces">): RectanglePersistence {
   function storageId(id: RectangleId): Id<"rectangles"> {
     const normalized = ctx.db.normalizeId("rectangles", id);
     if (!normalized) throw new Error("Invalid rectangle ID.");
@@ -23,17 +23,17 @@ export function rectanglePersistence(ctx: MutationCtx): RectanglePersistence {
       (
         await ctx.db
           .query("rectangles")
-          .withIndex("by_removed", (q) => q.eq("removed", undefined))
+          .withIndex("by_workspace_removed", (q) => q.eq("workspaceId", workspaceId).eq("removed", undefined))
           .take(limit)
       ).length,
     get: async (id) => {
       const record = await ctx.db.get("rectangles", storageId(id));
-      if (!record) return null;
+      if (!record || record.workspaceId !== workspaceId) return null;
       const { x, y, width, height, color } = record;
       return {
         id,
         kind: "rectangle",
-        canvasId: "shared",
+        canvasId: workspaceId ?? "shared",
         geometry: { x, y, width, height },
         color,
         generation: record.generation ?? 1,
@@ -44,6 +44,7 @@ export function rectanglePersistence(ctx: MutationCtx): RectanglePersistence {
       toRectangleId(
         await ctx.db.insert("rectangles", {
           ...geometry,
+          workspaceId,
           color,
           generation: 1,
         }),

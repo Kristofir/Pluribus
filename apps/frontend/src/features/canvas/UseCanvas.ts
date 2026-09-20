@@ -1,3 +1,4 @@
+import { useCanvasScope } from "./CanvasScope";
 import {
   useCallback,
   useLayoutEffect,
@@ -47,6 +48,7 @@ function subscribeOnline(listener: () => void) {
 const getOnline = () => navigator.onLine;
 
 export function useCanvas(emit: (event: InteractionEvent) => void) {
+  const { workspaceId } = useCanvasScope();
   const flow = useReactFlow();
   const alignment = useRef<AlignmentGesture | null>(null);
   const altPressed = useRef(false);
@@ -81,17 +83,17 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     };
   }, []);
   const manipulation = useRef(new Map<string, "drag" | "resize">());
-  const rectangleQuery = useRetainedQuery(api.Canvas.list, {});
-  const cardQuery = useRetainedQuery(api.Canvas.documentCards, {});
+  const rectangleQuery = useRetainedQuery(api.Canvas.list, { workspaceId });
+  const cardQuery = useRetainedQuery(api.Canvas.documentCards, { workspaceId });
   const rectangles = rectangleQuery.data;
   const cards = cardQuery.data;
   const queryFailed = rectangleQuery.failed || cardQuery.failed;
   const records = useMemo<CanvasElement[] | undefined>(
     () =>
       rectangles && cards
-        ? [...rectangles.map(rectangleElement), ...cards.map(documentElement)]
+        ? [...rectangles.map(rectangleElement), ...cards.map(documentElement)].map(r => ({ ...r, canvasId: workspaceId ?? "shared" }))
         : undefined,
-    [rectangles, cards],
+    [rectangles, cards, workspaceId],
   );
   const recordsRef = useRef(records);
   useLayoutEffect(() => {
@@ -114,8 +116,8 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const [store] = useState(() =>
     createCanvasStore<ElementId>((id, geometry) =>
       sendGeometry(geometryTargets.current.get(id), geometry, {
-        rectangle: update,
-        document: changeDocument,
+        rectangle: args => update({ ...args, workspaceId }),
+        document: args => changeDocument({ ...args, workspaceId }),
       }),
     ),
   );

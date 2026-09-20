@@ -21,7 +21,7 @@ import { color, geometry, rectangleView } from "./canvas/Model";
  * that React Flow renders; subscription updates propagate accepted geometry changes.
  */
 export const list = query({
-  args: {},
+  args: { workspaceId: v.optional(v.id("workspaces")) },
   returns: v.array(rectangleView),
   handler: handlers.list,
 });
@@ -31,7 +31,7 @@ export const list = query({
  * the core creation use case, which validates geometry and capacity before writing.
  */
 export const create = mutation({
-  args: { geometry, color },
+  args: { geometry, color, workspaceId: v.optional(v.id("workspaces")) },
   returns: v.id("rectangles"),
   handler: handlers.create,
 });
@@ -41,19 +41,19 @@ export const create = mutation({
  * when the record was deleted, preventing a late gesture from recreating it.
  */
 export const updateGeometry = mutation({
-  args: { id: v.id("rectangles"), generation: v.number(), geometry },
+  args: { id: v.id("rectangles"), generation: v.number(), geometry, workspaceId: v.optional(v.id("workspaces")) },
   returns: v.boolean(),
   handler: handlers.updateGeometry,
 });
 
 /** Canvas owns child creation/lifecycle; document adapters supply text in the same transaction. */
 export const createDocument = mutation({
-  args: { geometry },
+  args: { geometry, workspaceId: v.optional(v.id("workspaces")) },
   returns: v.id("canvasDocuments"),
   handler: handlers.createDocument,
 });
 export const documentCards = query({
-  args: {},
+  args: { workspaceId: v.optional(v.id("workspaces")) },
   returns: v.array(
     v.object({
       id: v.id("canvasDocuments"),
@@ -69,6 +69,7 @@ export const changeDocument = mutation({
   args: {
     id: v.id("canvasDocuments"),
     generation: v.number(),
+    workspaceId: v.optional(v.id("workspaces")),
     change: v.object({ kind: v.literal("geometry"), geometry }),
   },
   returns: v.boolean(),
@@ -172,7 +173,7 @@ export const createElement = mutation({
 
 /** V2 History: session-scoped actions with stable attempt acknowledgements. */
 export const openHistorySession = mutation({
-  args: { nonce: v.string(), secret: v.string() },
+  args: { nonce: v.string(), secret: v.string(), workspaceId: v.optional(v.id("workspaces")) },
   returns: v.id("canvasHistorySessions"),
   handler: history.openSession,
 });

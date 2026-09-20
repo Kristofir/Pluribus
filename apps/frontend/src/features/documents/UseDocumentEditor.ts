@@ -54,7 +54,7 @@ export function useDocumentEditor({
   const recoveryStore = useDocumentRecovery();
   const authorship = useMemo(
     () =>
-      authorSession ? createAuthorshipExtension(authorSession.author) : null,
+      authorSession ? createAuthorshipExtension(authorSession.author, authorSession.paragraphs) : null,
     [authorSession],
   );
   const [showAuthors, setShowAuthors] = useState(false);

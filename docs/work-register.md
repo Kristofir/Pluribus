@@ -58,12 +58,14 @@ document as the reply editor remains an unaccepted scope suggestion.
 | Work | Owner / reviewer | Next action | Completion evidence |
 | --- | --- | --- | --- |
 | Initial code savepoint | Design Engineer / existing validation recorded | Commit existing eight intended editor/drag files only; sole Git writer until done. | Committed `0b6cebc`, independently confirmed by PM via Git; only this register remained untracked. Known validation limitations retained. |
-| Coordination savepoint | Project Manager | Commit this register now that code savepoint released Git. | Separate documentation commit SHA. Pending. |
-| Modular architecture and contracts | Architect / Software Engineer feasibility consultation | Read-only proposal of ownership, dependencies, edit semantics and access boundaries. | Concrete frontend/backend contracts sent to PM and Engineer. In progress. |
-| Backend readiness | Software Engineer / Architect | Read-only inspect existing foundations and credential names/presence, never values. | Integration blockers and scoped ownership proposal. In progress. |
-| Frontend implementation | Design Engineer / UX Designer visual review and Architect boundary review | Await savepoint and agreed contracts; retain current Intent UI conventions. | Runnable assembled screens plus browser behavior and visual evidence. Not dispatched. |
-| Backend/core implementation | Software Engineer / Architect | Await savepoint and contracts; own backend/core and shared registration/config changes. | Relevant tests, integration evidence and independent review. Not dispatched. |
-| Visual acceptance | UX Designer / Chris final design tomorrow | Read-only checklist now; inspect assembled UI when ready. | Concrete findings on hierarchy, spacing, readability, states and canvas/document relationship. Dispatched. |
+| Coordination savepoint | Project Manager | Commit this register now that code savepoint released Git. | Committed `1765388`; initial savepoint complete. |
+| Modular architecture and contracts | Architect / Software Engineer feasibility consultation | Read-only proposal of ownership, dependencies, edit semantics and access boundaries. | Architect supplied concrete module/access/edit contracts; PM accepted, implementation review pending. |
+| Backend readiness | Software Engineer / Architect | Read-only inspect existing foundations and credential names/presence, never values. | Readiness reported: existing Google and text sync foundations; workspace access absent. Firecrawl/AgentMail credentials absent in checked files, local backend env still unverified. |
+| Frontend implementation | Design Engineer / UX Designer visual review and Architect boundary review | Implement new feature presentation modules with injected typed props; retain Intent UI. SWE owns existing controller/router integration until explicit handoff. | Dispatched; assembled UI/browser evidence pending. |
+| Backend/core implementation | Software Engineer / Architect | Implement access → canonical panel docs/paragraph links → source/mail/context → agent edit/undo/send ledger. Own backend/core/editor protocols/config/router/root. | Dispatched; tests and independent review pending. |
+| Visual acceptance | UX Designer / Chris final design tomorrow | Read-only checklist now; inspect assembled UI when ready. | Checklist received; assembled UI review pending. Include desktop nonmodal panel, narrow screen readability, keyboard/focus and honest sync/send states. |
+
+Main and reply documents are distinct canonical canvas-owned children with explicit panel presentation, no duplicate visible cards and no panel-document delete control in this demo. Existing card deletion/history must remain intact.
 
 No agents may overlap edits. PM owns this register. Engineer and Design Engineer
 must agree shared files before editing. Architect and UX Designer review read-only.
@@ -75,15 +77,15 @@ requires real evidence, and unavailable checks remain explicitly unverified.
 | Item | Owner / reviewer | State and evidence | Next action | Completion criteria |
 | --- | --- | --- | --- | --- |
 | Session-scoped Element History | Software Engineer / Architect | Approved, implemented, reviewed, committed as `6db7bfb`. Architect's latest review reports all three findings resolved. Engineer reports 176 tests passing with longer timeout, types, architecture, build and browser checks. PM independently confirmed commit and Git state, not runtime behavior. | No implementation handoff remains. Keep release separate; push only when Chris requests it. | Implementation/review complete; any later release needs explicit authorization and its own evidence. |
-| Editor recovery, focus and drag-status fixes | Design Engineer / Software Engineer proposed for integration review; Architect if a boundary issue arises | Implemented, uncommitted. Latest drag fix explicitly requested by Chris. Agent reports browser checks, six projection tests and build passing; latest full check reports 175 passing tests and two architecture fixture timeouts. No independent review of this diff found. Evidence: current diff, Design Engineer task, latest entries in canvas behavior and hackathon log. | PM to coordinate a read-only review after orientation, scoped to the existing fixes; keep Design Engineer as sole implementation owner. No review dispatched yet. | Reviewer checks focus/recovery and History interaction against behavior requirements; findings resolved by owner; validation outcome and limitations recorded. Commit/push/deploy remain separate decisions. |
+| Editor recovery, focus and drag-status fixes | Design Engineer / Software Engineer proposed for integration review; Architect if a boundary issue arises | Implemented and committed in savepoint `0b6cebc`. Latest drag fix explicitly requested by Chris. Agent reports browser checks, six projection tests and build passing; latest full check reports 175 passing tests and two architecture fixture timeouts. No independent review of this diff found. Evidence: current diff, Design Engineer task, latest entries in canvas behavior and hackathon log. | Include integration regressions in overnight review; retain Design Engineer ownership of the original fixes. Savepoint does not imply new independent review. | Reviewer checks focus/recovery and History interaction against behavior requirements; findings resolved by owner; validation outcome and limitations recorded. Commit/push/deploy remain separate decisions. |
 | Recurring architecture fixture timeouts | Project Manager owns triage handoff; technical owner not assigned (Software Engineer proposed), Architect proposed reviewer | Observed validation gap, not an approved repair assignment. Engineer reports success with longer timeout; Design Engineer's latest full check still times out on two fixtures. Cause not established. | Define a bounded diagnostic assignment if Chris wants this pursued; do not treat longer-timeout success as a repair. | Reproducible cause and disposition, with default-check outcome documented; any repair has an approved scope and one implementation owner. |
 | Design Technician availability | Team Manager / Chris for any new role creation | Unconfirmed. Team Manager's latest review could not locate a usable task after an earlier queued creation. | Leave coverage question with Team Manager; do not create a duplicate or route work to the pending setup ID. | Usable task ID and scope confirmed, or explicit decision that no separate role is needed. |
 
 States are distinct: proposed, approved, implemented, reviewed, verified, committed,
 pushed, deployed. A reported passing check is agent evidence, not independent PM
-verification. No tests were rerun during this documentation-only orientation.
+verification. No tests were rerun by PM during orientation. Overnight tests must be attributed to their runner.
 
-## Shared checkout and release state
+## Shared checkout and release state — orientation baseline
 
 - Independently observed: branch `main`, HEAD `6db7bfb`, one commit ahead of local
   `origin/main` (`2239e45`). Remote was not fetched; this is not a live remote check.
@@ -98,7 +100,7 @@ verification. No tests were rerun during this documentation-only orientation.
 
 ## Team and existing advisory work
 
-All IDs below are on `local`; titles and states refreshed through task tools.
+All IDs below are on `local`; titles and states below reflect orientation. Live overnight assignments are tracked above.
 Idle/not loaded does not imply unassigned or completed work.
 
 | Current task title | Task ID | Observed state / scope |
@@ -133,3 +135,106 @@ were empty in the task reader, so PM read the corresponding local task transcrip
 for Engineer, Architect, Design Engineer, Team Manager, Product Strategist and
 Hackathon Analyst. These establish reported outcomes and requests; they do not
 independently reproduce tests. UX proposal status was also confirmed in task output.
+
+## Current evidence and remaining review
+
+| Slice | Evidence | Next action / owner | Completion gate |
+| --- | --- | --- | --- |
+| Workspace access | SWE reported 16 focused workspace/document/paragraph tests. Architect independently ran four WorkspaceAccess tests; initial presence-generation and explicit card-role defects fixed. | SWE: private presence join/publish/revocation and successful workspace History lifecycle tests; Architect rereview. | All private entrypoints enforce membership; allowed paths work; live Google sign-in and provisioning verified. |
+| Frontend modules | Design completed dashboard, workspace shell/panel/paragraph link, sources, inbox/send review, admin and agent context/changes presentation modules. SWE owns route/controller binding. | SWE binds real APIs; Design handles presentation fixes; UX reviews actual app after integration. | Runnable integrated surfaces, not fixture-only success. |
+| Visual review | PM saw readable canvas/document split at 1280×720. UX found readable default fixtures without horizontal overflow; identified reply-to-main fixture callback and close-focus defects. Design fixed both, reports keyboard checks at 1440/390, build and 187 tests passing. Full check still formatting failures in concurrent work/generated guidance. | UX independently passed both fixes at 1440×900 and 390×844. Design fixed fixture draft/preview mismatch and heading spacing, verified at 1440/390; production editor typography still unverified. SWE uses panelReturnFocus=inbox for replies; onMainDocument selects canonical main identity and opens panel. | Visual report with exact checked scope, no focus loss or misleading send state. |
+| Paragraph links | Canonical IDs initialized for new private docs; server validates client-submitted steps without silently rewriting ACKs. Architect withheld stability sign-off. | SWE adds concurrent split/rebase, actual editor undo/redo, deleted-link non-reattachment and continuity proof. | Stable paragraph-level references demonstrated across clients/edits, missing targets honest. |
+| Agent/MCP | SWE reports three focused tests: immutable replay/stale conflict/revocation; delegated undo preserving another user's later paragraph; unsafe intersecting undo refusal/rollback. Stateless HTTP MCP drafted. | Architect independently passed the three focused internal-function tests; still reviews transport/authority/recovery. SWE must test HTTP MCP lifecycle; SWE tests actual MCP interoperability and UI context/review wiring. | F4–F6 proven through transport and concurrent human/editor behavior, not only direct mutation tests. |
+| Sources | Firecrawl source and AgentMail inbox/send modules now exist; Architect provider review dispatched. No live calls or validation sign-off yet. | SWE validates adapter/state outcomes and binds cards. | Both one-URL main content and prompted extraction work; errors/source state visible. |
+| Inbox/send | SWE reports inbox reads and immutable send intents implemented; fake-provider tests in progress, no live verification. | SWE implements and tests, Architect reviews immutable send intent/idempotency, Design/UX validate assembled UI. | Thread→canonical collaborative draft→reviewed send flow with honest pending/sent/failed/unknown states; no real emails sent during development. |
+| Provider credentials | Keys absent in checked process/env files; local deployment credential presence not established. PM asked Chris for location only; no reply yet. Local codegen target verified port3210. | SWE continue independent work; verify configured names without exposing values. | Live provider checks only with existing configured credentials; mock evidence clearly labeled. |
+
+### Presentation handoff
+
+Design owns workspaces/{DashboardPage,WorkspaceLayout,MainDocumentPanel,
+DocumentParagraphLink}, sources/SourceCard, inbox/{InboxPanel,SendReview},
+admin/AdminPage, agentAccess/{AgentContextPanel,AgentChangesPanel}. SWE owns new
+WorkspaceRoute/DashboardRoute/AdminRoute/CanvasScope and old controller/router bindings.
+SendReview's `uncertain` maps backend unknown outcomes; reviewed text/version and
+recipients are immutable send inputs. Keep canonical editor mounts and explicit presence.
+
+Fixture-only preview: http://127.0.0.1:5181/?view=workspace, with dashboard/reply/
+source/inbox/admin/agents variants. Restart: `python3 -m http.server 5181 --bind
+127.0.0.1 --directory /tmp/presentation-preview`. It proves presentation only.
+Owner reports seven views checked at 1440×900, 1024×768 and 390×844. Independent UX report completed: seven default views at desktop/narrow, workspace also 1024×768; no page overflow. Fixture scrolling, source unavailable, empty agent context, fixture Undo/admin switches/uncertain send checked. Loading/denied, dark mode, zoom, auth, links and live collaboration not verified. Real provider, auth and multi-user behavior remain separate gates.
+
+### Coordination incidents
+
+Specialist notifications sometimes fail automatic approval review. PM reads task
+outputs and relays within Chris's explicit coordination authorization; no repeated
+confirmation needed for those recovered handoffs.
+
+Architect relayed a September 18 deletion-explanation request as new. PM verified
+the original user-message timestamp, corrected precedence to September 20 overnight
+authorization, and SWE explicitly confirmed resumption without changing deletion
+lifecycle. Architect current assignment remains read-only agent/MCP review.
+
+Evidence is attributed: PM independently checked Git/savepoints and one fixture view;
+Architect independently ran access tests; other test/build reports above are owner
+reports. No subsequent commits, pushes, deployments, purchases or real email sends.
+
+Agent review found two required fixes, relayed to SWE: delegated undo only protects
+text nodes and can erase a human-inserted line break; accepted edit replay checks
+generation before receipt lookup and fails after delete/restore. Architect verified
+the structural mapping reproduction. Keep current authorization on retries, but
+separate accepted receipt replay from new-write generation validity. Regressions and
+rereview required; MCP HTTP/client checks still pending.
+
+Design Engineer now assigned bounded read-only actual-route inspection (dashboard,
+workspace panel/editor typography, admin/denied/loading) with fixes only in owned
+presentation modules. SWE retains controller ownership. Auth/provisioning blockers
+must be reported honestly; no fixture substituted for integrated behavior.
+
+PM inspected current WorkspaceRoute: main editor is bound, inbox action still opens
+that same panel, and source/agent UI is not yet bound. This is an in-progress gap,
+not completion. PM requested SWE explicitly release WorkspaceRoute/new provider-agent
+binding controllers to Design Engineer to parallelize integration. No ownership
+transfer until SWE confirms paths; Design remains read-only on those files meanwhile.
+
+### Latest review findings
+
+Actual frontend confirmed at http://127.0.0.1:5173. Design independently observed
+signed-out dashboard incorrectly claiming account-ready/unassigned, workspace sign-in
+prompt without navigation, and /admin missing. Code snapshot: inbox still main-panel
+placeholder, account-query failure stuck loading, embedded 100dvh canvas may clip,
+and actual editor has nested border/padding unlike fixture. Signed-out browser blocks
+authenticated visual review; no identities/membership were created. PM relayed to SWE
+and requested explicit route-controller release to Design before parallel edits.
+
+Architect independently passed four provider tests but withheld sign-off: uncertain
+send needs evidence-based recovery; reply defaults must respect direction/reply_to
+and avoid own mailbox; reviewed reply message must be pinned; source refresh must
+not label old capture with new URL/prompt. Dispatch-after-revocation coverage also
+required. PM assigned all to SWE. No real provider calls or sends.
+
+### Confirmed frontend ownership transfer
+
+SWE explicitly released, and PM assigned to Design: workspaces/WorkspaceRoute.tsx,
+WorkspaceTools.tsx, DashboardRoute.tsx; admin/AdminRoute.tsx; NEW feature-binding
+controllers/hooks in sources/inbox/agentAccess. SWE stops editing those paths and
+retains Router/App/CanvasPage/CanvasScope/existing protocol hooks/backend/core/config.
+Design completes source/inbox/draft/send/context/grant/undo/link UI using generated
+APIs. Account failure/sign-out states and login navigation included. Backend adds
+AgentAccess.connectionInfo for actual HTTP origin. Paragraph selections retain their
+observed version. PM forwarded exact API handoff and provider-contract caveats.
+
+SWE reports six agent tests passing, including structural-undo refusal and retry
+after generation change; Architect independent rereview dispatched. No transport
+sign-off yet. Provider findings remain open until fixes/review evidence arrives.
+
+Backend contract deltas relayed to Design: frozen Inbox.review includes
+reviewedMessageId, required by Inbox.send; explicit Inbox.reconcile(threadId)
+checks provider evidence without resending and leaves unknown unresolved absent
+positive evidence; source refresh clears old capture; AgentAccess.connectionInfo
+now returns actual HTTP URL. SWE reports /admin route registered. Fixes still need
+tests and independent review before being marked verified.
+
+Architect independently passed six agent tests and verified line-break undo refusal
+and accepted replay after actual deletion/restoration. Related remaining defect:
+human paragraph→heading conversion on an agent-created ID can still be erased by
+undo. PM assigned structural-change guard/regression to SWE; no final F6 sign-off.

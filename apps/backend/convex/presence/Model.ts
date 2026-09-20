@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 export const context = v.union(
-  v.object({ kind: v.literal("canvas"), id: v.literal("shared") }),
+  v.object({ kind: v.literal("canvas"), id: v.string() }),
   v.object({ kind: v.literal("document"), id: v.id("documents") }),
 );
 export const activity = v.union(

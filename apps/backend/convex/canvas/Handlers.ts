@@ -1,9 +1,10 @@
+import { canvasScope } from "../workspaces/Access";
 import {
   createCanvasDocument,
   changeCanvasDocument,
   type DocumentChange,
 } from "@pluribus/core/canvas/documents";
-import { canvasDocuments, toDocumentElementId } from "./Documents";
+import { canvasDocuments, spatialDocuments, toDocumentElementId } from "./Documents";
 import { childText } from "../documents/ChildText";
 import type { Infer } from "convex/values";
 import type { Id } from "../_generated/dataModel";
@@ -18,11 +19,12 @@ import type { color, geometry as geometryValidator } from "./Model";
 import { canvasActor } from "./Actor";
 import { rectanglePersistence, toRectangleId } from "./Persistence";
 
-export async function list(ctx: QueryCtx) {
+export async function list(ctx: QueryCtx, args: { workspaceId?: Id<"workspaces"> } = {}) {
+  await canvasScope(ctx, args.workspaceId);
   assertCanvasAccess(await canvasActor(ctx));
   const records = await ctx.db
     .query("rectangles")
-    .withIndex("by_removed", (q) => q.eq("removed", undefined))
+    .withIndex("by_workspace_removed", (q) => q.eq("workspaceId", args.workspaceId).eq("removed", undefined))
     .take(rectangleLimits.maxCount);
   return records.map(({ _id, x, y, width, height, color, generation }) => ({
     id: _id,
@@ -38,12 +40,14 @@ export async function list(ctx: QueryCtx) {
 export async function create(
   ctx: MutationCtx,
   input: {
+    workspaceId?: Id<"workspaces">;
     geometry: Infer<typeof geometryValidator>;
     color: Infer<typeof color>;
   },
 ) {
+  await canvasScope(ctx, input.workspaceId);
   const id = await createRectangle(
-    { rectangles: rectanglePersistence(ctx) },
+    { rectangles: rectanglePersistence(ctx, input.workspaceId) },
     await canvasActor(ctx),
     input,
   );
@@ -57,14 +61,17 @@ export async function updateGeometry(
     id,
     geometry,
     generation,
+    workspaceId,
   }: {
+    workspaceId?: Id<"workspaces">;
     id: Id<"rectangles">;
     geometry: Infer<typeof geometryValidator>;
     generation: number;
   },
 ) {
+  await canvasScope(ctx, workspaceId);
   return updateRectangleGeometry(
-    { rectangles: rectanglePersistence(ctx) },
+    { rectangles: rectanglePersistence(ctx, workspaceId) },
     await canvasActor(ctx),
     toRectangleId(id),
     geometry,
@@ -73,10 +80,11 @@ export async function updateGeometry(
 }
 export async function createDocument(
   ctx: MutationCtx,
-  args: { geometry: Infer<typeof geometryValidator> },
+  args: { geometry: Infer<typeof geometryValidator>; workspaceId?: Id<"workspaces"> },
 ) {
+  await canvasScope(ctx, args.workspaceId);
   const id = await createCanvasDocument(
-    { cards: canvasDocuments(ctx), text: childText(ctx) },
+    { cards: canvasDocuments(ctx, args.workspaceId), text: childText(ctx, args.workspaceId) },
     await canvasActor(ctx),
     args.geometry,
   );
@@ -84,16 +92,12 @@ export async function createDocument(
   if (!stored) throw new Error("Invalid child");
   return stored;
 }
-export async function documentCards(ctx: QueryCtx) {
+export async function documentCards(ctx: QueryCtx, args: { workspaceId?: Id<"workspaces"> } = {}) {
+  await canvasScope(ctx, args.workspaceId);
   assertCanvasAccess(await canvasActor(ctx));
-  const rows = await ctx.db
-    .query("canvasDocuments")
-    .withIndex("by_canvas_removed", (q) =>
-      q.eq("canvas", "shared").eq("removed", false),
-    )
-    .take(2);
+  const rows = await spatialDocuments(ctx, args.workspaceId ?? "shared", 2);
   return rows.map((r) => {
-    if (!r.documentId) throw new Error("Incomplete document child");
+    if (!("x" in r) || !r.documentId) throw new Error("Incomplete document child");
     return {
       id: r._id,
       documentId: r.documentId,
@@ -106,13 +110,15 @@ export async function documentCards(ctx: QueryCtx) {
 export async function changeDocument(
   ctx: MutationCtx,
   args: {
+    workspaceId?: Id<"workspaces">;
     id: Id<"canvasDocuments">;
     generation: number;
     change: DocumentChange;
   },
 ) {
+  await canvasScope(ctx, args.workspaceId);
   return changeCanvasDocument(
-    { cards: canvasDocuments(ctx) },
+    { cards: canvasDocuments(ctx, args.workspaceId) },
     await canvasActor(ctx),
     toDocumentElementId(args.id),
     args.generation,

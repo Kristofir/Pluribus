@@ -73,9 +73,12 @@ export function historyPorts(
   ctx: MutationCtx,
   session: Id<"canvasHistorySessions">,
   actor: CanvasActor,
+  scope = "shared",
 ): HistoryPorts {
-  const rectangles = rectanglePersistence(ctx),
-    documents = canvasDocuments(ctx);
+  const workspaceId = scope === "shared" ? undefined : ctx.db.normalizeId("workspaces", scope) ?? undefined;
+  if (scope !== "shared" && !workspaceId) throw new Error("Invalid History scope");
+  const rectangles = rectanglePersistence(ctx, workspaceId),
+    documents = canvasDocuments(ctx, workspaceId);
   const target = (element: ReturnType<typeof storedElement>) =>
     ctx.db
       .query("canvasHistoryTargets")
@@ -89,7 +92,7 @@ export function historyPorts(
       async get(id) {
         const stored = storedElement(ctx, id),
           row = await ctx.db.get(stored);
-        if (!row) return null;
+        if (!row || !("x" in row) || ("canvas" in row ? row.canvas !== scope : row.workspaceId !== workspaceId)) return null;
         return {
           id,
           kind: ctx.db.normalizeId("rectangles", id) ? "rectangle" : "document",
@@ -108,7 +111,7 @@ export function historyPorts(
         input.kind === "rectangle"
           ? createRectangle({ rectangles }, actor, input)
           : createCanvasDocument(
-              { cards: documents, text: childText(ctx) },
+              { cards: documents, text: childText(ctx, workspaceId) },
               actor,
               input.geometry,
             ),

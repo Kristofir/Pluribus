@@ -9,7 +9,7 @@ export type DocumentElementId = string & {
 };
 export type ElementId = RectangleId | DocumentElementId;
 /** The prototype currently has one canvas; adding others requires an access policy. */
-export type CanvasId = "shared";
+export type CanvasId = string;
 export const rectangleColors = ["blue", "coral", "gold"] as const;
 export type RectangleColor = (typeof rectangleColors)[number];
 

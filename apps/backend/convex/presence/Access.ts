@@ -1,10 +1,7 @@
+import { requireCanvas } from "../workspaces/Access";
+import { requireDocument } from "../documents/Access";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { assertCanvasAccess } from "@pluribus/core/canvas/access";
-import {
-  assertDocumentAccess,
-  assertChildDocumentAccess,
-} from "@pluribus/core/documents/domain";
-import type { DocumentId } from "@pluribus/core/documents/domain";
 import {
   contextKey,
   type PresenceContext,
@@ -23,28 +20,16 @@ export async function authorizeContext(
       ? { kind: "anonymous" as const }
       : { kind: "authenticated" as const };
   if (context.kind === "canvas") {
-    if (context.id !== "shared") throw new Error("Canvas not found");
+    await requireCanvas(ctx, context.id);
     assertCanvasAccess(actor);
     return 0;
   } else {
-    const id = ctx.db.normalizeId("documents", context.id);
-    const doc = id && (await ctx.db.get("documents", id));
-    if (!doc) throw new Error("Document not found");
+    const doc = await requireDocument(ctx, context.id);
     if (doc.element) {
       const child = await ctx.db.get(doc.element);
-      assertChildDocumentAccess(
-        actor,
-        child
-          ? { ...child, documentMatches: child.documentId === doc._id }
-          : null,
-      );
       if (!child) throw new Error("Document not found");
       return child.removed ? -1 : child.generation;
     }
-    assertDocumentAccess(actor, {
-      id: doc._id as string as DocumentId,
-      access: doc.access,
-    });
     return 0;
   }
 }

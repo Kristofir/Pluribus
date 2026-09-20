@@ -1,6 +1,8 @@
+import { assertParagraphIds } from "@pluribus/editor/paragraphs";
 import { Step, Transform } from "@tiptap/pm/transform";
 import { documentSchema as schema } from "@pluribus/editor/schema";
 import { components } from "../_generated/api";
+import type { Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { requireDocument } from "./Access";
 import { requireAuthor, type Credential } from "./Authors";
@@ -17,7 +19,7 @@ export function assertVersion(version: number) {
  * and bounded step batches. Returns an in-memory Transform for validation;
  * long unsnapshotted histories can hit transaction limits.
  */
-async function materialize(ctx: QueryCtx, id: string, target: number) {
+export async function materialize(ctx: QueryCtx, id: string, target: number) {
   const snapshot = await ctx.runQuery(sync.getSnapshot, {
     id,
     version: target,
@@ -54,11 +56,12 @@ export async function submitDocumentSteps(
     credential?: Credential;
     protocol?: number;
   },
+  delegation?: { userId: Id<"users">; author: Id<"documentAuthors">; session: Id<"documentAuthorSessions">; restoration?: { author: string; session: string; operations: string[] } },
 ) {
-  const document = await requireDocument(ctx, args.id, true);
+  const document = await requireDocument(ctx, args.id, true, delegation?.userId);
   const scope = args.id;
   const actor = document.authorship
-    ? await requireAuthor(ctx, scope, args.credential)
+    ? delegation ? { author: delegation.author, session: delegation.session } : await requireAuthor(ctx, scope, args.credential)
     : null;
   if (document.authorship && args.protocol !== 1)
     throw new Error("Reload this document to use authorship");
@@ -83,9 +86,11 @@ export async function submitDocumentSteps(
         latest,
         transform.doc,
         steps,
+        delegation?.restoration,
       );
     for (const step of steps) transform.step(step);
     transform.doc.check();
+    if (document.paragraphs) assertParagraphIds(transform.doc);
     if (!actor)
       transform.doc.descendants((node) => {
         if (node.marks.some((mark) => mark.type.name === "authorship"))

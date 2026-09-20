@@ -20,7 +20,8 @@ export function documentPersistence(
         .query("documents")
         .withIndex("by_key", (q) => q.eq("key", "shared"))
         .unique();
-      return doc ? { id: toDocumentId(doc._id), access: doc.access } : null;
+      if (doc && (doc.access !== "public" || doc.workspaceId)) throw new Error("Invalid legacy document ownership");
+      return doc ? { id: toDocumentId(doc._id), access: "public" } : null;
     },
     /**
      * Create public metadata and an empty version-1 document atomically. Requires

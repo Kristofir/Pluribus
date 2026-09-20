@@ -49,6 +49,7 @@ export async function acceptAuthoredOperations<Proof>(
   scope: string,
   baseVersion: number,
   operations: readonly AuthoredOperation[],
+  delegation?: { author: string; session: string; operations: readonly string[] },
 ): Promise<void> {
   const restoredMoves = new Map<string, Set<string>>();
   for (const [index, operation] of operations.entries()) {
@@ -59,8 +60,8 @@ export async function acceptAuthoredOperations<Proof>(
       restoration = await evidence.find(operation.undoOf);
       if (!restoration) throw new Error("Restoration evidence unavailable");
       assertRestoration(
-        actor.author,
-        actor.session,
+        delegation?.operations.includes(operation.undoOf) ? delegation.author : actor.author,
+        delegation?.operations.includes(operation.undoOf) ? delegation.session : actor.session,
         {
           actor: restoration.author,
           session: restoration.session,

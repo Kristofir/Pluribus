@@ -8,6 +8,10 @@ export const publicApiFiles = new Set([
   "apps/backend/convex/Documents.ts",
   "apps/backend/convex/Health.ts",
   "apps/backend/convex/Users.ts",
+  "apps/backend/convex/Workspaces.ts",
+  "apps/backend/convex/AgentAccess.ts",
+  "apps/backend/convex/Sources.ts",
+  "apps/backend/convex/Inbox.ts",
 ]);
 
 export function publicApiViolations(files, options) {

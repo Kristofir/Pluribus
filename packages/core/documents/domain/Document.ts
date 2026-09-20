@@ -31,13 +31,14 @@ export function assertChildDocumentAccess(
   } | null,
   requestedGeneration?: number,
   write = false,
+  canvasId = "shared",
 ) {
-  if (!child || child.canvas !== "shared" || !child.documentMatches)
+  if (!child || child.canvas !== canvasId || !child.documentMatches)
     throw new Error("Document ownership is invalid");
   assertCanvasAccess(actor);
   if (
-    requestedGeneration !== undefined &&
-    (!Number.isSafeInteger(requestedGeneration) || requestedGeneration < 1)
+    (write || requestedGeneration !== undefined) &&
+    (!Number.isSafeInteger(requestedGeneration) || requestedGeneration === undefined || requestedGeneration < 1)
   )
     throw new Error("An editing generation is required");
   if (write && (child.removed || requestedGeneration !== child.generation))
