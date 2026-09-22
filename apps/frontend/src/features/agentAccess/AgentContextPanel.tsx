@@ -13,7 +13,6 @@ export function AgentContextPanel({
   onRemovePassage,
   onPrepare,
   unavailableReason,
-  connectionDetails,
 }: {
   context: AgentContext;
   labels: Readonly<Record<string, string>>;
@@ -21,7 +20,6 @@ export function AgentContextPanel({
   onRemovePassage: (reference: PassageReference) => void;
   onPrepare: (context: AgentContext) => Promise<void>;
   unavailableReason?: string;
-  connectionDetails?: string;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
@@ -36,7 +34,8 @@ export function AgentContextPanel({
         <Badge intent="secondary">{count} selected</Badge>
       </header>
       <p className="text-sm text-muted-fg">
-        Choose the material your external agent should work with.
+        Choose optional starting material for your external agent. This snapshot
+        does not limit workspace access.
       </p>
       {!count && (
         <p className="text-sm">
@@ -112,16 +111,6 @@ export function AgentContextPanel({
       >
         {pending ? "Preparing…" : "Prepare for external agent"}
       </Button>
-      {connectionDetails && (
-        <div className="border-t border-border pt-4">
-          <p className="text-xs text-muted-fg mb-2">
-            External agent connection
-          </p>
-          <pre className="text-xs whitespace-pre-wrap break-all">
-            {connectionDetails}
-          </pre>
-        </div>
-      )}
     </section>
   );
 }

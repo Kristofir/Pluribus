@@ -1,3 +1,4 @@
+@import "../../styles/CanvasCard.css";
 .canvas {
   height: 100dvh;
   display: flex;
@@ -16,6 +17,114 @@
 .canvas-surface {
   flex: 1;
   min-height: 0;
+  position: relative;
+}
+.canvas-card.canvas-image-card {
+  padding: 0;
+  border: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  cursor: grab;
+  overflow: hidden;
+}
+.canvas-image-frame {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--canvas-bg) 82%, var(--overlay));
+  color: var(--muted-fg);
+}
+.canvas-image-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+.canvas-image-draft {
+  border-style: dashed;
+  cursor: default;
+}
+.canvas-image-draft img {
+  opacity: 0.62;
+}
+.canvas-image-status {
+  position: absolute;
+  inset: auto 8px 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--overlay);
+  box-shadow: 0 2px 12px rgb(0 0 0 / 12%);
+  color: var(--fg);
+  font-size: 12px;
+  cursor: default;
+}
+.canvas-image-status progress {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  accent-color: var(--ring);
+}
+.canvas-image-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.canvas-image-actions button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 9px;
+  background: var(--overlay);
+  color: var(--fg);
+  cursor: pointer;
+}
+.canvas-image-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.canvas-url-draft,
+.canvas-url-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  background: var(--overlay);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 14%);
+  color: var(--fg);
+  font-size: 13px;
+}
+.canvas-url-draft-address {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--muted-fg);
+}
+.canvas-url-form input {
+  min-width: 0;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--canvas-bg);
+  color: var(--fg);
+}
+.canvas-image-file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 .canvas-error {
   padding: 8px 20px;
@@ -26,17 +135,9 @@
 
 .canvas-document {
   height: 100%;
-  padding: 24px;
-  background: var(--overlay);
-  border: 1px solid var(--input);
-  border-radius: 16px;
   display: flex;
   flex-direction: column;
-  color: var(--fg);
   cursor: grab;
-}
-.canvas-document:focus-within {
-  border-color: var(--ring);
 }
 .document-card-content {
   overflow: auto;
@@ -135,28 +236,6 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
-/* Lift the visual surface, leaving React Flow geometry and snap animation alone. */
-.canvas-document {
-  transform: scale(1);
-  transform-origin: center;
-  transition:
-    transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 140ms ease-out;
-}
-.canvas .react-flow__node:hover > .canvas-document,
-.canvas .react-flow__node.dragging > .canvas-document {
-  transform: scale(1.015);
-  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
-}
-.dark .canvas .react-flow__node:hover > .canvas-document,
-.dark .canvas .react-flow__node.dragging > .canvas-document {
-  box-shadow: 0 6px 20px rgb(0 0 0 / 30%);
-}
-@media (prefers-reduced-motion: reduce) {
-  .canvas-document {
-    transition: none;
-  }
-}
 /* Idle text is a drag surface; an active editor owns pointer selection. */
 .canvas-document:not(.is-editing) .document-paper {
   pointer-events: none;
@@ -228,4 +307,65 @@
   .canvas .react-flow__node-source:has([data-resizing="true"]) {
     transition: none;
   }
+}
+
+/* Invisible edge/corner hit targets keep resizing available without selection chrome. */
+.canvas .react-flow__resize-control {
+  opacity: 0;
+}
+.canvas .react-flow__nodesselection-rect {
+  border: none;
+  background: transparent;
+}
+
+.canvas-snap-preview {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 16px;
+  outline-style: solid;
+  outline-color: color-mix(in srgb, var(--ring) 25%, transparent);
+  background: color-mix(in srgb, var(--ring) 8%, transparent);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 16%);
+  z-index: -1;
+}
+
+.canvas-presence-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+  pointer-events: none;
+}
+.canvas-presence-overlay .presence-bar {
+  padding: 0;
+}
+.canvas-presence-overlay .presence-bar > * {
+  pointer-events: auto;
+}
+
+.canvas-card.canvas-image-card .canvas-image-frame {
+  border-radius: inherit;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(0 0 0 / 88%);
+  overflow: hidden;
+}
+.image-lightbox::backdrop {
+  background: transparent;
+}
+.image-lightbox > img {
+  position: fixed;
+  object-fit: cover;
+  max-width: none;
+  user-select: none;
 }

@@ -9,9 +9,9 @@ import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
 import CanvasPage from "../canvas/CanvasPage";
 import { DocumentRecoveryProvider } from "../documents/DocumentRecoveryProvider";
 import { InboxController } from "../inbox/InboxController";
-import type { SelectedPassage } from "../agentAccess/AgentAccessControls";
 import { WorkspaceLayout } from "./WorkspaceLayout";
 import { WorkspaceTools } from "./WorkspaceTools";
+import { WorkspaceShare } from "./WorkspaceShare";
 import {
   DocumentPanelSession,
   type PanelDocument,
@@ -81,16 +81,16 @@ function WorkspaceSession({
   accountPaused: boolean;
 }) {
   const view = useRetainedQuery(api.Workspaces.open, { workspaceId }),
-    links = useRetainedQuery(api.Documents.links, { workspaceId });
+    links = useRetainedQuery(api.Documents.links, { workspaceId }),
+    access = useRetainedQuery(api.Workspaces.access, { workspaceId });
   const navigate = useNavigate(),
     client = useConvex();
   const [paperFocus, setPaperFocus] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false),
-    [surface, setSurface] = useState<"document" | "inbox" | "tools">(
+    [surface, setSurface] = useState<"document" | "inbox" | "tools" | "share">(
       "document",
     );
-  const [selection, setSelection] = useState<string[]>([]),
-    [passages, setPassages] = useState<SelectedPassage[]>([]);
+  const [selection, setSelection] = useState<string[]>([]);
   const [replies, setReplies] = useState<PanelDocument[]>([]),
     [activeId, setActiveId] = useState<string>();
   const [notice, setNotice] = useState<string>(),
@@ -116,19 +116,22 @@ function WorkspaceSession({
       ),
     [],
   );
-  const onSelectPassage = useCallback(
-    (passage: SelectedPassage, included: boolean) =>
-      setPassages((previous) => {
-        const other = previous.filter(
-          (p) =>
-            p.documentId !== passage.documentId ||
-            p.paragraphId !== passage.paragraphId,
-        );
-        return included ? [...other, passage] : other;
-      }),
-    [],
-  );
   const back = () => void navigate({ to: "/", search: {} });
+  if (access.data !== true)
+    return (
+      <main className="workspace-dashboard">
+        <p role={access.data === false || access.failed ? "alert" : "status"}>
+          {access.data === false
+            ? "Your access to this workspace has ended."
+            : access.failed
+              ? "Could not verify your workspace access."
+              : "Checking workspace access…"}
+        </p>
+        <Button onPress={back} intent="outline">
+          Return to dashboard
+        </Button>
+      </main>
+    );
   if (!view.data)
     return (
       <main className="workspace-dashboard">
@@ -273,8 +276,6 @@ function WorkspaceSession({
               active
               paused={paused}
               selected={selection}
-              passages={passages}
-              onSelect={onSelectPassage}
               onClose={close}
               reveal={
                 reveal?.documentId === main.documentId ? reveal : undefined
@@ -286,11 +287,13 @@ function WorkspaceSession({
       panelOpen={panelOpen}
       panelFocusKey={surface === "document" ? active.documentId : surface}
       panelReturnFocus={
-        surface === "tools"
-          ? "tools"
-          : surface === "inbox" || active.kind === "reply"
-            ? "inbox"
-            : "mainDocument"
+        surface === "share"
+          ? "share"
+          : surface === "tools"
+            ? "tools"
+            : surface === "inbox" || active.kind === "reply"
+              ? "inbox"
+              : "mainDocument"
       }
       onDashboard={back}
       onMainDocument={() => {
@@ -301,6 +304,7 @@ function WorkspaceSession({
       }}
       onInbox={() => show("inbox")}
       onTools={() => show("tools")}
+      onShare={() => show("share")}
       notice={
         paused || notice || selectedLinks.length > 0 || links.failed ? (
           <div className="space-y-1">
@@ -341,8 +345,6 @@ function WorkspaceSession({
                 }
                 paused={paused}
                 selected={selection}
-                passages={passages}
-                onSelect={onSelectPassage}
                 onClose={close}
                 reveal={
                   reveal?.documentId === doc.documentId ? reveal : undefined
@@ -361,18 +363,13 @@ function WorkspaceSession({
           <div hidden={surface !== "tools"} className="workspace-panel-session">
             <WorkspaceTools
               workspaceId={workspaceId}
-              documentIds={documents.map((d) => d.documentId)}
-              selected={selection}
-              passages={passages}
-              onRemovePassage={(p) =>
-                setPassages((previous) =>
-                  previous.filter(
-                    (value) =>
-                      value.documentId !== p.documentId ||
-                      value.paragraphId !== p.paragraphId,
-                  ),
-                )
-              }
+              onClose={close}
+              paused={paused}
+            />
+          </div>
+          <div hidden={surface !== "share"} className="workspace-panel-session">
+            <WorkspaceShare
+              workspaceId={workspaceId}
               onClose={close}
               paused={paused}
             />

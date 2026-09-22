@@ -1,3 +1,4 @@
+import { useCardEntrance } from "../../hooks/UseCardEntrance";
 import { memo, useLayoutEffect, useRef, useState } from "react";
 import { geometryLimits } from "@pluribus/core/canvas/domain";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
@@ -25,6 +26,7 @@ export const DocumentCard = memo(function DocumentCard({
   selected,
   height,
 }: NodeProps<DocumentNode>) {
+  const entrance = useCardEntrance();
   const card = useRef<HTMLElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const interaction = useDocumentInteraction(card, data);
@@ -58,8 +60,9 @@ export const DocumentCard = memo(function DocumentCard({
   }, [data.contentHeight, data.editable, height]);
   return (
     <section
+      style={entrance}
       ref={card}
-      className={`canvas-document document-drag-handle${data.editing ? " is-editing" : ""}`}
+      className={`canvas-card canvas-document document-drag-handle${data.editing ? " is-editing" : ""}`}
       onPointerDown={interaction.onPointerDown}
       onClick={interaction.onClick}
       onKeyDownCapture={(event) => {
@@ -79,7 +82,7 @@ export const DocumentCard = memo(function DocumentCard({
     >
       <NodeResizer
         isVisible={selected && data.editable}
-        minWidth={360}
+        minWidth={300}
         minHeight={minimumHeight}
         maxWidth={geometryLimits.maxSize}
       />

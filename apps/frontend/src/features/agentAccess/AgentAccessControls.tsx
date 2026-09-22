@@ -1,187 +1,154 @@
 import { useRef, useState } from "react";
-import { useConvex, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@pluribus/backend/api";
 import type { Id } from "@pluribus/backend/dataModel";
 import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
+import { useClipboard } from "../../hooks/UseClipboard";
 import { Button } from "@/components/ui/Button";
-import { AgentContextPanel, type PassageReference } from "./AgentContextPanel";
 import { AgentChangesPanel } from "./AgentChangesPanel";
-export type SelectedPassage = PassageReference & {
-  version: number;
-  text: string;
-};
 export function AgentAccessControls({
   workspaceId,
-  documentIds,
-  selected,
-  passages,
-  onRemoveElement,
-  onRemovePassage,
   paused = false,
 }: {
   paused?: boolean;
   workspaceId: Id<"workspaces">;
-  documentIds: readonly Id<"documents">[];
-  selected: string[];
-  passages: SelectedPassage[];
-  onRemoveElement: (id: string) => void;
-  onRemovePassage: (p: PassageReference) => void;
 }) {
-  const client = useConvex();
   const changes = useRetainedQuery(api.AgentAccess.changes, { workspaceId });
   const info = useRetainedQuery(api.AgentAccess.connectionInfo, {
     workspaceId,
   });
-  const prepare = useMutation(api.AgentAccess.prepare),
-    grant = useMutation(api.AgentAccess.grant),
+  const grant = useMutation(api.AgentAccess.grant),
     revoke = useMutation(api.AgentAccess.revoke),
     undo = useMutation(api.AgentAccess.undo);
-  const [prepared, setPrepared] = useState<{
-    id: Id<"agentContexts">;
-    documentIds: Id<"documents">[];
-    count: number;
-  }>();
+  const [agentLabel, setAgentLabel] = useState("External agent");
   const [connection, setConnection] = useState<{
     grantId: Id<"agentGrants">;
-    text: string;
+    token: string;
+    url: string;
   }>();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string>();
+  const { copy: copyConnection, copied: connectionCopied } = useClipboard();
   const requests = useRef(new Map<string, string>());
-  const labels = Object.fromEntries(
-    passages.map((p) => [
-      `${p.documentId}:${p.paragraphId}`,
-      `${p.text.slice(0, 100) || "Empty paragraph"} · version ${p.version}`,
-    ]),
-  );
+  const connectionDetails = connection
+    ? JSON.stringify(
+        {
+          url: connection.url,
+          headers: { Authorization: `Bearer ${connection.token}` },
+          scope: "workspace",
+        },
+        null,
+        2,
+      )
+    : undefined;
   return (
     <section aria-label="Agent access" className="space-y-5">
-      <AgentContextPanel
-        unavailableReason={
-          paused
-            ? "Workspace access unavailable."
-            : connection
-              ? "Revoke the current connection before preparing another context snapshot."
-              : undefined
-        }
-        context={{ elementIds: selected, passages }}
-        labels={labels}
-        onRemoveElement={onRemoveElement}
-        onRemovePassage={onRemovePassage}
-        connectionDetails={connection?.text}
-        onPrepare={async () => {
-          if (paused) throw new Error("Workspace unavailable");
-          setError(undefined);
-          try {
-            // These are the versions captured when the user selected the passages.
-            const id = await prepare({
-              workspaceId,
-              elementIds: selected as (Id<"canvasDocuments"> | Id<"sources">)[],
-              passages: passages.map((p) => ({
-                documentId: p.documentId as Id<"documents">,
-                paragraphId: p.paragraphId,
-                version: p.version,
-              })),
-            });
-            const cards = await client.query(api.Canvas.documentCards, {
-              workspaceId,
-            });
-            const ids = [
-              ...new Set([
-                ...documentIds,
-                ...passages.map((p) => p.documentId as Id<"documents">),
-                ...cards
-                  .filter((card) => selected.includes(card.id))
-                  .map((card) => card.documentId),
-              ]),
-            ];
-            setPrepared({
-              id,
-              documentIds: ids,
-              count: selected.length + passages.length,
-            });
-          } catch {
-            setError(
-              "Context could not be prepared. A selected passage may have changed or disappeared; remove it and select the current version again.",
-            );
-            throw new Error("Context unavailable");
-          }
-        }}
-      />
       {error && (
         <p role="alert" className="text-sm">
           {error}
         </p>
       )}
-      {prepared && (
-        <div className="rounded-xl border border-border p-4 space-y-3">
-          <h3 className="font-semibold">Allow external agent access</h3>
+      <div className="rounded-xl border border-border p-4 space-y-3">
+        <h3 tabIndex={-1} className="font-semibold">
+          Connect an agent
+        </h3>
+        <p className="text-sm">
+          Create a connection, add its URL and bearer token to an MCP client as
+          a Streamable HTTP server, then ask the agent to call{" "}
+          <code>read_canvas</code>
+          to check the connection. The URL alone cannot access this workspace.
+        </p>
+        {/^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?\//.test(
+          info.data?.url ?? "",
+        ) && (
           <p className="text-sm">
-            Prepared snapshot of {prepared.count} items. Prepare again to change
-            its material. Creating a connection grants read and write access to
-            these {prepared.documentIds.length} documents. Context selection
-            alone grants no access.
+            This MCP endpoint is local to this computer. A remote agent needs an
+            HTTPS deployment and a workspace connection token.
           </p>
-          <ul className="text-xs break-all space-y-1">
-            {prepared.documentIds.map((id) => (
-              <li key={id}>{id}</li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-fg">
-            Keep the connection secret private. Closing this panel does not
-            revoke access; revoke it before leaving this workspace.
+        )}
+        <p className="text-sm">
+          This connection grants access to the workspace's canvas, saved Web
+          Pages and documents, including documents added later.
+        </p>
+        <label className="block text-sm">
+          Agent name
+          <input
+            aria-label="Agent name"
+            className="mt-1 block w-full rounded border border-border bg-background px-2 py-1"
+            value={agentLabel}
+            maxLength={80}
+            onChange={(event) => setAgentLabel(event.target.value)}
+          />
+        </label>
+        <p className="text-xs text-muted-fg">
+          Keep the connection secret private. Closing this panel does not revoke
+          access; revoke it before leaving this workspace.
+        </p>
+        {!info.data?.url && (
+          <p role="status" className="text-sm">
+            {info.failed
+              ? "Could not load the MCP endpoint."
+              : "MCP endpoint is not configured or is still loading."}
           </p>
-          {!info.data?.url && (
-            <p role="status" className="text-sm">
-              {info.failed
-                ? "Could not load the MCP endpoint."
-                : "MCP endpoint is not configured or is still loading."}
-            </p>
-          )}
-          <Button
-            isDisabled={
-              paused ||
-              busy ||
-              !info.data?.url ||
-              !!connection ||
-              prepared.documentIds.length === 0
+        )}
+        <Button
+          isDisabled={
+            paused ||
+            busy ||
+            !info.data?.url ||
+            !!connection ||
+            !agentLabel.trim()
+          }
+          onPress={async () => {
+            if (!info.data?.url) return;
+            setBusy(true);
+            setError(undefined);
+            try {
+              const next = await grant({
+                workspaceId,
+                label: agentLabel.trim(),
+              });
+              setConnection({
+                grantId: next.grantId,
+                token: next.token,
+                url: info.data.url,
+              });
+            } catch {
+              setError(
+                "Agent access could not be created. No connection is available here.",
+              );
+            } finally {
+              setBusy(false);
             }
-            onPress={async () => {
-              if (!info.data?.url) return;
-              setBusy(true);
-              setError(undefined);
-              try {
-                const next = await grant({
-                  workspaceId,
-                  documentIds: prepared.documentIds,
-                  label: "External agent",
+          }}
+        >
+          Create workspace connection
+        </Button>
+        {connectionDetails && (
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="text-sm font-medium">Connection details</p>
+            <p className="text-xs text-muted-fg">
+              The bearer token is shown only here. Keep it private. Closing this
+              panel does not revoke access.
+            </p>
+            <pre className="text-xs whitespace-pre-wrap break-all">
+              {connectionDetails}
+            </pre>
+            <Button
+              intent="outline"
+              onPress={() => {
+                void copyConnection(connectionDetails).then((copied) => {
+                  if (!copied) setError("Could not copy connection details.");
                 });
-                setConnection({
-                  grantId: next.grantId,
-                  text: JSON.stringify(
-                    {
-                      url: info.data.url,
-                      headers: { Authorization: `Bearer ${next.token}` },
-                      contextSnapshotId: prepared.id,
-                      documentIds: prepared.documentIds,
-                    },
-                    null,
-                    2,
-                  ),
-                });
-              } catch {
-                setError(
-                  "Agent access could not be created. No connection is available here.",
-                );
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            Create read/write connection
-          </Button>
-        </div>
-      )}
+              }}
+            >
+              {connectionCopied
+                ? "Copied connection details"
+                : "Copy connection details"}
+            </Button>
+          </div>
+        )}
+      </div>
       {connection && (
         <Button
           intent="outline"
@@ -206,7 +173,7 @@ export function AgentAccessControls({
       <AgentChangesPanel
         changes={(changes.data ?? []).map((change) => ({
           id: change.id,
-          author: "External agent",
+          author: change.author,
           summary: `Document ${change.documentId.slice(-6)} · change accepted at version ${change.version}`,
           status: change.undone ? "undone" : "applied",
           undoUnavailableReason: change.canUndo

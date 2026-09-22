@@ -9,8 +9,6 @@ export type WebPageNode = Node<
     source: WebPageView;
     workspaceId: Id<"workspaces">;
     editable: boolean;
-    included: boolean;
-    include: (value: boolean) => void;
     open: () => void;
     contentHeight: (height: number) => void;
   },

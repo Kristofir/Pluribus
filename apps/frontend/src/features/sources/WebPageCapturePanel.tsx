@@ -7,15 +7,11 @@ import { WebPagePanel } from "./WebPagePanel";
 export function WebPageCapturePanel({
   id,
   workspaceId,
-  included,
-  onIncludeChange,
   onClose,
   disabled,
 }: {
   id: Id<"sources">;
   workspaceId: Id<"workspaces">;
-  included: boolean;
-  onIncludeChange: (value: boolean) => void;
   onClose: () => void;
   disabled: boolean;
 }) {
@@ -50,8 +46,6 @@ export function WebPageCapturePanel({
           hasCapture: !!row.capture,
         }}
         disabled={disabled || query.failed}
-        included={included}
-        onIncludeChange={onIncludeChange}
         onClose={onClose}
         onRecover={async () => {
           if (disabled || query.failed) return false;

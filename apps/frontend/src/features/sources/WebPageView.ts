@@ -27,8 +27,6 @@ export type WebPageView = {
 export type WebPageActionsProps = {
   source: WebPageView;
   disabled?: boolean;
-  included: boolean;
-  onIncludeChange: (included: boolean) => void;
   onRefresh: () => Promise<void>;
   onRecover?: () => Promise<boolean>;
 };

@@ -34,13 +34,43 @@ keeps its normal text-selection behavior. Double-click behavior remains undecide
 - **E4 — Motion:** Snap acquisition and release animate smoothly alongside short drag smoothing. Respect reduced motion. Current tuning: acquire within 6 screen pixels, release beyond 10, ease over 140ms regardless of zoom.
 - **E5 — Lifted:** Hovered or dragged elements scale to 1.015 with a subtle shadow. Stay lifted while either condition holds; return to rest when neither holds. This is visual only: saved geometry and snap targets do not change. Transition over 140ms; reduced motion removes the transition.
 
-- **E6 — Translation:** Element movement interpolates visually over 50ms; selection outlines move with it. Collaborator cursors play an 80ms buffer of receive-timestamped positions on animation frames. Pointer publishing targets 40ms between send starts with one request in flight and latest-only pending data. First appearance is immediate; no extrapolation, and gaps over 500ms reset the path. Reduced motion bypasses buffering. Saved geometry is unchanged.
+- **E6 — Translation:** Element movement interpolates visually over 50ms; selected elements show no boundary box or visible resize handles; document focus does not add a colored border. Collaborator cursors play an 80ms buffer of receive-timestamped positions on animation frames. Pointer publishing targets 40ms between send starts with one request in flight and latest-only pending data. First appearance is immediate; no extrapolation, and gaps over 500ms reset the path. Reduced motion bypasses buffering. Saved geometry is unchanged.
+
+## Presence
+
+- **P1 — Browser ownership:** One publisher follows the newest focused eligible tab
+  across same-origin tabs/windows. Followers retain reads and hide their own browser's
+  activity from collaborator overlays. Other browser profiles/devices remain separate.
+- **P2 — Retention:** Ordinary blur and visible idleness preserve accepted activity.
+  Unfocused pages ignore new interaction observations. Hidden owners stop heartbeats;
+  activity disappears on membership expiry or a newer tab's ownership claim.
+- **P3 — Recovery:** Failed updates retry with capped backoff; newer channel state
+  replaces older pending state. Handoff fences old writes/clears and starts fresh
+  participation. Account changes require a new claim; legacy tabs must reload.
+
+Verification: policy, registry and backend tests pass for ownership/retention/retries.
+Real browser focus/handoff remains unverified; a disposable fixture timed out.
 
 ## Supported elements
 
 Each canvas supports up to 100 active document cards. Removed cards and main/reply panel documents do not count toward this cap. Creation and restoration both enforce the cap.
 
-Document cards and workspace Web Pages are active spatial elements. Rectangles are retired: no
+Document cards, workspace Web Pages, and workspace Images are active spatial elements. Images are dropped from local files onto the canvas, display an immediate preview with upload progress, and become shared cards after file validation. Failed uploads remain local with Retry and Remove. PNG, JPEG, GIF and WebP files up to 10 MB are accepted; up to 100 active Image cards are supported separately from documents and Web Pages. Images move, resize, select, delete and restore through Element History. Their stored files remain available when a card is removed for Undo. The public shared canvas does not accept image uploads.
+
+New Image cards start at the source image's aspect ratio where that ratio fits within canvas size limits. Existing cards keep their saved geometry.
+
+Workspace-wide MCP agents may create Document and Web Page cards, set the full
+geometry of existing Document, Web Page and Image cards, and delete those cards.
+The same size, capacity, lifecycle and conditional Element History rules apply.
+Agent geometry is a direct saved value; browser-only snapping and animation do
+not apply. Agent geometry commands compare the card's current saved geometry
+with the value the agent read before changing it. Image creation still requires
+an upload, and fixed main and panel
+documents are not spatial card targets.
+
+In a private workspace, a dropped browser image/link or **Import URL…** checks the remote response. A supported image becomes an Image card; an HTML or text page becomes a Web Page card and follows its normal capture flow. A checking draft appears at the drop/creation point; failed checks can be retried or removed. Direct URL imports reject private destinations, redirects, unsupported formats and images over 10 MB.
+
+Rectangles are retired: no
 creation, rendering, selection, movement, deletion, paragraph linking or agent
 context. Existing rectangle rows and historical receipts remain stored. Legacy
 requests and Undo/Redo cannot revive or mutate them; old rectangle-containing
@@ -59,8 +89,8 @@ geometry and verified session continuity; otherwise it changes nothing and retir
 Own delete/restore cycles preserve earlier History; another session’s lifecycle
 changes invalidate it. Live gestures always retain their original write generation.
 
-Dragging a selected element moves the entire selection, including mixed Document
-and Web Page cards, preserving relative spacing. Delete or Backspace outside editors/inputs removes the selected elements. Pending
+Dragging a selected element moves the entire selection, including mixed Document,
+Web Page and Image cards, preserving relative spacing. Delete or Backspace outside editors/inputs removes the selected elements. Pending
 text blocks the whole deletion before it starts; disconnect/busy guards apply.
 Deletion retains one History entry per element; a failure can leave a partial
 result and stops subsequent deletions. Group movement remains one History gesture.
@@ -210,7 +240,7 @@ do not claim complete conformance from passing unit tests alone.
   Fetching shows a pink/purple Paper MeshGradient with a centered globe and label.
   Motion pauses offscreen, in hidden tabs and for reduced-motion preferences.
   Ready cards show Web Content, title, URL and preview without footer controls.
-  Only the Details button opens the full read-only capture sheet; title and screenshot clicks do not. refresh/context controls live there.
+  Only the Details button opens the full read-only capture sheet; title and screenshot clicks do not. Refresh and recovery controls live there.
   Failed cards retain a details/retry action.
 - **W2 — Refresh:** Keep the last successful capture visible on the card and in the full panel while refreshing and after a
   failed refresh. Replace it only on successful current-revision completion.
@@ -225,9 +255,8 @@ do not claim complete conformance from passing unit tests alone.
   hides the source and frees its slot; Undo restores its identity, geometry and
   capture if capacity permits. Deletion cancels in-flight captures; restoration
   never starts an automatic fetch.
-- **W5 — Context:** Include in agent context selects the source for the workspace
-  agent tools. A retained successful capture remains available after refresh
-  failure. Capture bodies are source material, never collaborative documents.
+- **W5 — Source material:** A retained successful capture remains available after
+  refresh failure. Capture bodies are source material, never collaborative documents.
 
 - **W6 — Capture rendering:** The full panel preserves both captured Markdown and
   extraction JSON. Render paragraphs, headings, lists, safe links, code and Markdown
@@ -297,3 +326,59 @@ Screenshot verification (2026-09-22): **W7 pass** in 11 focused screenshot/conte
 tests and PM-reviewed disposable browser fixtures for compact/tall cards, panel
 image and broken-image fallback. Fixtures use an authored sample image; live
 provider screenshot capture and authenticated workspace behavior are not checked.
+
+Document cards start at300px wide and cannot be resized narrower, matching Web Page cards. Existing saved widths remain unchanged.
+
+Within24 screen pixels of a potential spacing snap beside another element, show a
+soft destination shadow for each moving element before the6px snap threshold. Edge/center alignment alone shows no outline.
+Hide it outside snap range, on Alt/Option bypass, release, cancellation or disconnect.
+The preview sits beneath the card layer, ignores pointer input, and does not introduce alignment guidelines.
+
+Selected-element context menu:
+
+| Modality       | Event                                      | Behavior                                                                                                                                      |
+| -------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mouse/trackpad | Right-click selected card                  | Keep selection; show Delete for one or Delete All and Arrange for multiple.                                                                   |
+| Mouse/trackpad | Right-click unselected card                | Select that card alone and show its menu.                                                                                                     |
+| Keyboard       | Context Menu key / Shift-F10               | Open the selected-element menu when a selection exists.                                                                                       |
+| Menu           | Arrange → Grid / Horizontally / Vertically | Preserve sizes; order top-to-bottom then left-to-right; use24px gaps, with grid columns sized for their widest card. One undoable group move. |
+
+Delete uses existing element History and permissions. Menus close on action, dismissal or viewport movement.
+
+Arrange → Masonry uses ceil(sqrt(selection count)) columns, placing each card in
+the shortest column (ties go left). Preserve sizes; size each column to its widest
+assigned card, with24px gaps. The layout is one undoable group move.
+
+Card styling: Document, Web Page and Image cards share16px padding/corners, a1px
+neutral border, the theme overlay surface,14px body text,12px metadata and8px
+media corners. All use the same hover/drag lift and reduced-motion behavior.
+
+Collaborator activity is always visible. Participants appear as32px avatar circles
+with8px overlap; accessible names and hover titles identify people, self, activity
+status and grouped tabs. Agent avatars retain their recently-active distinction.
+
+Canvas presence avatars float at the top-left of the viewport, outside scene transforms.
+They reserve no layout row; empty overlay space does not intercept canvas input.
+
+Image cards are edge-to-edge images without padding, border or filename captions.
+Images cover the card without distortion (cropping when aspect ratios differ).
+Accessible names remain; upload/retry status overlays remain on draft images.
+
+Image click/release opens a modal lightbox; dragging or Shift-click does not.
+Enter/Space on the image also opens it. Animate from card bounds to a viewport-fit
+image over240ms, preserving proportions; Escape or backdrop click reverses it.
+Trap focus while open and restore it to the image on close; respect reduced motion.
+
+Canvas load: cards pop in over450ms on mount, scaling from0.88 through1.025 to1 (reduced motion skips it).
+Remember the viewport center and zoom per workspace in local storage; restore before
+default paper framing. Missing/invalid/unavailable storage uses the existing default.
+Explicit Main document navigation still frames the paper.
+
+Each card samples a0–180ms entrance delay once per mount; rerenders keep it stable.
+Reduced motion bypasses both entrance animation and delay.
+
+Releasing a drag while its destination shadow is visible commits that exact
+preview geometry as the final position. Alt/Option bypass and cancellation do not.
+
+Snap shadows fade/scale in and out over140ms. Exit retains only a noninteractive
+visual ghost; it is no longer a snap target. Reduced motion skips the transition.

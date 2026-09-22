@@ -8,8 +8,6 @@ import {
 export function WebPageActions({
   source,
   disabled = false,
-  included,
-  onIncludeChange,
   onRefresh,
   onRecover,
 }: WebPageActionsProps) {
@@ -97,17 +95,6 @@ export function WebPageActions({
           {notice}
         </p>
       )}
-      <label className="web-page-include">
-        <input
-          type="checkbox"
-          checked={included}
-          disabled={
-            disabled || (!included && !(source.hasCapture ?? !!source.capture))
-          }
-          onChange={(event) => onIncludeChange(event.target.checked)}
-        />
-        Include in agent context
-      </label>
       {error && (
         <p role="alert" className="web-page-error">
           {error}

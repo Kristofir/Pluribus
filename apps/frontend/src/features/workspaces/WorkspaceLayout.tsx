@@ -15,6 +15,7 @@ export function WorkspaceLayout({
   onMainDocument,
   onInbox,
   onTools,
+  onShare,
   notice,
 }: {
   name: string;
@@ -24,11 +25,12 @@ export function WorkspaceLayout({
   panelOpen: boolean;
   panelFocusKey?: string;
   /** Fallback for direct links or an opener removed when switching surfaces. */
-  panelReturnFocus?: "mainDocument" | "inbox" | "tools";
+  panelReturnFocus?: "mainDocument" | "inbox" | "tools" | "share";
   onDashboard: () => void;
   onMainDocument: () => void;
   onInbox: () => void;
   onTools?: () => void;
+  onShare?: () => void;
   notice?: ReactNode;
 }) {
   const panelHost = useRef<HTMLDivElement>(null);
@@ -38,14 +40,17 @@ export function WorkspaceLayout({
   const mainTrigger = useRef<HTMLButtonElement>(null);
   const inboxTrigger = useRef<HTMLButtonElement>(null);
   const toolsTrigger = useRef<HTMLButtonElement>(null);
+  const shareTrigger = useRef<HTMLButtonElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
     const fallback =
-      panelReturnFocus === "tools"
-        ? toolsTrigger.current
-        : panelReturnFocus === "inbox"
-          ? inboxTrigger.current
-          : mainTrigger.current;
+      panelReturnFocus === "share"
+        ? shareTrigger.current
+        : panelReturnFocus === "tools"
+          ? toolsTrigger.current
+          : panelReturnFocus === "inbox"
+            ? inboxTrigger.current
+            : mainTrigger.current;
     const canReturnTo = (element: HTMLElement | null) =>
       !!element?.isConnected &&
       !panelHost.current?.contains(element) &&
@@ -123,7 +128,19 @@ export function WorkspaceLayout({
                 onTools();
               }}
             >
-              Sources & agents
+              Agents
+            </Button>
+          )}
+          {onShare && (
+            <Button
+              ref={shareTrigger}
+              intent="outline"
+              onPress={() => {
+                opener.current = shareTrigger.current;
+                onShare();
+              }}
+            >
+              Share
             </Button>
           )}
           {account}

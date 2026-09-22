@@ -5,10 +5,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px;
-  border-radius: 16px;
-  background: var(--overlay);
-  color: var(--fg);
 }
 .web-page-card-label {
   font-size: 14px;
@@ -147,22 +143,6 @@
   flex-wrap: wrap;
   gap: 10px 14px;
 }
-.web-page-include {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.web-page-include input {
-  accent-color: var(--primary);
-  width: 14px;
-  height: 14px;
-}
-.web-page-include:has(input:disabled) {
-  color: var(--muted-fg);
-  cursor: default;
-}
 .web-page-error {
   font-size: 12px;
   line-height: 1.5;
@@ -275,8 +255,7 @@ a.web-page-source-link {
 }
 .web-page-open:focus-visible,
 .web-page-source-link:focus-visible,
-.web-page-panel-scroll:focus-visible,
-.web-page-include input:focus-visible {
+.web-page-panel-scroll:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 3px;
   border-radius: 3px;
@@ -463,20 +442,14 @@ a.web-page-source-link {
   align-self: start;
   min-height: 0;
 }
-.web-page-card-has-screenshot .web-page-card-label {
-  font-size: 11px;
-  line-height: 16px;
-}
+
 .web-page-card-has-screenshot .web-page-card-title {
   min-width: 0;
 }
 .web-page-card-has-screenshot .web-page-open span {
   -webkit-line-clamp: 1;
 }
-.web-page-card-has-screenshot .web-page-url {
-  font-size: 11px;
-  line-height: 16px;
-}
+
 .web-page-card-has-screenshot .web-page-preview {
   min-height: 0;
 }

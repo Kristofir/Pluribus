@@ -1,29 +1,39 @@
 .presence-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
   padding: 8px 16px;
   font-size: 12px;
+  isolation: isolate;
 }
-.presence-person {
-  border: 1px solid;
-  border-radius: 20px;
-  padding: 3px 8px;
+.presence-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-}
-.presence-person i {
-  width: 7px;
-  height: 7px;
+  justify-content: center;
+  border: 2px solid var(--canvas-bg, var(--bg));
   border-radius: 50%;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  position: relative;
 }
-.presence-bar label {
-  margin-left: auto;
-  display: flex;
-  gap: 5px;
-  align-items: center;
+.presence-avatar + .presence-avatar {
+  margin-left: -8px;
+}
+.presence-avatar:is(:hover, :focus-visible) {
+  z-index: 1;
+}
+.presence-avatar:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.presence-agent {
+  background: var(--muted-fg);
+}
+.presence-bar [role="status"] {
+  margin-left: 12px;
 }
 .remote-pointer {
   position: absolute;

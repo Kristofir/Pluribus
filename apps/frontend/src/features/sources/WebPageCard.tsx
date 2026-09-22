@@ -1,3 +1,5 @@
+import { useCardEntrance } from "../../hooks/UseCardEntrance";
+import "../../styles/CanvasCard.css";
 import { useLayoutEffect, useRef } from "react";
 import { CaptureScreenshot } from "./CaptureScreenshot";
 import { capturePreview } from "./CapturePreview";
@@ -20,6 +22,7 @@ export function WebPageCard({
   onOpen: () => void;
   onContentHeight?: (height: number) => void;
 }) {
+  const entrance = useCardEntrance();
   const card = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const element = card.current;
@@ -31,7 +34,9 @@ export function WebPageCard({
         Math.ceil(
           body.offsetHeight +
             parseFloat(style.paddingTop) +
-            parseFloat(style.paddingBottom),
+            parseFloat(style.paddingBottom) +
+            parseFloat(style.borderTopWidth) +
+            parseFloat(style.borderBottomWidth),
         ),
       );
     };
@@ -50,8 +55,9 @@ export function WebPageCard({
   const fetching = source.status === "queued" || source.status === "fetching";
   return (
     <section
+      style={entrance}
       ref={card}
-      className={`web-page-card${hasScreenshot ? " web-page-card-has-screenshot" : ""}`}
+      className={`canvas-card web-page-card${hasScreenshot ? " web-page-card-has-screenshot" : ""}`}
       aria-label={`Web page: ${webPageTitle(source)}`}
       aria-busy={fetching}
     >

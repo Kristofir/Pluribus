@@ -5,18 +5,24 @@ export function CanvasCreateMenu({
   anchor,
   canDocument,
   canWebPage,
+  canImage,
   hasWebPages,
   onDocument,
   onWebPage,
+  onImage,
+  onImportUrl,
   onClose,
 }: {
   point: { x: number; y: number };
   anchor: RefObject<HTMLDivElement | null>;
   canDocument: boolean;
   canWebPage: boolean;
+  canImage: boolean;
   hasWebPages: boolean;
   onDocument: () => void;
   onWebPage: () => void;
+  onImage: () => void;
+  onImportUrl: () => void;
   onClose: () => void;
 }) {
   return (
@@ -41,6 +47,20 @@ export function CanvasCreateMenu({
         <MenuItem id="document" isDisabled={!canDocument} onAction={onDocument}>
           Document card
         </MenuItem>
+        {hasWebPages && (
+          <MenuItem id="image" isDisabled={!canImage} onAction={onImage}>
+            Image card…
+          </MenuItem>
+        )}
+        {hasWebPages && (
+          <MenuItem
+            id="import-url"
+            isDisabled={!canWebPage && !canImage}
+            onAction={onImportUrl}
+          >
+            Import URL…
+          </MenuItem>
+        )}
         {hasWebPages && (
           <MenuItem id="web-page" isDisabled={!canWebPage} onAction={onWebPage}>
             Web Page card

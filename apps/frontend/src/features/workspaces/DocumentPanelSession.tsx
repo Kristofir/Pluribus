@@ -2,7 +2,6 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Id } from "@pluribus/backend/dataModel";
 import { CollaborativeEditor } from "../documents/CollaborativeEditor";
 import { ReplyReview } from "../inbox/ReplyReview";
-import type { SelectedPassage } from "../agentAccess/AgentAccessControls";
 import { MainDocumentPanel } from "./MainDocumentPanel";
 import { DocumentParagraphTools } from "./DocumentParagraphTools";
 
@@ -20,8 +19,6 @@ export function DocumentPanelSession({
   active,
   paused,
   selected,
-  passages,
-  onSelect,
   onClose,
   reveal,
   presentation = "panel",
@@ -34,8 +31,6 @@ export function DocumentPanelSession({
   active: boolean;
   paused: boolean;
   selected: string[];
-  passages: SelectedPassage[];
-  onSelect: (p: SelectedPassage, included: boolean) => void;
   onClose: () => void;
   reveal?: { paragraphId: string; nonce: number };
 }) {
@@ -150,8 +145,6 @@ export function DocumentPanelSession({
             workspaceId={workspaceId}
             documentId={doc.documentId}
             selected={selected}
-            passages={passages}
-            onSelect={onSelect}
             pending={pending}
             paused={paused || !active}
           />
