@@ -38,7 +38,9 @@ export function assertChildDocumentAccess(
   assertCanvasAccess(actor);
   if (
     (write || requestedGeneration !== undefined) &&
-    (!Number.isSafeInteger(requestedGeneration) || requestedGeneration === undefined || requestedGeneration < 1)
+    (!Number.isSafeInteger(requestedGeneration) ||
+      requestedGeneration === undefined ||
+      requestedGeneration < 1)
   )
     throw new Error("An editing generation is required");
   if (write && (child.removed || requestedGeneration !== child.generation))

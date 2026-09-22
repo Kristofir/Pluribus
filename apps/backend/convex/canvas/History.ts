@@ -1,3 +1,4 @@
+import { SourceInputError } from "@pluribus/core/sources/domain";
 import { canvasScope, requireCanvas } from "../workspaces/Access";
 import { InvalidElementGeometry } from "@pluribus/core/canvas/domain";
 import { ConvexError, v, type Infer } from "convex/values";
@@ -27,6 +28,7 @@ import {
   coreRecord,
   findHistoryAction,
   historyPorts,
+  readHistoryElement,
   storedOutcome,
 } from "./HistoryPersistence";
 import { toElementId } from "./ElementLifecycles";
@@ -62,11 +64,7 @@ async function authenticate(ctx: QueryCtx, args: Auth) {
   uuid(args.secret);
   const row = await ctx.db.get(args.session),
     owner = await getAuthUserId(ctx);
-  if (
-    !row ||
-    row.owner !== owner ||
-    row.proof !== (await hash(args.secret))
-  )
+  if (!row || row.owner !== owner || row.proof !== (await hash(args.secret)))
     throw new ConvexError({
       code: "HISTORY_REJECTED",
       message: "History belongs to another editing session.",
@@ -87,6 +85,7 @@ async function validated<T>(work: () => Promise<T>): Promise<T> {
     // Explicit protocol and domain errors are terminal; infrastructure errors remain uncertain.
     if (
       error instanceof HistoryProtocolError ||
+      error instanceof SourceInputError ||
       error instanceof InvalidElementGeometry
     )
       throw new ConvexError({
@@ -253,7 +252,7 @@ export async function readAction(
   ctx: QueryCtx,
   args: Auth & { action: string },
 ) {
-  await authenticate(ctx, args);
+  const { scope } = await authenticate(ctx, args);
   const row = await findHistoryAction(ctx, args.session, args.action);
   if (!row) return null;
   const record = coreRecord(row),
@@ -261,7 +260,11 @@ export async function readAction(
   let reversible = record.state === "applied" || record.state === "undone";
   const targets = p.kind === "geometry" ? p.changes : [p];
   for (const target of targets) {
-    const element = await ctx.db.get(target.id);
+    const element = await readHistoryElement(
+      ctx,
+      toElementId(target.id),
+      scope,
+    );
     const binding = await ctx.db
       .query("canvasHistoryTargets")
       .withIndex("by_session_element", (q) =>
@@ -269,7 +272,7 @@ export async function readAction(
       )
       .unique();
     if (
-      !element || !("x" in element) ||
+      !element ||
       !binding ||
       binding.lineage !== target.lineage ||
       binding.generation !== (element.generation ?? 1) ||
@@ -283,7 +286,7 @@ export async function readAction(
       if (
         element.removed ||
         !sameGeometry(
-          element,
+          element.geometry,
           record.state === "applied" ? change.after : change.before,
         )
       )

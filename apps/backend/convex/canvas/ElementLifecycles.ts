@@ -1,12 +1,11 @@
 import type { ElementLifecycles } from "@pluribus/core/canvas/deletions";
-import { rectangleLimits, type ElementId } from "@pluribus/core/canvas/domain";
+import { type ElementId } from "@pluribus/core/canvas/domain";
 import type { Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 import { canvasDocuments, toDocumentElementId } from "./Documents";
-import { rectanglePersistence, toRectangleId } from "./Persistence";
 
 export function toElementId(
-  id: Id<"rectangles"> | Id<"canvasDocuments">,
+  id: Id<"rectangles"> | Id<"canvasDocuments"> | Id<"sources">,
 ): ElementId {
   return id as string as ElementId;
 }
@@ -14,15 +13,15 @@ export function toElementId(
 /** Route lifecycle storage by validated table identity; core owns deletion policy. */
 export function elementLifecycles(ctx: MutationCtx): ElementLifecycles {
   const documents = canvasDocuments(ctx);
-  const rectangles = rectanglePersistence(ctx);
   const counts = {
-    rectangle: () => rectangles.countUpTo(rectangleLimits.maxCount),
+    source: () => Promise.resolve(0),
+    rectangle: () => Promise.resolve(0),
     document: () => documents.count(),
   };
   return {
     async get(id) {
       const rectangle = ctx.db.normalizeId("rectangles", id);
-      if (rectangle) return rectangles.get(toRectangleId(rectangle));
+      if (rectangle) return null;
       const document = ctx.db.normalizeId("canvasDocuments", id);
       if (!document) throw new Error("Invalid Element ID");
       const value = await documents.get(toDocumentElementId(document));
@@ -30,12 +29,7 @@ export function elementLifecycles(ctx: MutationCtx): ElementLifecycles {
     },
     async lifecycle(id, removed, generation) {
       const rectangle = ctx.db.normalizeId("rectangles", id);
-      if (rectangle)
-        return rectangles.lifecycle(
-          toRectangleId(rectangle),
-          removed,
-          generation,
-        );
+      if (rectangle) throw new Error("Rectangle elements are retired");
       const document = ctx.db.normalizeId("canvasDocuments", id);
       if (!document) throw new Error("Invalid Element ID");
       return documents.lifecycle(

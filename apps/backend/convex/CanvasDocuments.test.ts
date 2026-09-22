@@ -4,6 +4,7 @@ import { register } from "@convex-dev/prosemirror-sync/test";
 import { register as presence } from "@convex-dev/presence/test";
 import { test, expect } from "vitest";
 import schema from "./schema";
+import { documentLimits } from "@pluribus/core/canvas/domain";
 import { api } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 const geometry = { x: 0, y: 0, width: 430, height: 500 };
@@ -27,11 +28,13 @@ test("atomic creation, bounded retained children, distinct text and ownership ch
     }),
   ).rejects.toThrow();
   expect(await t.query(api.Canvas.documentCards, {})).toEqual([]);
-  await t.mutation(api.Canvas.createDocument, { geometry });
-  await t.mutation(api.Canvas.createDocument, { geometry });
+  expect(documentLimits.maxCount).toBe(100);
+  for (let i = 0; i < documentLimits.maxCount; i++)
+    await t.mutation(api.Canvas.createDocument, { geometry });
+  expect(await t.query(api.Canvas.documentCards, {})).toHaveLength(100);
   await expect(
     t.mutation(api.Canvas.createDocument, { geometry }),
-  ).rejects.toThrow("two");
+  ).rejects.toThrow("100");
   const [a, b] = await t.query(api.Canvas.documentCards, {});
   await t.mutation(api.Documents.submitSteps, {
     id: `${a.documentId}:1`,

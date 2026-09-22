@@ -1,3 +1,4 @@
+import { documentLimits } from "@pluribus/core/canvas/domain";
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 
@@ -11,7 +12,7 @@ export const restoreLegacy = internalMutation({
       .withIndex("by_canvas_removed", (q) =>
         q.eq("canvas", "shared").eq("removed", false),
       )
-      .take(2);
+      .take(documentLimits.maxCount);
     const candidates = await ctx.db
       .query("canvasDocuments")
       .withIndex("by_canvas_removed", (q) =>
@@ -20,7 +21,7 @@ export const restoreLegacy = internalMutation({
       .take(2);
     let restored = 0;
     for (const child of candidates) {
-      if (active.length + restored >= 2) break;
+      if (active.length + restored >= documentLimits.maxCount) break;
       const receipt = await ctx.db
         .query("canvasDeletions")
         .withIndex("by_element", (q) => q.eq("element", child._id))

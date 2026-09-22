@@ -8,11 +8,11 @@
 - **Frontend:** Convex static hosting
 - **Convex deployment:** not deployed
 - **Components:** @convex-dev/migrations, @convex-dev/prosemirror-sync, @convex-dev/presence
-- **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime queries, rectangle table and mutations
+- **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime queries, document lifecycle and History
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-20T08:30:46Z
+- **Last updated:** 2026-09-22T04:25:55Z
 
 ## Log
 
@@ -542,3 +542,322 @@ settlement no longer inserts a sync warning into document cards. Browser drag an
 release preserved text and editor identity; test geometry was restored with Undo.
 Six projection tests pass, including lock/read-failure transitions; build passes.
 The full check passed 175 tests and hit the same two architecture fixture timeouts.
+
+### 2026-09-20 - working tree - Private workspace collaboration
+
+Added member-scoped canvases, canonical main/reply panels, stable paragraph links,
+source capture revisions, reviewed send intents and revocable external MCP editing.
+Convex stores atomic text/authorship evidence and checks safe agent-group Undo.
+Local HTTP smoke passed initialization, editing, retry and revocation; disposable
+fixtures were removed. Backend regression and editor concurrency/Undo checks pass.
+Provider credentials are absent: live scrape, mailbox and real-send behavior remain
+unverified. All 203 tests, architecture, type checks and build pass; source formatting
+and generated-output exclusions complete the local verification.
+
+### 2026-09-20 - working tree - Live provider integration
+
+Workspace creation now provisions one AgentMail inbox asynchronously, using a
+persisted provider identity across retries, timeout recovery and visible setup state.
+The first key returned HTTP 403 `missing_permission`; after replacement, the same
+persisted identity provisioned the demo inbox successfully. Its real thread-list
+read passed with an empty inbox; no email was sent. Live Firecrawl main-content scraping and prompted JSON
+extraction passed through the production adapter on a public page; the temporary
+verification helper was removed. All 206 tests, architecture, types, formatting and
+build pass. Authenticated product UI acceptance remains separate from adapter proof.
+
+### 2026-09-21 - working tree - Retire Rectangles
+
+Removed Rectangle creation, rendering and interaction from the active canvas.
+Legacy endpoints and History inverses cannot mutate or revive stored rectangles;
+old rows and receipt formats remain intact. Paragraph links omit retired targets,
+and agent contexts containing rectangles require a fresh selection before reads
+or edits. Document editing and History remain active.
+All 197 tests, architecture checks, types, formatting and build pass. Local Convex
+codegen succeeded. PM browser verification confirmed the removed creation control
+and both existing documents preserved; no user content was changed.
+
+### 2026-09-21 - working tree - Canvas minimap
+
+Added React Flow’s built-in MiniMap with themed colors and drag-to-pan / scroll-to-zoom
+navigation. Browser verification confirmed viewport changes while document geometry
+and text stayed unchanged. All 197 tests, architecture, types, formatting and build
+pass on rerun; the initial run hit two architecture fixture timeouts.
+
+### 2026-09-21 - working tree - Document editor presentation
+
+Added a persistent, grouped formatting toolbar and a centered document page in
+workspace panels (`DocumentToolbar.tsx`, `DocumentPanelSession.tsx`). Existing
+schema controls share the mounted editor; canvas cards remain text-only.
+All 197 tests, architecture, types, formatting and build pass. Real local Tiptap
+preview checks passed selection-preserving formatting, Undo/Redo, pending/read-only
+controls, narrow layout and dark theme. Backend acknowledgement and panel-session
+reopening were reviewed in code, not exercised by this isolated preview.
+
+Removed the routine saving banner from rich document panels so syncing no longer
+shifts the editor layout. Pending-edit guards and failure/paused notices remain.
+
+### 2026-09-21 - working tree - Quiet document cards
+
+Removed loading placeholders and status messages from canvas Document Cards through
+an explicit card presentation. Retry/recovery controls and editor safeguards remain;
+standalone document status stays visible. Updated behavior rule D1.
+Build and type checks passed. Full tests encountered a backend authorship fixture
+timeout; duplicate runs were stopped. Card rendering branches were verified in code;
+live loading/error states were not exercised.
+
+### 2026-09-21 - working tree - 100 canvas documents
+
+Raised the active spatial document cap to 100 through a shared domain constant.
+Creation, reads, restoration and Add controls agree; panel documents are excluded.
+Boundary regressions cover card 101 rejection and a 100-card History group. Local
+Convex update succeeded; browser Add control is enabled beyond the old limit.
+Full check passes 197 tests on rerun after one architecture fixture timeout.
+Rendering performance with 100 live editors was not measured.
+
+### 2026-09-21 - working tree - Web Page canvas Elements
+
+Existing Firecrawl sources now render as workspace canvas cards with URL/prompt
+creation, fetching/ready/failed states, bounded previews and full read-only capture
+panels. Refresh retains the previous successful capture and provenance until success.
+Typed Element History handles creation, mixed geometry groups and deletion/Undo;
+late provider results cannot overwrite deleted/restored content. Source capacity
+remains 20, independent of 100 documents. Source selections also support paragraph
+links and agent context. No duplicate collaborative text model was introduced.
+
+PM verified the integrated local flow: a disposable public example page moved from
+Fetching to Captured, opened its full capture, and retained exact titled content
+through Delete/Undo/Redo. Existing user sources were untouched. Live drag/resize
+was not checked; mixed geometry/Undo and lifecycle boundaries have backend tests.
+DE separately verified narrow/dark presentation and retained-capture failure state.
+
+Final full check passes 205 tests plus architecture, types and formatting; build
+passes. Final local anonymous Convex codegen/update succeeded. No commit, push,
+production deployment or email send occurred.
+
+### 2026-09-21 - working tree - Multi-element canvas selection
+
+Added Shift-click toggling, background marquee selection, Space-drag panning and
+selected count on Delete selected. Mixed Document/Web Page groups reuse existing
+movement and deletion; Shift-click no longer enters document editing.
+All 206 tests, architecture/types/formatting checks and build pass. A disposable
+React Flow fixture verified Shift toggle, marquee and group spacing with no edit
+activation after dragging. Deletion keeps one Undo entry per element; pending-text
+and disconnect guards were code-reviewed with focused History tests passing.
+The expanded deletion browser fixture timed out, so end-to-end deletion and active
+editor modifier checks remain unverified. Existing user cards were untouched.
+
+PM subsequently verified live marquee selection and bulk deletion on two disposable
+Document Cards: Delete removed both, two Undo restored them, and two Redo cleaned
+them up. Existing user cards were unchanged. Active-editor modifier behavior remains
+covered by code review rather than a live editing check.
+
+### 2026-09-21 - working tree - Main document on canvas
+
+Moved the single canonical main-document session onto fixed, centered canvas paper;
+height follows content. Replies retain panels. The paper cannot enter selection,
+movement, deletion or Element History. Main document frames the top at a width-based
+zoom; paragraph links pan and highlight through a stylesheet outside editor content.
+A disposable real-Tiptap preview verified one mount across panel toggles, growth
+from 1,000 to 2,618 pixels, unchanged recenter zoom, paused controls, fixed position,
+marquee exclusion and paragraph reveal without outer scrolling. Existing protocol
+and recovery tests remain the sync evidence; no real user text was changed.
+All 208 tests, architecture/types/formatting checks and build pass. No backend
+schema changes, migrations or deployment were needed.
+Paper layers above unselected cards to keep legacy overlaps from covering writing;
+selected cards rise above it. Main document clears local selection before recentering.
+Saved card geometry remains untouched; overlapping portions can be revealed by marquee selection.
+Disposable browser assertions confirmed both layer orders after selection changes;
+the final 208-test check and build pass after this adjustment.
+
+### 2026-09-21 - working tree - Visible snapping and card spacing
+
+Snap targets now intersect the current viewport plus a 160-screen-pixel margin,
+rechecked during gestures. Added 24-canvas-pixel facing-edge spacing for overlapping
+rows/columns, including groups and resizing, with numbered gap guides and Alt bypass.
+Focused tests cover viewport/zoom boundaries, release, resize limits, group spacing
+and guides. Full check passed (224 tests, one skipped), and build passed. Rules were
+verified through code/tests; live browser snapping was not exercised in this update.
+
+### 2026-09-21 - working tree - Page capture diagnostics
+
+Reproduced a provider HTTP 403 for a New York Times page: Firecrawl reported the
+site unsupported, while `example.com` succeeded. Capture jobs now distinguish
+access refusal, credentials, credits, rate limits, timeouts and invalid responses
+without exposing provider bodies. Added HTTP adapter and job recovery tests plus
+an opt-in live smoke test documented in README. All 12 focused tests passed with
+live smoke enabled; the regular suite skips that network-dependent test.
+Full check (224 passing tests) and build passed; updated functions were applied to
+the existing local anonymous backend. This does not enable unsupported sites.
+
+### 2026-09-21 - working tree - Keyboard canvas History
+
+Removed canvas Undo/Redo buttons and their empty row. Existing keyboard shortcuts
+remain; History errors and Retry action appear only when needed. Updated behavior
+spec; document formatting toolbar is unchanged.
+
+### 2026-09-21 - working tree - Canvas creation menu
+
+Replaced toolbar Add document, Add web page and Delete selected controls with a
+background right-click creation menu. Creation captures the clicked canvas position,
+including across the Web Page URL form; keyboard deletion remains. Space/middle-drag
+pan, Shift+F10 opens the menu for focused canvas, and access/capacity guards remain.
+Browser checks on the real menu with disposable callbacks passed both actions,
+keyboard navigation, Escape and outside dismissal. Full check passed (225 tests,
+one skipped) and build passed. Existing user cards were not changed.
+
+### 2026-09-21 - working tree - Canvas context-menu suppression
+
+Suppressed native browser context menus in the canvas subtree, including cards
+and paper, and explicitly in the portaled creation menu. Capture handlers prevent
+the browser default without stopping the background creation-menu handler.
+
+### 2026-09-21 - working tree - Remove canvas header
+
+Removed the canvas header containing Home, Shared canvas, Theme and interaction
+hints, together with its unused styles. Workspace navigation remains above the
+canvas; context-menu creation and keyboard controls remain available.
+
+### 2026-09-21 - working tree - Hide alignment guides
+
+Removed the canvas alignment/spacing guide overlay. Snap geometry, spacing and
+Alt bypass remain active; behavior spec now explicitly forbids visible guidelines.
+
+### 2026-09-22 - working tree - Web Page capture recovery
+
+Added revision-scoped capture deadlines/recovery, coalesced active refreshes and
+explicit replacement conflicts. Incomplete provider output retains the last good
+capture; repeated failed refreshes preserve unprompted provenance. Added the API
+handoff in `docs/web-page-api.md`. Source-focused tests pass (37, one live test
+skipped); build, types, architecture check and formatting pass. Default full check
+hit existing fixture timeouts; a two-worker run passed 239 tests with one architecture
+timeout, and all 25 architecture fixtures passed separately with a 15-second bound.
+No UI changes, provider requests or deployment were performed for this work.
+
+### 2026-09-22 - working tree - Web Page card redesign
+
+Moved canvas URL/instructions entry into a local card at the creation point; Fetch
+uses the existing shared source/History operation. Added Paper MeshGradient for
+fetching and compact Web Content/title/URL/body output without footer controls.
+Shader motion respects reduced motion and pauses offscreen/hidden; refresh and
+context controls remain in the full panel. New cards are 300×176 with a 300×132
+minimum; existing saved geometry is retained. Disposable browser checks covered
+input, fetching shader, content and failure recovery. Full check passed (240 tests,
+one skipped); build passed. Live authenticated capture creation was not checked.
+
+### 2026-09-22 - working tree - Web Page recovery API integration
+
+Cards retain successful content during refresh/failure, including exact capture
+URL and absent-prompt provenance. Panel refresh/retry sends expectedRevision;
+conflicts ask for review/waiting without replacing newer work. Explicit Stop waiting
+recovers legacy or overdue busy requests without automatically fetching again.
+Mock browser checks passed retained content, manual recovery, separate Retry and
+revision-conflict feedback; three frontend tests cover provenance/recovery/errors.
+Full check: 241 passed, two architecture fixture timeouts, one live test skipped.
+Architecture fixture rerun passed all 25 with a 15-second per-test bound. No backend
+edits, deployment, provider calls or Git publication in this integration.
+
+### 2026-09-22 - working tree - Structured capture rendering
+
+Added modular safe Markdown/GFM, CSV and JSON-record rendering in the existing
+Web Page presentation. Full panel retains both captured text and extraction with
+unchanged originals; explicit format selection handles ambiguous all-text CSV.
+Empty results differ from parse failures; nested JSON stays raw, HTML is skipped,
+and truncated card previews are never treated as complete structured responses.
+Twelve parser/render regressions pass; PM independently reran them and accepted
+mixed, empty, malformed, original-response and CSV-override browser states.
+Full check passed (255 tests, one skipped), build and diff checks passed. Existing
+large-chunk build warning remains. No backend edits, provider calls or deployment.
+
+### 2026-09-22 - working tree - Explicit table extraction contract
+
+Separated extraction intent from display format. Source requests and History creation
+accept named columns; the provider receives an explicit rows schema. Backend rejects
+instruction metadata, mismatched columns and invalid cells without replacing prior
+captures. Table settings participate in request coalescing and successful-capture
+provenance; format-only prompts receive guidance before enqueue. Shared core input
+helpers serve frontend/backend validation. Plain capture and general JSON remain
+compatible. Handoff: docs/web-page-api.md.
+
+Integrated tests passed (282, one live-provider test skipped), as did architecture,
+types and build; one test formatting issue was corrected afterward. Backend W1/W2
+input/recovery behavior is covered by mocked tests. No live provider calls, deployment,
+or stored-capture changes were made; factual extraction quality remains unverified.
+
+### 2026-09-22 - working tree - Table intent and compact previews
+
+Canvas creation and the existing source edit form now separate extraction content
+from Content/Table choice and user-named columns. Shared validation blocks format-only
+instructions before submission. Full tables use capture-owned schema/order; compact
+cards summarize captured columns, omit noisy layout/navigation previews and fall back
+to Open capture without claiming absent data. Originals and saved captures remain intact.
+PM accepted mock intent rejection, table payload, stored column order and neutral fallback.
+Seventeen focused frontend tests passed; integrated suite passed 282 tests/one skipped,
+architecture/types/build passed. One backend formatting issue was corrected separately.
+No provider calls, deployment or Git publication; actual extraction quality unverified.
+
+### 2026-09-22 - working tree - Instruction-only extraction
+
+Supersedes the separate shape/columns controls above. Users provide URL and optional
+instructions; one schema-driven provider request infers text or table and its columns,
+with explicit names in the instructions passed through. Format-only instructions ask
+for relevant page records instead of being blocked. A versioned, locally validated
+output envelope rejects instruction metadata and malformed rows while preserving the
+previous capture. Legacy JSON and explicit-table captures remain readable. Request
+revisions, deadlines, coalescing and provenance are preserved; docs/web-page-api.md
+records the contract and inference limits.
+
+Backend/core focused tests passed 75/75 (one live test skipped). The shared full check
+passed architecture, types, formatting and 301 tests (one skipped); build passed with
+the existing large canvas bundle warning. PM reported independent mocked browser
+acceptance of URL/instructions-only payload and inferred mixed text/table rendering.
+No live provider calls, deployment, Git actions or stored-capture changes were made.
+Tests prove output shape and recovery, not real-world extraction accuracy.
+
+### 2026-09-22 - working tree - Above-fold page screenshots
+
+The same scrape now requests a 1280×800 viewport screenshot with fullPage false.
+Provider URLs expire, so bounded PNG/JPEG downloads are copied into Convex storage;
+authenticated reads resolve capture-owned image URLs. Image-only failure keeps usable
+text with a warning. Failed refresh retains the prior capture/image. Pending uploads
+are cleaned up, while accepted files remain for immutable context snapshots and Undo.
+The API handoff documents host/type/size/time limits and the unregistered-orphan crash
+window; no general retention framework was added.
+
+DE added card/panel images and graceful unavailable-image handling without geometry
+writes. PM reported mocked browser acceptance of compact/medium/tall cards, full panel
+and broken-image fallback. Eleven frontend and thirteen screenshot-backend focused
+tests passed. Final full check passed 317 tests (one live test skipped), architecture,
+types and formatting; build passed with the existing large canvas chunk warning.
+No live paid provider calls, deployment or Git actions. Actual provider CDN/image
+compatibility remains unverified live; backend image tests use mocked raster headers.
+
+### 2026-09-22T03:58:08Z — working tree
+
+Web Page Card snapshots now stack above text at every card size. Updated W7;
+browser geometry checks passed for compact, medium, tall and unavailable-image fixtures.
+
+Preview areas also match the stored screenshot’s 8:5 ratio; browser measurements
+confirmed 268 × 167.5 at all fixture sizes. Build passed. Full tests had three
+architecture timeouts; all 25 architecture tests passed separately with a 20s timeout.
+
+Corrected the stacked preview to a non-shrinking flex column so the full-ratio
+image reserves layout space before the text, including in short cards.
+
+### 2026-09-22T04:19:10Z — working tree
+
+Web Page Cards now measure their content and grow through the existing canvas
+geometry path, with content-height resize minimums and no internal scrolling.
+Browser fixtures grew short cards to320px without overflow; taller cards stayed taller.
+Full check and build passed.
+
+### 2026-09-22T04:21:30Z — working tree
+
+Web Page Card height transitions use180ms ease-out, with direct manual resize
+and reduced-motion support. Browser fixture measured320px,397px,440px during
+the transition. Full check and build passed.
+
+### 2026-09-22T04:25:55Z — working tree
+
+Web Page Cards expose one Details button to open the capture sheet in all states.
+Titles and snapshots no longer open it. Browser fixtures and regression tests verify
+the single control; canvas behavior spec updated.

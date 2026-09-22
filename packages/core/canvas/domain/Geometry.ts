@@ -31,3 +31,10 @@ export function assertDocumentGeometry(value: Geometry): void {
   if (!Number.isFinite(value.height) || value.height < geometryLimits.minSize)
     throw new InvalidElementGeometry();
 }
+
+/** Web Page cards retain the compact design minimum; captures never auto-grow their cards. */
+export function assertSourceGeometry(value: Geometry): void {
+  assertElementGeometry(value);
+  if (value.width < 300 || value.height < 132)
+    throw new InvalidElementGeometry();
+}

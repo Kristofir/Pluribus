@@ -82,3 +82,86 @@ test("does not snap outside coordinate or maximum size limits", () => {
   expect(result.geometry.width).toBe(100);
   expect(result.matches).toHaveLength(0);
 });
+
+test("spacing snaps facing edges to a 24-unit gap in all four directions", () => {
+  const target = {
+    id: "gap" as ElementId,
+    geometry: { x: 200, y: 200, width: 100, height: 100 },
+  };
+  for (const [axis, position, expected] of [
+    ["x", 72, 76],
+    ["x", 328, 324],
+    ["y", 72, 76],
+    ["y", 328, 324],
+  ] as const) {
+    const candidate = { ...target.geometry, [axis]: position };
+    const result = resolveAlignment(
+      candidate,
+      [target],
+      { kind: "move" },
+      { acquire: 6, release: 10, spacing: 24 },
+    );
+    expect(result.geometry[axis]).toBe(expected);
+    expect(Math.abs(result.matches.find((m) => m.axis === axis)!.offset!)).toBe(
+      24,
+    );
+  }
+});
+test("spacing only applies to overlapping rows/columns and respects resize limits", () => {
+  const t = {
+    id: "gap" as ElementId,
+    geometry: { x: 200, y: 0, width: 100, height: 100 },
+  };
+  const candidate = { x: 0, y: 0, width: 172, height: 100 };
+  expect(
+    resolveAlignment(
+      candidate,
+      [t],
+      { kind: "resize", x: "end" },
+      { acquire: 6, release: 10, spacing: 24 },
+    ).geometry.width,
+  ).toBe(176);
+  expect(
+    resolveAlignment(
+      candidate,
+      [t],
+      { kind: "resize", x: "end" },
+      { acquire: 6, release: 10, spacing: 24, constraints: { maxWidth: 174 } },
+    ).geometry.width,
+  ).toBe(172);
+  expect(
+    resolveAlignment(
+      { ...candidate, y: 200 },
+      [t],
+      { kind: "move" },
+      { acquire: 6, release: 10, spacing: 24 },
+    ).matches,
+  ).toEqual([]);
+});
+test("spacing holds to release threshold and releases without drift", () => {
+  const t = {
+    id: "gap" as ElementId,
+    geometry: { x: 200, y: 0, width: 100, height: 100 },
+  };
+  const g = { x: 72, y: 0, width: 100, height: 100 };
+  const first = resolveAlignment(
+    g,
+    [t],
+    { kind: "move" },
+    { acquire: 6, release: 10, spacing: 24 },
+  );
+  const held = resolveAlignment(
+    { ...g, x: 68 },
+    [t],
+    { kind: "move" },
+    { acquire: 6, release: 10, spacing: 24, previous: first.matches },
+  );
+  expect(held.geometry.x).toBe(76);
+  const released = resolveAlignment(
+    { ...g, x: 65 },
+    [t],
+    { kind: "move" },
+    { acquire: 6, release: 10, spacing: 24, previous: held.matches },
+  );
+  expect(released.geometry.x).toBe(65);
+});

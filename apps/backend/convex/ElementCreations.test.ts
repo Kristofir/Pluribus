@@ -4,6 +4,7 @@ import { register } from "@convex-dev/prosemirror-sync/test";
 import { expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
+import { documentLimits } from "@pluribus/core/canvas/domain";
 const modules = import.meta.glob("./**/*.ts");
 const geometry = { x: 10, y: 20, width: 430, height: 500 };
 const credential = () => ({
@@ -16,10 +17,7 @@ function setup() {
   return t;
 }
 
-for (const element of [
-  { kind: "rectangle" as const, geometry, color: "blue" as const },
-  { kind: "document" as const, geometry },
-]) {
+for (const element of [{ kind: "document" as const, geometry }]) {
   test(`${element.kind} creation retries once; Undo/Redo retains identity and rejects old generations`, async () => {
     const t = setup();
     const command = { ...credential(), element };
@@ -89,10 +87,9 @@ test("creation binds owner, capability and payload; capacity rejection leaves no
       element: { ...command.element, geometry: { ...geometry, x: 99 } },
     }),
   ).rejects.toThrow("reused");
-  await owner.mutation(api.Canvas.createElement, {
-    ...command,
-    ...credential(),
-  });
+  for (let i = 1; i < documentLimits.maxCount; i++)
+    await owner.mutation(api.Canvas.createDocument, { geometry });
+  expect(await owner.query(api.Canvas.documentCards, {})).toHaveLength(100);
   const rejected = { ...command, ...credential() };
   expect(
     (await owner.mutation(api.Canvas.createElement, rejected)).status,

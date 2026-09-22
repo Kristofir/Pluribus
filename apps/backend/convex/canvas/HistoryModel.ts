@@ -1,6 +1,11 @@
+import { sourceTable } from "../sources/Model";
 import { v } from "convex/values";
 import { geometry, color } from "./Model";
-export const elementId = v.union(v.id("rectangles"), v.id("canvasDocuments"));
+export const elementId = v.union(
+  v.id("rectangles"),
+  v.id("canvasDocuments"),
+  v.id("sources"),
+);
 const target = { id: elementId, lineage: v.string() };
 const lifecycle = {
   ...target,
@@ -61,6 +66,13 @@ export const actionInput = v.union(
     element: v.union(
       v.object({ kind: v.literal("rectangle"), geometry, color }),
       v.object({ kind: v.literal("document"), geometry }),
+      v.object({
+        kind: v.literal("source"),
+        geometry,
+        url: v.string(),
+        prompt: v.optional(v.string()),
+        table: v.optional(sourceTable),
+      }),
     ),
   }),
   v.object({

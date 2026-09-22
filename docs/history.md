@@ -93,3 +93,21 @@ first failure and preserves earlier accepted entries.
 Action, attempt, session, binding and deleted-content retention remains unbounded.
 Bounded stream cursors do not make total storage bounded. Automatic purge, persistent
 personal stacks, grouped deletion and future action kinds require separate decisions.
+
+## Workspace and agent scope
+
+Canvas sessions belong to one workspace and owner; every write rechecks membership.
+Main/reply panel children have no spatial actions. Agent text groups use a separate
+initiator-only Undo endpoint: accepted text and evidence commit atomically, and
+mapped inverses refuse changes that would erase another writer's text or structure.
+No agent Redo is implemented. See [Workspace prototype](workspaces.md).
+
+Rectangles are retired. Retained receipt formats remain readable for protocol
+compatibility, but new actions and historical inverses cannot mutate or revive
+rectangle rows. Active Element operations target document cards and Web Pages.
+
+Web Page creation through Add web page, movement/resize and deletion use the same
+personal Element History. Undo restores the retained source row/capture without
+refetching. Refresh is not an Undo operation: it replaces the capture only after
+success. Legacy Sources.request callers remain a capture API without a personal
+creation stack; the product creates cards through Canvas History.

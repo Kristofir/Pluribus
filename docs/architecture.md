@@ -322,7 +322,7 @@ and bounded step batches, so long unsnapshotted histories may hit transaction li
 
 Editing pauses when disconnected. Pending steps stay in memory and in-app navigation
 is blocked until acknowledged; tab close warns. There is no durable offline cache.
-No paragraph records or source anchors are included.
+Workspace documents carry stable paragraph attributes; Element links refer to those IDs. See [Workspace prototype](workspaces.md).
 
 ### Authorship boundary
 
@@ -429,8 +429,9 @@ no durable offline recovery, text anchors, or editing locks.
 
 `canvasDocuments` stores canvas-owned child geometry, lifecycle and generation;
 `documents` retains text metadata and a validated link back to its owning child.
-The existing rectangle records and IDs stay intact. The canvas projection has
-rectangle and document node variants backed by the shared core element union.
+Historical rectangle records and IDs stay intact, but the active canvas projection
+contains documents and workspace Web Pages. Rectangle types remain solely for stored protocol compatibility;
+adapters reject new rectangle operations and prevent historical inverses from restoring them.
 Plain data and explicit functions implement behavior; there is no base class or
 generic element repository.
 Canvas core use cases create/change children through transaction-bound ports.
@@ -487,3 +488,32 @@ identity and pause editing until reads recover. Retained values are read-only
 subscription results, not another editable store. Initial text loading is isolated
 per card; the official ProseMirror Sync extension still owns the protocol. Recovery
 copies and editor instances survive these query failures, but remain memory-only.
+
+## Private workspace extension
+
+Workspace membership scopes the existing Canvas, text, presence and History
+adapters. Panel-only main/reply children retain document ownership without geometry.
+Core owns membership decisions, agent command limits and send-review policy;
+Convex adapters resolve identity, atomic evidence and provider transport. This
+extension adds no parallel text store, realtime backend or model orchestration.
+
+Sources and inbox projections are bounded provider reads. Source revisions reject
+stale captures; immutable send intents separate human review from a single external
+attempt. Positive provider evidence can settle uncertainty; absence cannot authorize
+resend. External MCP grants delegate document scope, with exact-version edits and
+verified group Undo. See [Workspace prototype](workspaces.md) for contracts and limits.
+
+## Web Page Elements
+
+A source row also owns its spatial geometry and lifecycle; no duplicate document
+or canvas-content table is introduced. Core SourceElement and typed History inputs
+extend the existing generic operations. The source adapter owns workspace checks,
+provider revisions and capture persistence. Sources.cards returns bounded previews;
+Sources.get loads a single full read-only capture. Canvas projects both document
+and source nodes without duplicating canonical content in local state.
+
+Deletion advances lifecycle and provider revision atomically, so late jobs cannot
+rewrite restored content. Refresh retains the previous capture and its provenance;
+only the latest successful fetch replaces it. Source capacity stays at 20 per workspace,
+independent of the 100-document cap. Old rows receive read-time default geometry;
+no migration or content purge is required.

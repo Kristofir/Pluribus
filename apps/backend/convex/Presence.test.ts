@@ -243,3 +243,32 @@ test("hidden activity remains until authoritative membership expiry", async () =
     [],
   );
 });
+
+test("retired rectangle selections are omitted from collaborator activity", async () => {
+  const t = setup();
+  const rectangle = await t.run((ctx) =>
+    ctx.db.insert("rectangles", {
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      color: "blue",
+    }),
+  );
+  const session = await t.mutation(api.Presence.join, {
+    context: canvas,
+    guestId,
+    tabId,
+  });
+  await t.mutation(api.Presence.publish, {
+    ...session,
+    context: canvas,
+    sequence: 1,
+    activity: { kind: "selection", elements: [rectangle, "active-document"] },
+  });
+  expect(
+    await t.query(api.Presence.activities, { context: canvas }),
+  ).toMatchObject([
+    { activity: { kind: "selection", elements: ["active-document"] } },
+  ]);
+});

@@ -4,6 +4,7 @@ import { register } from "@convex-dev/prosemirror-sync/test";
 import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import schema from "./schema";
+import { documentLimits } from "@pluribus/core/canvas/domain";
 import type { FunctionArgs } from "convex/server";
 const modules = import.meta.glob("./**/*.ts");
 const geometry = { x: 10, y: 20, width: 430, height: 500 };
@@ -22,10 +23,7 @@ async function session(t: Pick<ReturnType<typeof setup>, "mutation">) {
   return { session: id, secret: registration.secret };
 }
 afterEach(() => vi.useRealTimers());
-for (const element of [
-  { kind: "rectangle" as const, color: "blue" as const, geometry },
-  { kind: "document" as const, geometry },
-]) {
+for (const element of [{ kind: "document" as const, geometry }]) {
   test(`${element.kind}: full create/move/delete Undo all and Redo all preserves identity`, async () => {
     const t = setup(),
       auth = await session(t);
@@ -86,7 +84,11 @@ for (const element of [
     if (element.kind === "document")
       expect(restored).toHaveProperty(
         "documentId",
-        (original as { documentId: string }).documentId,
+        (
+          original as {
+            documentId: string;
+          }
+        ).documentId,
       );
     expect(await t.mutation(api.Canvas.applyHistoryAction, create)).toEqual(
       created,
@@ -103,7 +105,7 @@ test("accepted attempts and latest stream ACK survive peer edits and lifecycle c
     attempt: uuid(),
     input: {
       kind: "create" as const,
-      element: { kind: "rectangle" as const, color: "blue" as const, geometry },
+      element: { kind: "document" as const, geometry },
     },
   };
   const created = await t.mutation(api.Canvas.applyHistoryAction, create),
@@ -199,6 +201,9 @@ test("session capabilities, attempt payloads, deterministic errors and capacity 
     attempt: uuid(),
     input,
   });
+  for (let i = 2; i < documentLimits.maxCount; i++)
+    await t.mutation(api.Canvas.createDocument, { geometry });
+  expect(await t.query(api.Canvas.documentCards, {})).toHaveLength(100);
   const blocked = { ...auth, action: uuid(), attempt: uuid(), input };
   expect(
     (await t.mutation(api.Canvas.applyHistoryAction, blocked)).status,
@@ -226,7 +231,9 @@ test("idle closure retains accepted cursor; retries never renew or reopen it", a
   vi.useFakeTimers();
   const t = setup(),
     auth = await session(t);
-  const id = await t.mutation(api.Canvas.create, { geometry, color: "blue" });
+  const id = await t.mutation(api.Canvas.createDocument, {
+    geometry,
+  });
   const update = {
     ...auth,
     action: uuid(),
@@ -234,7 +241,7 @@ test("idle closure retains accepted cursor; retries never renew or reopen it", a
     updates: [{ id, generation: 1, geometry: { ...geometry, x: 40 } }],
   };
   await t.mutation(api.Canvas.updateHistoryGesture, update);
-  await vi.advanceTimersByTimeAsync(20_000);
+  await vi.advanceTimersByTimeAsync(20000);
   expect(
     await t.mutation(api.Canvas.heartbeatHistoryGesture, {
       ...auth,
@@ -253,7 +260,7 @@ test("idle closure retains accepted cursor; retries never renew or reopen it", a
       })
     )?.state,
   ).toBe("open");
-  await vi.advanceTimersByTimeAsync(31_000);
+  await vi.advanceTimersByTimeAsync(31000);
   await t.mutation(internal.canvas.History.expireGesture, {
     session: auth.session,
     action: update.action,
@@ -292,9 +299,8 @@ test("geometry groups are atomic; old sequences and exact deletion identities ca
     auth = await session(t);
   const ids = await Promise.all(
     ["blue", "coral"].map((color) =>
-      t.mutation(api.Canvas.create, {
+      t.mutation(api.Canvas.createDocument, {
         geometry,
-        color: color as "blue" | "coral",
       }),
     ),
   );
@@ -334,10 +340,10 @@ test("geometry groups are atomic; old sequences and exact deletion identities ca
     attempt: uuid(),
     sequence: 2,
   });
-  await t.mutation(api.Canvas.updateGeometry, {
+  await t.mutation(api.Canvas.changeDocument, {
     id: ids[1],
     generation: 1,
-    geometry: { ...geometry, x: 80 },
+    change: { kind: "geometry", geometry: { ...geometry, x: 80 } },
   });
   expect(
     (
@@ -382,7 +388,6 @@ test("geometry groups are atomic; old sequences and exact deletion identities ca
     ).status,
   ).toBe("obsolete");
 });
-
 test("unknown close is rejected; a live gesture cannot adopt a restored write generation", async () => {
   const t = setup(),
     auth = await session(t),
@@ -397,7 +402,9 @@ test("unknown close is rejected; a live gesture cannot adopt a restored write ge
       })
     ).status,
   ).toBe("rejected");
-  const id = await t.mutation(api.Canvas.create, { geometry, color: "blue" });
+  const id = await t.mutation(api.Canvas.createDocument, {
+    geometry,
+  });
   const update = {
     ...auth,
     action,
@@ -449,7 +456,6 @@ test("unknown close is rejected; a live gesture cannot adopt a restored write ge
     ).status,
   ).toBe("applied");
 });
-
 test("legacy lifecycle endpoints cannot restore V2 removals or preserve V2 continuity", async () => {
   const t = setup(),
     auth = await session(t);
@@ -459,7 +465,9 @@ test("legacy lifecycle endpoints cannot restore V2 removals or preserve V2 conti
     attempt: uuid(),
     input: { kind: "create", element: { kind: "document", geometry } },
   });
-  const id = created.id!;
+  const id = await t.run(async (ctx) =>
+    ctx.db.normalizeId("canvasDocuments", created.id!)!,
+  );
   const removed = await t.mutation(api.Canvas.applyHistoryAction, {
     ...auth,
     action: uuid(),
@@ -501,7 +509,6 @@ test("legacy lifecycle endpoints cannot restore V2 removals or preserve V2 conti
   ).toBe("obsolete");
   expect(await t.run((ctx) => ctx.db.get(id))).toMatchObject({ generation: 5 });
 });
-
 test("authenticated owners and separate same-owner tabs cannot reverse another session's action", async () => {
   const t = setup();
   const user = await t.run((ctx) => ctx.db.insert("users", {}));
@@ -514,7 +521,7 @@ test("authenticated owners and separate same-owner tabs cannot reverse another s
     attempt: uuid(),
     input: {
       kind: "create",
-      element: { kind: "rectangle", color: "blue", geometry },
+      element: { kind: "document", geometry },
     },
   });
   const request = {
@@ -536,27 +543,14 @@ test("authenticated owners and separate same-owner tabs cannot reverse another s
     ).status,
   ).toBe("obsolete");
 });
-
-test("maximal 202-target group has bounded payload and no per-update attempt rows", async () => {
+test("maximum document group has bounded payload and no per-update attempt rows", async () => {
   const t = setup(),
     auth = await session(t);
-  const ids = await t.run(async (ctx) => {
-    const values = [];
-    for (let i = 0; i < 200; i++)
-      values.push(
-        await ctx.db.insert("rectangles", {
-          ...geometry,
-          color: "blue",
-          generation: 1,
-        }),
-      );
-    return values;
-  });
-  const docs = await Promise.all(
-    [0, 1].map(() => t.mutation(api.Canvas.createDocument, { geometry })),
-  );
+  const docs = [];
+  for (let i = 0; i < documentLimits.maxCount; i++)
+    docs.push(await t.mutation(api.Canvas.createDocument, { geometry }));
   const action = uuid(),
-    updates = [...ids, ...docs].map((id) => ({
+    updates = docs.map((id) => ({
       id,
       generation: 1,
       geometry: { ...geometry, x: 30 },
@@ -597,9 +591,9 @@ test("maximal 202-target group has bounded payload and no per-update attempt row
       .withIndex("by_session_element", (q) => q.eq("session", auth.session))
       .take(203),
   );
-  expect(targets).toHaveLength(202);
+  expect(targets).toHaveLength(documentLimits.maxCount);
   console.info(
-    `History maximum fixture: 202 targets, ${bytes} action bytes, 202 continuity rows; 0 durable attempts for two stream updates.`,
+    `History maximum fixture: ${docs.length} document targets, ${bytes} action bytes, ${targets.length} continuity rows; 0 durable attempts for two stream updates.`,
   );
   await t.mutation(api.Canvas.closeHistoryGesture, {
     ...auth,
@@ -618,9 +612,9 @@ test("maximal 202-target group has bounded payload and no per-update attempt row
       })
     ).status,
   ).toBe("applied");
-  expect(await t.run((ctx) => ctx.db.get(ids[199]))).toMatchObject({
-    x: geometry.x,
-  });
+  const restored = await t.query(api.Canvas.documentCards, {});
+  expect(restored).toHaveLength(documentLimits.maxCount);
+  for (const card of restored) expect(card.geometry).toEqual(geometry);
   await expect(
     t.mutation(api.Canvas.updateHistoryGesture, {
       ...auth,

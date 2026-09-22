@@ -1,4 +1,8 @@
-import { describeDocument, readParagraphs, linkParagraph as linkParagraphHandler } from "./documents/Paragraphs";
+import {
+  describeDocument,
+  readParagraphs,
+  linkParagraph as linkParagraphHandler,
+} from "./documents/Paragraphs";
 import { requireWorkspace } from "./workspaces/Access";
 import {
   openAuthorship as openAuthor,
@@ -174,18 +178,103 @@ export const authors = query({
   handler: authorProfiles,
 });
 
-const descriptor = v.object({ documentId: v.id("documents"), canvasId: v.string(), generation: v.number(), role: v.union(v.literal("main"), v.literal("reply"), v.literal("card")), paragraphs: v.boolean() });
-export const describe = query({ args: { documentId: v.id("documents") }, returns: descriptor, handler: (ctx, args) => describeDocument(ctx, args.documentId) });
-export const paragraphs = query({ args: { documentId: v.id("documents") }, returns: descriptor.omit("paragraphs").extend({ version: v.number(), paragraphs: v.array(v.object({ paragraphId: v.string(), text: v.string(), from: v.number(), to: v.number() })) }), handler: (ctx, args) => readParagraphs(ctx, args.documentId) });
-export const linkParagraph = mutation({ args: { workspaceId: v.id("workspaces"), elementId: v.union(v.id("rectangles"), v.id("canvasDocuments")), documentId: v.id("documents"), paragraphId: v.string(), version: v.number() }, returns: v.null(), handler: linkParagraphHandler });
-export const links = query({ args: { workspaceId: v.id("workspaces") }, returns: v.array(v.object({ elementId: v.union(v.id("rectangles"), v.id("canvasDocuments")), documentId: v.id("documents"), paragraphId: v.string() })), handler: async (ctx, args) => {
- await requireWorkspace(ctx, args.workspaceId);
- const rows = await ctx.db.query("documentLinks").withIndex("by_workspace", q => q.eq("workspaceId", args.workspaceId)).take(202);
- return rows.map(({ elementId, documentId, paragraphId }) => ({ elementId, documentId, paragraphId }));
-} });
-export const resolveParagraph = query({args:{documentId:v.id("documents"),paragraphId:v.string()},returns:v.union(v.null(),v.object({version:v.number(),generation:v.number(),from:v.number(),to:v.number(),text:v.string()})),handler:async(ctx,args)=>{
- const document=await requireDocument(ctx,args.documentId),child=document.element ? await ctx.db.get(document.element) : null;
- if(!child || child.removed)return null;
- const current=await readParagraphs(ctx,args.documentId),paragraph=current.paragraphs.find(p=>p.paragraphId===args.paragraphId);
- return paragraph ? {version:current.version,generation:current.generation,from:paragraph.from,to:paragraph.to,text:paragraph.text}:null;
-}});
+const descriptor = v.object({
+  documentId: v.id("documents"),
+  canvasId: v.string(),
+  generation: v.number(),
+  role: v.union(v.literal("main"), v.literal("reply"), v.literal("card")),
+  paragraphs: v.boolean(),
+});
+export const describe = query({
+  args: { documentId: v.id("documents") },
+  returns: descriptor,
+  handler: (ctx, args) => describeDocument(ctx, args.documentId),
+});
+export const paragraphs = query({
+  args: { documentId: v.id("documents") },
+  returns: descriptor.omit("paragraphs").extend({
+    version: v.number(),
+    paragraphs: v.array(
+      v.object({
+        paragraphId: v.string(),
+        text: v.string(),
+        from: v.number(),
+        to: v.number(),
+      }),
+    ),
+  }),
+  handler: (ctx, args) => readParagraphs(ctx, args.documentId),
+});
+export const linkParagraph = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    elementId: v.union(v.id("canvasDocuments"), v.id("sources")),
+    documentId: v.id("documents"),
+    paragraphId: v.string(),
+    version: v.number(),
+  },
+  returns: v.null(),
+  handler: linkParagraphHandler,
+});
+export const links = query({
+  args: { workspaceId: v.id("workspaces") },
+  returns: v.array(
+    v.object({
+      elementId: v.union(v.id("canvasDocuments"), v.id("sources")),
+      documentId: v.id("documents"),
+      paragraphId: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    await requireWorkspace(ctx, args.workspaceId);
+    const rows = await ctx.db
+      .query("documentLinks")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .take(202);
+    return rows.flatMap(({ elementId, documentId, paragraphId }) => {
+      const active =
+        ctx.db.normalizeId("canvasDocuments", elementId) ??
+        ctx.db.normalizeId("sources", elementId);
+      return active
+        ? [
+            {
+              elementId: active,
+              documentId,
+              paragraphId,
+            },
+          ]
+        : [];
+    });
+  },
+});
+export const resolveParagraph = query({
+  args: { documentId: v.id("documents"), paragraphId: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      version: v.number(),
+      generation: v.number(),
+      from: v.number(),
+      to: v.number(),
+      text: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const document = await requireDocument(ctx, args.documentId),
+      child = document.element ? await ctx.db.get(document.element) : null;
+    if (!child || child.removed) return null;
+    const current = await readParagraphs(ctx, args.documentId),
+      paragraph = current.paragraphs.find(
+        (p) => p.paragraphId === args.paragraphId,
+      );
+    return paragraph
+      ? {
+          version: current.version,
+          generation: current.generation,
+          from: paragraph.from,
+          to: paragraph.to,
+          text: paragraph.text,
+        }
+      : null;
+  },
+});

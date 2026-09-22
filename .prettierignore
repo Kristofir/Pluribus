@@ -7,3 +7,7 @@ coverage/
 apps/backend/convex/_generated/
 package-lock.json
 skills-lock.json
+convex/_generated/
+.playwright-cli/
+.playwright-mcp/
+output/

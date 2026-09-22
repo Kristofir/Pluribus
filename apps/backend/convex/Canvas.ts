@@ -17,8 +17,7 @@ import { color, geometry, rectangleView } from "./canvas/Model";
  * New public feature entrypoints require the PublicApi.mjs allowlist update.
  */
 /**
- * Public reactive canvas projection. Returns the bounded set of shared rectangles
- * that React Flow renders; subscription updates propagate accepted geometry changes.
+ * Legacy rectangle subscription: authorizes the scope and returns an empty list.
  */
 export const list = query({
   args: { workspaceId: v.optional(v.id("workspaces")) },
@@ -27,8 +26,7 @@ export const list = query({
 });
 
 /**
- * Public rectangle-creation contract. The handler derives the actor and invokes
- * the core creation use case, which validates geometry and capacity before writing.
+ * Legacy rectangle creation: authorizes the scope, then rejects the retired capability.
  */
 export const create = mutation({
   args: { geometry, color, workspaceId: v.optional(v.id("workspaces")) },
@@ -37,11 +35,15 @@ export const create = mutation({
 });
 
 /**
- * Public whole-geometry update contract for drag/resize gestures. Returns false
- * when the record was deleted, preventing a late gesture from recreating it.
+ * Legacy rectangle geometry writes always return false after scope authorization.
  */
 export const updateGeometry = mutation({
-  args: { id: v.id("rectangles"), generation: v.number(), geometry, workspaceId: v.optional(v.id("workspaces")) },
+  args: {
+    id: v.id("rectangles"),
+    generation: v.number(),
+    geometry,
+    workspaceId: v.optional(v.id("workspaces")),
+  },
   returns: v.boolean(),
   handler: handlers.updateGeometry,
 });
@@ -173,7 +175,11 @@ export const createElement = mutation({
 
 /** V2 History: session-scoped actions with stable attempt acknowledgements. */
 export const openHistorySession = mutation({
-  args: { nonce: v.string(), secret: v.string(), workspaceId: v.optional(v.id("workspaces")) },
+  args: {
+    nonce: v.string(),
+    secret: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
+  },
   returns: v.id("canvasHistorySessions"),
   handler: history.openSession,
 });

@@ -6,7 +6,6 @@
   "exports": {
     "./canvas/domain": "./canvas/domain/Index.ts",
     "./canvas/access": "./canvas/domain/Access.ts",
-    "./canvas/application": "./canvas/application/Rectangles.ts",
     "./documents/domain": "./documents/domain/Document.ts",
     "./documents/application": "./documents/application/Documents.ts",
     "./presence/domain": "./presence/domain/Activity.ts",

@@ -1,3 +1,5 @@
+import { sourceLimits } from "../../../sources/domain/Source";
+import { documentLimits } from "../../domain/Document";
 import type {
   CanvasActionInput,
   HistoryActionRecord,
@@ -5,6 +7,7 @@ import type {
 } from "../../domain/History";
 import {
   assertDocumentGeometry,
+  assertSourceGeometry,
   assertElementGeometry,
 } from "../../domain/Geometry";
 import { rectangleLimits } from "../../domain/Rectangle";
@@ -12,8 +15,12 @@ import { captureTarget, matchesTarget, saveTarget } from "./Continuity";
 import type { HistoryPorts } from "./Ports";
 import { outcome } from "./Results";
 
-const capacity = (kind: "rectangle" | "document") =>
-  kind === "rectangle" ? rectangleLimits.maxCount : 2;
+const capacity = (kind: "rectangle" | "document" | "source") =>
+  kind === "rectangle"
+    ? rectangleLimits.maxCount
+    : kind === "source"
+      ? sourceLimits.maxCount
+      : documentLimits.maxCount;
 /** Fresh lifecycle actions capture authoritative continuity and retain canonical content. */
 export async function applyLifecycle(
   ports: HistoryPorts,
@@ -25,7 +32,9 @@ export async function applyLifecycle(
   if (input.kind === "create") {
     (input.element.kind === "document"
       ? assertDocumentGeometry
-      : assertElementGeometry)(input.element.geometry);
+      : input.element.kind === "source"
+        ? assertSourceGeometry
+        : assertElementGeometry)(input.element.geometry);
     if (
       (await ports.elements.count(input.element.kind)) >=
       capacity(input.element.kind)

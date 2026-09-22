@@ -1,150 +1,205 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
+import { register } from "@convex-dev/prosemirror-sync/test";
 import { expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
-
+import { historyCredentials } from "./canvas/HistoryCredentials";
 const modules = import.meta.glob("./**/*.ts");
-const initial = { x: 10, y: 20, width: 160, height: 100 };
-
-test("anonymous clients share records; separate edits preserve the other rectangle", async () => {
+const geometry = { x: 10, y: 20, width: 430, height: 500 };
+const token = () => crypto.randomUUID();
+function setup() {
   const t = convexTest(schema, modules);
-  const first = await t.mutation(api.Canvas.create, {
-    geometry: initial,
-    color: "blue",
-  });
-  const second = await t.mutation(api.Canvas.create, {
-    geometry: initial,
-    color: "gold",
-  });
-  await t.mutation(api.Canvas.updateGeometry, {
-    id: first,
-    generation: 1,
-    geometry: { ...initial, x: 80 },
-  });
-  await t.mutation(api.Canvas.updateGeometry, {
-    id: second,
-    generation: 1,
-    geometry: { ...initial, width: 240 },
-  });
-  expect(await t.query(api.Canvas.list, {})).toMatchObject([
-    { id: first, x: 80, width: 160, color: "blue" },
-    { id: second, x: 10, width: 240, color: "gold" },
-  ]);
-});
+  register(t);
+  return t;
+}
 
-test("the latest accepted complete geometry wins, while color is preserved", async () => {
-  const t = convexTest(schema, modules);
-  const id = await t.mutation(api.Canvas.create, {
-    geometry: initial,
-    color: "coral",
-  });
-  await t.mutation(api.Canvas.updateGeometry, {
-    id,
-    generation: 1,
-    geometry: { ...initial, x: 400, width: 300 },
-  });
-  const last = { x: -20, y: 50, width: 90, height: 200 };
-  await t.mutation(api.Canvas.updateGeometry, {
-    id,
-    generation: 1,
-    geometry: last,
-  });
-  expect(await t.query(api.Canvas.list, {})).toMatchObject([
-    { ...last, color: "coral" },
-  ]);
-});
-
-test("delete is idempotent and a late drag cannot resurrect its rectangle", async () => {
-  const t = convexTest(schema, modules);
-  const id = await t.mutation(api.Canvas.create, {
-    geometry: initial,
-    color: "blue",
-  });
-  const command = {
-    id,
-    generation: 1,
-    operation: crypto.randomUUID(),
-    secret: crypto.randomUUID(),
-  };
-  await t.mutation(api.Canvas.deleteElement, command);
-  await t.mutation(api.Canvas.deleteElement, command);
+test("retired rectangles remain stored but cannot list, create, move or delete through old endpoints", async () => {
+  const t = setup();
+  const id = await t.run((ctx) =>
+    ctx.db.insert("rectangles", { ...geometry, color: "blue", generation: 1 }),
+  );
+  const before = await t.run((ctx) => ctx.db.get(id));
+  expect(await t.query(api.Canvas.list, {})).toEqual([]);
+  await expect(
+    t.mutation(api.Canvas.create, { geometry, color: "blue" }),
+  ).rejects.toThrow("retired");
+  await expect(
+    t.mutation(api.Canvas.createElement, {
+      operation: token(),
+      secret: token(),
+      element: { kind: "rectangle", geometry, color: "blue" },
+    }),
+  ).rejects.toThrow("retired");
   expect(
     await t.mutation(api.Canvas.updateGeometry, {
       id,
       generation: 1,
-      geometry: initial,
+      geometry: { ...geometry, x: 999 },
     }),
   ).toBe(false);
-  expect(await t.query(api.Canvas.list, {})).toEqual([]);
+  expect(
+    (
+      await t.mutation(api.Canvas.deleteElement, {
+        id,
+        generation: 1,
+        operation: token(),
+        secret: token(),
+      })
+    ).status,
+  ).toBe("conflict");
+  expect(
+    (
+      await t.mutation(api.Canvas.applyGeometry, {
+        operation: token(),
+        secret: token(),
+        sequence: 1,
+        final: true,
+        updates: [{ id, generation: 1, geometry: { ...geometry, x: 99 } }],
+      })
+    ).status,
+  ).toBe("conflict");
+  expect(await t.run((ctx) => ctx.db.get(id))).toEqual(before);
 });
 
-test.each([
-  { ...initial, x: NaN },
-  { ...initial, y: Infinity },
-  { ...initial, width: 0 },
-  { ...initial, height: 2001 },
-  { ...initial, x: 100001 },
-])(
-  "invalid geometry cannot create or partially update a record: %j",
-  async (geometry) => {
-    const t = convexTest(schema, modules);
-    await expect(
-      t.mutation(api.Canvas.create, { geometry, color: "blue" }),
-    ).rejects.toThrow();
-    const id = await t.mutation(api.Canvas.create, {
-      geometry: initial,
+test("retired rectangle deletion and geometry receipts cannot revive or mutate stored rows", async () => {
+  const t = setup();
+  const operation = token(),
+    secret = token();
+  const { credential } = await t.run((ctx) =>
+    historyCredentials(ctx, operation, secret),
+  );
+  const id = await t.run(async (ctx) => {
+    const id = await ctx.db.insert("rectangles", {
+      ...geometry,
       color: "blue",
+      generation: 2,
+      removed: true,
     });
-    await expect(
-      t.mutation(api.Canvas.updateGeometry, { id, geometry, generation: 1 }),
-    ).rejects.toThrow();
-    expect(await t.query(api.Canvas.list, {})).toMatchObject([initial]);
-  },
-);
-
-test("the capacity guard prevents invisible records beyond the bounded query", async () => {
-  const t = convexTest(schema, modules);
-  await t.run(async (ctx) => {
-    for (let i = 0; i < 200; i++)
-      await ctx.db.insert("rectangles", { ...initial, color: "blue" });
+    await ctx.db.insert("canvasDeletions", {
+      operation,
+      element: id,
+      generation: 2,
+      owner: null,
+      proof: credential.proof,
+    });
+    await ctx.db.insert("canvasGeometryOperations", {
+      operation,
+      owner: null,
+      proof: credential.proof,
+      sequence: 1,
+      revision: 0,
+      closed: true,
+      undone: false,
+      changes: [
+        { id, generation: 2, before: { ...geometry, x: 0 }, after: geometry },
+      ],
+    });
+    return id;
   });
-  await expect(
-    t.mutation(api.Canvas.create, {
-      geometry: initial,
+  const before = await t.run((ctx) => ctx.db.get(id));
+  expect(
+    (await t.mutation(api.Canvas.undoDeletion, { operation, secret })).status,
+  ).toBe("conflict");
+  expect(
+    (
+      await t.mutation(api.Canvas.reverseGeometry, {
+        operation,
+        secret,
+        revision: 0,
+        undo: true,
+      })
+    ).status,
+  ).toBe("conflict");
+  expect(await t.run((ctx) => ctx.db.get(id))).toEqual(before);
+});
+
+test("V2 old rectangle create/delete/geometry History becomes obsolete without changing stored rows", async () => {
+  const t = setup(),
+    secret = token(),
+    session = await t.mutation(api.Canvas.openHistorySession, {
+      nonce: token(),
+      secret,
+    });
+  const id = await t.run((ctx) =>
+    ctx.db.insert("rectangles", {
+      ...geometry,
       color: "gold",
+      removed: true,
+      generation: 2,
     }),
-  ).rejects.toThrow("200");
-  expect(await t.query(api.Canvas.list, {})).toHaveLength(200);
-});
-
-test("signed-in and anonymous clients share the same canvas without caller-supplied authorization", async () => {
-  const t = convexTest(schema, modules);
-  const userId = await t.run((ctx) => ctx.db.insert("users", {}));
-  const signedIn = t.withIdentity({ subject: `${userId}|test-session` });
-  const id = await signedIn.mutation(api.Canvas.create, {
-    geometry: initial,
-    color: "gold",
-  });
-  expect(await t.query(api.Canvas.list, {})).toMatchObject([
-    { id, color: "gold" },
-  ]);
-  await t.mutation(api.Canvas.deleteElement, {
-    id,
-    generation: 1,
-    operation: crypto.randomUUID(),
-    secret: crypto.randomUUID(),
-  });
-  expect(await signedIn.query(api.Canvas.list, {})).toEqual([]);
-});
-
-test("client arguments cannot supply an actor to bypass the server-derived context", async () => {
-  const t = convexTest(schema, modules);
-  const untrusted = {
-    geometry: initial,
-    color: "blue" as const,
-    actor: { kind: "authenticated" },
-  };
-  await expect(t.mutation(api.Canvas.create, untrusted)).rejects.toThrow();
-  expect(await t.query(api.Canvas.list, {})).toEqual([]);
+  );
+  const before = await t.run((ctx) => ctx.db.get(id));
+  await expect(
+    t.mutation(api.Canvas.applyHistoryAction, {
+      session,
+      secret,
+      action: token(),
+      attempt: token(),
+      input: {
+        kind: "create",
+        element: { kind: "rectangle", geometry, color: "gold" },
+      },
+    }),
+  ).rejects.toThrow("retired");
+  for (const kind of ["create", "delete", "geometry"] as const) {
+    const action = token();
+    await t.run((ctx) =>
+      ctx.db.insert("canvasHistoryActions", {
+        session,
+        action,
+        version: 2,
+        revision: 1,
+        state: kind === "create" ? "undone" : "applied",
+        payload:
+          kind === "geometry"
+            ? {
+                kind,
+                sequence: 1,
+                fingerprint: "old",
+                deadline: 0,
+                changes: [
+                  {
+                    id,
+                    lineage: "old",
+                    generation: 2,
+                    before: geometry,
+                    after: { ...geometry, x: 99 },
+                  },
+                ],
+              }
+            : {
+                kind,
+                id,
+                lineage: "old",
+                deletion: "old",
+                deletedGeneration: 2,
+              },
+      }),
+    );
+    expect(
+      (
+        await t.mutation(api.Canvas.reverseHistoryAction, {
+          session,
+          secret,
+          action,
+          attempt: token(),
+          revision: 1,
+          undo: kind !== "create",
+        })
+      ).status,
+    ).toBe("obsolete");
+  }
+  expect(
+    (
+      await t.mutation(api.Canvas.updateHistoryGesture, {
+        session,
+        secret,
+        action: token(),
+        sequence: 1,
+        updates: [{ id, generation: 2, geometry }],
+      })
+    ).status,
+  ).toBe("conflict");
+  expect(await t.run((ctx) => ctx.db.get(id))).toEqual(before);
 });

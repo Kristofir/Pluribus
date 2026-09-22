@@ -9,6 +9,7 @@ export type AlignmentMatch = {
   targetAnchor: AlignmentAnchor;
   targetId: ElementId;
   coordinate: number;
+  offset?: number;
 };
 export type AlignmentOperation =
   | { kind: "move" }
@@ -53,6 +54,7 @@ export function resolveAlignment(
   targets: AlignmentTarget[],
   operation: AlignmentOperation,
   options: {
+    spacing?: number;
     acquire: number;
     release: number;
     previous?: AlignmentMatch[];
@@ -80,6 +82,35 @@ export function resolveAlignment(
             targetId: target.id,
             coordinate: anchorCoordinate(target.geometry, axis, targetAnchor),
           });
+    // Spacing uses facing edges, and only for cards sharing a row or column.
+    const perpendicular = axis === "x" ? "y" : "x";
+    const perpendicularSize = axis === "x" ? "height" : "width";
+    if (options.spacing && options.spacing > 0) {
+      for (const target of targets) {
+        const overlap =
+          Math.min(
+            candidate[perpendicular] + candidate[perpendicularSize],
+            target.geometry[perpendicular] + target.geometry[perpendicularSize],
+          ) -
+          Math.max(candidate[perpendicular], target.geometry[perpendicular]);
+        if (overlap <= 0) continue;
+        for (const sourceAnchor of sources) {
+          if (sourceAnchor === "center") continue;
+          const targetAnchor = sourceAnchor === "start" ? "end" : "start";
+          const offset =
+            sourceAnchor === "start" ? options.spacing : -options.spacing;
+          proposals.push({
+            axis,
+            sourceAnchor,
+            targetAnchor,
+            targetId: target.id,
+            coordinate:
+              anchorCoordinate(target.geometry, axis, targetAnchor) + offset,
+            offset,
+          });
+        }
+      }
+    }
     const distance = (m: AlignmentMatch) =>
       Math.abs(
         m.coordinate - anchorCoordinate(candidate, axis, m.sourceAnchor),
@@ -92,6 +123,7 @@ export function resolveAlignment(
           m.sourceAnchor === previous.sourceAnchor &&
           m.targetId === previous.targetId &&
           m.targetAnchor === previous.targetAnchor &&
+          m.offset === previous.offset &&
           distance(m) <= options.release,
       );
     proposals.sort(
@@ -99,7 +131,8 @@ export function resolveAlignment(
         distance(a) - distance(b) ||
         a.targetId.localeCompare(b.targetId) ||
         anchors.indexOf(a.sourceAnchor) - anchors.indexOf(b.sourceAnchor) ||
-        anchors.indexOf(a.targetAnchor) - anchors.indexOf(b.targetAnchor),
+        anchors.indexOf(a.targetAnchor) - anchors.indexOf(b.targetAnchor) ||
+        (a.offset ?? 0) - (b.offset ?? 0),
     );
     for (const match of [
       ...(held ? [held] : []),

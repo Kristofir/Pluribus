@@ -1,3 +1,4 @@
+import type { SourceTable } from "../../sources/domain/Source";
 import type { ElementId, RectangleColor } from "./Element";
 import type { Geometry } from "./Geometry";
 
@@ -10,7 +11,14 @@ export const historyLimits = {
 } as const;
 export type ElementCreationInput =
   | { kind: "rectangle"; geometry: Geometry; color: RectangleColor }
-  | { kind: "document"; geometry: Geometry };
+  | { kind: "document"; geometry: Geometry }
+  | {
+      kind: "source";
+      geometry: Geometry;
+      url: string;
+      prompt?: string;
+      table?: SourceTable;
+    };
 export type CanvasActionInput =
   | { kind: "create"; element: ElementCreationInput }
   | { kind: "delete"; id: ElementId; generation: number };

@@ -20,7 +20,8 @@ export function documentPersistence(
         .query("documents")
         .withIndex("by_key", (q) => q.eq("key", "shared"))
         .unique();
-      if (doc && (doc.access !== "public" || doc.workspaceId)) throw new Error("Invalid legacy document ownership");
+      if (doc && (doc.access !== "public" || doc.workspaceId))
+        throw new Error("Invalid legacy document ownership");
       return doc ? { id: toDocumentId(doc._id), access: "public" } : null;
     },
     /**

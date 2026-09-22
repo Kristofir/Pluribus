@@ -1,3 +1,4 @@
+import { documentLimits } from "../domain/Document";
 import { assertDocumentGeometry, type Geometry } from "../domain/Geometry";
 import { assertCanvasAccess, type CanvasActor } from "../domain/Access";
 import type { DocumentElement, DocumentElementId } from "../domain/Element";
@@ -31,8 +32,10 @@ export async function createCanvasDocument(
   assertCanvasAccess(actor);
   assertDocumentGeometry(geometry);
   // Deleted children retain recovery data but do not occupy active canvas capacity.
-  if ((await cards.count()) >= 2)
-    throw new Error("This canvas supports two active document cards.");
+  if ((await cards.count()) >= documentLimits.maxCount)
+    throw new Error(
+      `This canvas supports ${documentLimits.maxCount} active document cards.`,
+    );
   const id = await cards.insert(geometry);
   await cards.attach(id, await text.create(id));
   return id;

@@ -1,4 +1,5 @@
-import { createRectangle } from "@pluribus/core/canvas/application";
+import { activeSources, requestSource } from "../sources/Persistence";
+import { defaultSourceGeometry } from "../sources/Model";
 import { createCanvasDocument } from "@pluribus/core/canvas/documents";
 import type { HistoryPorts } from "@pluribus/core/canvas/history/ports";
 import type {
@@ -8,7 +9,6 @@ import type {
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { rectanglePersistence } from "./Persistence";
 import { canvasDocuments } from "./Documents";
 import { childText } from "../documents/ChildText";
 import { toElementId } from "./ElementLifecycles";
@@ -21,7 +21,8 @@ import {
 export function storedElement(ctx: QueryCtx, id: string) {
   const value =
     ctx.db.normalizeId("rectangles", id) ??
-    ctx.db.normalizeId("canvasDocuments", id);
+    ctx.db.normalizeId("canvasDocuments", id) ??
+    ctx.db.normalizeId("sources", id);
   if (!value) throw new Error("Invalid Element identity");
   return value;
 }
@@ -68,6 +69,54 @@ export function checkHistorySize(value: unknown) {
   )
     throw new HistoryProtocolError("History payload exceeds 128 KiB");
 }
+export async function readHistoryElement(
+  ctx: QueryCtx,
+  id: import("@pluribus/core/canvas/domain").ElementId,
+  scope: string,
+) {
+  const workspaceId =
+    scope === "shared"
+      ? undefined
+      : (ctx.db.normalizeId("workspaces", scope) ?? undefined);
+
+  if (ctx.db.normalizeId("rectangles", id)) return null;
+  const sourceId = ctx.db.normalizeId("sources", id);
+  if (sourceId) {
+    const source = await ctx.db.get(sourceId);
+    return source && source.workspaceId === workspaceId
+      ? {
+          id,
+          kind: "source" as const,
+          generation: source.generation ?? 1,
+          removed: source.removed ?? false,
+          activeDeletion: source.activeDeletion ?? null,
+          geometry: source.geometry ?? defaultSourceGeometry,
+        }
+      : null;
+  }
+  const stored = storedElement(ctx, id),
+    row = await ctx.db.get(stored);
+  if (
+    !row ||
+    !("x" in row) ||
+    ("canvas" in row ? row.canvas !== scope : row.workspaceId !== workspaceId)
+  )
+    return null;
+  return {
+    id,
+    kind: "document" as const,
+    generation: row.generation ?? 1,
+    removed: row.removed ?? false,
+    activeDeletion: row.activeDeletion ?? null,
+    geometry: {
+      x: row.x,
+      y: row.y,
+      width: row.width,
+      height: row.height,
+    },
+  };
+}
+
 /** Narrow session-bound adapters; one action never scans another session's history. */
 export function historyPorts(
   ctx: MutationCtx,
@@ -75,10 +124,13 @@ export function historyPorts(
   actor: CanvasActor,
   scope = "shared",
 ): HistoryPorts {
-  const workspaceId = scope === "shared" ? undefined : ctx.db.normalizeId("workspaces", scope) ?? undefined;
-  if (scope !== "shared" && !workspaceId) throw new Error("Invalid History scope");
-  const rectangles = rectanglePersistence(ctx, workspaceId),
-    documents = canvasDocuments(ctx, workspaceId);
+  const workspaceId =
+    scope === "shared"
+      ? undefined
+      : (ctx.db.normalizeId("workspaces", scope) ?? undefined);
+  if (scope !== "shared" && !workspaceId)
+    throw new Error("Invalid History scope");
+  const documents = canvasDocuments(ctx, workspaceId);
   const target = (element: ReturnType<typeof storedElement>) =>
     ctx.db
       .query("canvasHistoryTargets")
@@ -89,37 +141,64 @@ export function historyPorts(
   return {
     now: Date.now(),
     elements: {
-      async get(id) {
-        const stored = storedElement(ctx, id),
-          row = await ctx.db.get(stored);
-        if (!row || !("x" in row) || ("canvas" in row ? row.canvas !== scope : row.workspaceId !== workspaceId)) return null;
-        return {
-          id,
-          kind: ctx.db.normalizeId("rectangles", id) ? "rectangle" : "document",
-          generation: row.generation ?? 1,
-          removed: row.removed ?? false,
-          activeDeletion: row.activeDeletion ?? null,
-          geometry: {
-            x: row.x,
-            y: row.y,
-            width: row.width,
-            height: row.height,
-          },
-        };
+      get: (id) => readHistoryElement(ctx, id, scope),
+      create: (input) => {
+        if (input.kind === "rectangle")
+          throw new HistoryProtocolError("Rectangle elements are retired");
+        if (input.kind === "source") {
+          if (!workspaceId)
+            throw new HistoryProtocolError(
+              "Web Pages require a private workspace",
+            );
+          return requestSource(ctx, { workspaceId, ...input }).then(
+            toElementId,
+          );
+        }
+        return createCanvasDocument(
+          { cards: documents, text: childText(ctx, workspaceId) },
+          actor,
+          input.geometry,
+        );
       },
-      create: (input) =>
-        input.kind === "rectangle"
-          ? createRectangle({ rectangles }, actor, input)
-          : createCanvasDocument(
-              { cards: documents, text: childText(ctx, workspaceId) },
-              actor,
-              input.geometry,
-            ),
       count: (kind) =>
-        kind === "rectangle" ? rectangles.countUpTo(200) : documents.count(),
-      geometry: (id, geometry) =>
-        ctx.db.patch(storedElement(ctx, id), geometry),
+        kind === "rectangle"
+          ? Promise.resolve(0)
+          : kind === "source"
+            ? workspaceId
+              ? activeSources(ctx, workspaceId).then((rows) => rows.length)
+              : Promise.resolve(0)
+            : documents.count(),
+      geometry: (id, geometry) => {
+        const source = ctx.db.normalizeId("sources", id);
+        return source
+          ? ctx.db.patch(source, { geometry })
+          : ctx.db.patch(storedElement(ctx, id), geometry);
+      },
       async lifecycle(id, removed, generation, deletion) {
+        const sourceId = ctx.db.normalizeId("sources", id);
+        if (sourceId) {
+          const row = await ctx.db.get(sourceId);
+          if (!row) throw new HistoryProtocolError("Web Page unavailable");
+          await ctx.db.patch(sourceId, {
+            removed: removed ? true : undefined,
+            generation,
+            activeDeletion: deletion ?? undefined,
+            // Invalidate in-flight provider work on deletion; restoration never auto-refetches.
+            ...(removed
+              ? {
+                  revision: row.revision + 1,
+                  ...(["queued", "fetching"].includes(row.status)
+                    ? {
+                        status: "failed" as const,
+                        error:
+                          "Capture interrupted by deletion. Refresh to retry.",
+                      }
+                    : {}),
+                }
+              : {}),
+          });
+          return;
+        }
         const stored = storedElement(ctx, id);
         await ctx.db.patch(stored, {
           removed: ctx.db.normalizeId("rectangles", id)

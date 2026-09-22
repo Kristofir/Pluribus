@@ -3,6 +3,7 @@ import { convexTest } from "convex-test";
 import { register } from "@convex-dev/prosemirror-sync/test";
 import { test, expect } from "vitest";
 import schema from "./schema";
+import { documentLimits } from "@pluribus/core/canvas/domain";
 import { api, internal } from "./_generated/api";
 const modules = import.meta.glob("./**/*.ts");
 const geometry = { x: 75, y: 120, width: 430, height: 500 };
@@ -99,7 +100,9 @@ test("capacity rejection keeps Undo available and commits neither receipt consum
   const proof = credential();
   await t.mutation(api.Canvas.deleteDocument, { id, generation: 1, ...proof });
   const second = await t.mutation(api.Canvas.createDocument, { geometry });
-  await t.mutation(api.Canvas.createDocument, { geometry });
+  for (let i = 1; i < documentLimits.maxCount; i++)
+    await t.mutation(api.Canvas.createDocument, { geometry });
+  expect(await t.query(api.Canvas.documentCards, {})).toHaveLength(100);
   expect((await t.mutation(api.Canvas.undoDeletion, proof)).status).toBe(
     "full",
   );
@@ -118,9 +121,13 @@ test("capacity rejection keeps Undo available and commits neither receipt consum
     generation: 1,
     ...credential(),
   });
+  expect(await t.query(api.Canvas.documentCards, {})).toHaveLength(99);
   expect((await t.mutation(api.Canvas.undoDeletion, proof)).status).toBe(
     "restored",
   );
+  const restored = await t.query(api.Canvas.documentCards, {});
+  expect(restored).toHaveLength(100);
+  expect(restored.some((card) => card.id === id)).toBe(true);
 });
 
 test("wrong capability, reused operation and different signed-in caller cannot restore", async () => {

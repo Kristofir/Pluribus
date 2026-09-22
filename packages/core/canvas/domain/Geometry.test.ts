@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import {
   assertElementGeometry,
+  assertSourceGeometry,
   assertDocumentGeometry,
   InvalidElementGeometry,
   geometryLimits,
@@ -36,4 +37,19 @@ test("documents allow tall finite heights while retaining width and position lim
   expect(() => assertDocumentGeometry({ ...geometry, width: 2001 })).toThrow(
     InvalidElementGeometry,
   );
+});
+
+test("web cards accept compact design sizes and retain bounded geometry", () => {
+  for (const height of [132, 176, 360])
+    expect(() =>
+      assertSourceGeometry({ x: 0, y: 0, width: 300, height }),
+    ).not.toThrow();
+  for (const geometry of [
+    { width: 299, height: 176 },
+    { width: 300, height: 131 },
+    { width: 300, height: 2001 },
+  ])
+    expect(() => assertSourceGeometry({ x: 0, y: 0, ...geometry })).toThrow(
+      InvalidElementGeometry,
+    );
 });

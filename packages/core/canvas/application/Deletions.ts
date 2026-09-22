@@ -1,3 +1,5 @@
+import { sourceLimits } from "../../sources/domain/Source";
+import { documentLimits } from "../domain/Document";
 import { assertCanvasAccess, type CanvasActor } from "../domain/Access";
 import type { CanvasElement, ElementId } from "../domain/Element";
 import { rectangleLimits } from "../domain/Rectangle";
@@ -26,8 +28,9 @@ export interface DeletionReceipts {
   restore(operation: string, generation: number): Promise<void>;
 }
 const restoreCapacity: Record<CanvasElement["kind"], number> = {
+  source: sourceLimits.maxCount,
   rectangle: rectangleLimits.maxCount,
-  document: 2,
+  document: documentLimits.maxCount,
 };
 type Dependencies = { elements: ElementLifecycles; receipts: DeletionReceipts };
 type Actor = { access: CanvasActor; owner: string | null };

@@ -357,3 +357,39 @@ Use four indexed records for distinct responsibilities: session authority, actio
 state, durable attempt deduplication and per-Element continuity. Preserve legacy
 receipts separately. No event-sourcing framework, runtime handler registry, persistent
 personal stacks, property-specific conflict engine or automatic purge in this increment.
+
+## 2026-09-20 — Workspace prototype boundaries
+
+Accepted for the local prototype: reuse Canvas-owned documents for main/reply
+panels, distinguished by role rather than fake geometry. Keep canonical text in
+ProseMirror Sync. Add paragraph IDs as editor attributes, not a second content model.
+
+Membership and revocable document grants protect private workspaces. External MCP
+clients supply typed exact-version edits; the app does not choose an AI model.
+Provider actions consume revisioned source requests or immutable reviewed send
+intents. Unknown delivery blocks resending until positive evidence resolves it.
+These remain bounded experiments; pagination expansion, evidence retention and
+broader structural Undo need separate decisions. [Details](workspaces.md).
+
+## Retire Rectangle capability
+
+Document cards are the only active spatial elements. Remove rectangle UI and
+creation services; keep stored rows and receipt discriminants for compatibility.
+Legacy endpoints are inert, inverses reject retired targets, paragraph links omit
+rectangles, and old agent contexts must be replaced before reading or editing.
+No data purge or History redesign accompanies this change.
+
+## 2026-09-21 — Canvas document cap of 100
+
+At Chris’s request, raise the active spatial document cap from two to 100. One
+domain constant governs creation, restoration, bounded reads and the Add control.
+Main/reply panels and removed cards remain excluded. This replaces the earlier
+two-card prototype limit; it is not a 100-editor performance guarantee.
+
+## Web Pages reuse sources and Element History
+
+Expose existing Firecrawl captures as spatial source Elements in private workspaces.
+Extend typed creation/lifecycle/geometry adapters rather than adding a second
+History or text model. Keep old captures during refresh, bound canvas previews,
+and load full captures only in the read-only panel. Keep separate source/document
+capacity and preserve rows on deletion. Rectangle retirement remains unchanged.

@@ -8,6 +8,7 @@ import {
 } from "../../domain/History";
 import {
   assertDocumentGeometry,
+  assertSourceGeometry,
   assertElementGeometry,
 } from "../../domain/Geometry";
 import { sameGeometry } from "../GeometryHistory";
@@ -94,7 +95,9 @@ export async function updateGesture(
       return { status: "conflict", sequence: payload?.sequence ?? 0 };
     (element.kind === "document"
       ? assertDocumentGeometry
-      : assertElementGeometry)(update.geometry);
+      : element.kind === "source"
+        ? assertSourceGeometry
+        : assertElementGeometry)(update.geometry);
     const prior = payload?.changes[i];
     if (prior && prior.generation !== update.generation)
       return { status: "conflict", sequence: payload!.sequence };

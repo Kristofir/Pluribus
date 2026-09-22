@@ -4,7 +4,7 @@ import type { MutationCtx } from "../_generated/server";
 import { color, geometry } from "./Model";
 import { historyCredentials } from "./HistoryCredentials";
 import { elementLifecycles, toElementId } from "./ElementLifecycles";
-import { create, createDocument } from "./Handlers";
+import { createDocument } from "./Handlers";
 
 export const creation = v.union(
   v.object({ kind: v.literal("rectangle"), geometry, color }),
@@ -26,15 +26,10 @@ export async function createElement(
     args.secret,
   );
   const input = args.element;
+  if (input.kind === "rectangle")
+    throw new Error("Rectangle elements are retired");
   const { x, y, width, height } = input.geometry;
-  const request = JSON.stringify([
-    input.kind,
-    x,
-    y,
-    width,
-    height,
-    input.kind === "rectangle" ? input.color : null,
-  ]);
+  const request = JSON.stringify([input.kind, x, y, width, height, null]);
   const normalize = (id: string) => {
     const stored =
       ctx.db.normalizeId("rectangles", id) ??
@@ -60,11 +55,7 @@ export async function createElement(
         });
       },
       async create() {
-        return toElementId(
-          input.kind === "rectangle"
-            ? await create(ctx, input)
-            : await createDocument(ctx, input),
-        );
+        return toElementId(await createDocument(ctx, input));
       },
     },
     actor,

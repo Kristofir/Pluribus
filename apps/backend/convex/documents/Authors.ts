@@ -64,7 +64,12 @@ export async function openAuthorship(
     secretHash: await hashSecret(secret),
   });
   await ctx.db.patch(document._id, { authorship: 1 });
-  return { author, credential: { session, secret }, guest: guest ?? null, paragraphs: !!document.paragraphs };
+  return {
+    author,
+    credential: { session, secret },
+    guest: guest ?? null,
+    paragraphs: !!document.paragraphs,
+  };
 }
 export async function requireAuthor(
   ctx: MutationCtx,
@@ -81,7 +86,8 @@ export async function requireAuthor(
     throw new Error("Invalid author session");
   const author = await ctx.db.get(session.author);
   if (
-    !author || author.kind === "agent" ||
+    !author ||
+    author.kind === "agent" ||
     (author.kind === "user" && (await getAuthUserId(ctx)) !== author.userId)
   )
     throw new Error("Author identity changed");
@@ -97,8 +103,20 @@ export async function authorProfiles(
     throw new Error("Too many authors in one request");
   return Promise.all(
     [...new Set(args.authors)].map(async (id) => {
-      const session = await ctx.db.query("documentAuthorSessions").withIndex("by_scope_author", q => q.eq("scope", args.id).eq("author", id)).first();
-      const accepted = session ? true : await ctx.db.query("documentOperations").withIndex("by_document_author", q => q.eq("document", document._id).eq("author", id)).first();
+      const session = await ctx.db
+        .query("documentAuthorSessions")
+        .withIndex("by_scope_author", (q) =>
+          q.eq("scope", args.id).eq("author", id),
+        )
+        .first();
+      const accepted = session
+        ? true
+        : await ctx.db
+            .query("documentOperations")
+            .withIndex("by_document_author", (q) =>
+              q.eq("document", document._id).eq("author", id),
+            )
+            .first();
       const row = accepted ? await ctx.db.get(id) : null;
       return {
         id,

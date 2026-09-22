@@ -35,12 +35,12 @@ The Google client's authorized redirect URI is the backend HTTP actions origin
 plus `/api/auth/callback/google`. Its JavaScript origin must match the frontend.
 For an OAuth app in testing, add the intended Google test accounts.
 
-The local checkout uses frontend `http://127.0.0.1:5174`, backend
+The local checkout uses frontend `http://127.0.0.1:5173`, backend
 `http://127.0.0.1:3210`, and HTTP actions `http://127.0.0.1:3211`. Signing keys and
 `SITE_URL` and Google credentials are configured locally. The Google project is
 `pluribus-508119`, with a Web application client named `Pluribus local development`.
 The audience is External in Testing mode with one test account. Run the frontend
-with `npm run dev:frontend -- --port 5174`. If you change the port, update
+with `npm run dev:frontend` (port 5173, strict port binding). If you change the port, update
 `SITE_URL` and the Google client accordingly. No cloud deployment was changed.
 
 ## Behavior and verification
@@ -64,3 +64,12 @@ the session, and sign-out cleared both tabs. A second account and long-lived tok
 renewal remain unverified. Use an ordinary browser if Google refuses OAuth inside
 an embedded browser. The full project check still reports 92 pre-existing research
 formatting failures. Production branding and deployment remain unconfigured.
+
+### Local callback origin (2026-09-20)
+
+Corrected the local backend `SITE_URL` from port 5174 to 5173. `AuthPanel` passes
+`/?authReturn=true`; the installed Convex Auth default redirect resolver prefixes
+relative paths with `SITE_URL`. Keep that exact-origin policy rather than allowing
+arbitrary frontend origins. Restart any sign-in begun before changing the setting;
+do not reuse or share its callback code. Google completes OAuth at the backend
+callback URI, which remains unchanged on port 3211.

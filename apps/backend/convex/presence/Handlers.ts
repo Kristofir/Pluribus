@@ -173,7 +173,15 @@ export async function activities(ctx: QueryCtx, args: { context: Context }) {
   return rows.flat().map(({ participationId, sequence, activity }) => ({
     participationId,
     sequence,
-    activity,
+    activity:
+      activity.kind === "selection"
+        ? {
+            ...activity,
+            elements: activity.elements.filter(
+              (id) => !ctx.db.normalizeId("rectangles", id),
+            ),
+          }
+        : activity,
   }));
 }
 export async function publish(

@@ -35,12 +35,18 @@ export async function requireDocument(
   const document = id && (await ctx.db.get("documents", id));
   if (!document) throw new Error("Document not found");
   if (document.access === "workspace") {
-    if (!document.workspaceId || !document.element) throw new Error("Invalid private document ownership");
-    if (delegatedUser) await requireWorkspaceMember(ctx, document.workspaceId, delegatedUser);
+    if (!document.workspaceId || !document.element)
+      throw new Error("Invalid private document ownership");
+    if (delegatedUser)
+      await requireWorkspaceMember(ctx, document.workspaceId, delegatedUser);
     else await requireWorkspace(ctx, document.workspaceId);
   } else {
-    if (document.workspaceId) throw new Error("Invalid public document ownership");
-    assertDocumentAccess(await documentActor(ctx), { id: toDocumentId(document._id), access: document.access });
+    if (document.workspaceId)
+      throw new Error("Invalid public document ownership");
+    assertDocumentAccess(await documentActor(ctx), {
+      id: toDocumentId(document._id),
+      access: document.access,
+    });
   }
   if (document.element) {
     const child = await ctx.db.get(document.element);

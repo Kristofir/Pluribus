@@ -56,12 +56,24 @@ export async function submitDocumentSteps(
     credential?: Credential;
     protocol?: number;
   },
-  delegation?: { userId: Id<"users">; author: Id<"documentAuthors">; session: Id<"documentAuthorSessions">; restoration?: { author: string; session: string; operations: string[] } },
+  delegation?: {
+    userId: Id<"users">;
+    author: Id<"documentAuthors">;
+    session: Id<"documentAuthorSessions">;
+    restoration?: { author: string; session: string; operations: string[] };
+  },
 ) {
-  const document = await requireDocument(ctx, args.id, true, delegation?.userId);
+  const document = await requireDocument(
+    ctx,
+    args.id,
+    true,
+    delegation?.userId,
+  );
   const scope = args.id;
   const actor = document.authorship
-    ? delegation ? { author: delegation.author, session: delegation.session } : await requireAuthor(ctx, scope, args.credential)
+    ? delegation
+      ? { author: delegation.author, session: delegation.session }
+      : await requireAuthor(ctx, scope, args.credential)
     : null;
   if (document.authorship && args.protocol !== 1)
     throw new Error("Reload this document to use authorship");

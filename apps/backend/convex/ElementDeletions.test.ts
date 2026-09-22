@@ -15,10 +15,11 @@ function setup() {
   register(t);
   return t;
 }
-
-test("rectangle deletion preserves identity/color/geometry; stale writes stay invalid after restore", async () => {
+test("document deletion preserves identity/geometry; stale writes stay invalid after restore", async () => {
   const t = setup();
-  const id = await t.mutation(api.Canvas.create, { geometry, color: "coral" });
+  const id = await t.mutation(api.Canvas.createDocument, {
+    geometry,
+  });
   const command = { id, generation: 1, ...credential() };
   const proof = { operation: command.operation, secret: command.secret };
   expect(await t.mutation(api.Canvas.deleteElement, command)).toEqual({
@@ -29,12 +30,12 @@ test("rectangle deletion preserves identity/color/geometry; stale writes stay in
     status: "deleted",
     generation: 2,
   });
-  expect(await t.query(api.Canvas.list, {})).toEqual([]);
+  expect(await t.query(api.Canvas.documentCards, {})).toEqual([]);
   expect(
-    await t.mutation(api.Canvas.updateGeometry, {
+    await t.mutation(api.Canvas.changeDocument, {
       id,
       generation: 1,
-      geometry,
+      change: { kind: "geometry", geometry: geometry },
     }),
   ).toBe(false);
   expect(await t.mutation(api.Canvas.undoDeletion, proof)).toEqual({
@@ -46,24 +47,24 @@ test("rectangle deletion preserves identity/color/geometry; stale writes stay in
     generation: 3,
   });
   expect(
-    await t.mutation(api.Canvas.updateGeometry, {
+    await t.mutation(api.Canvas.changeDocument, {
       id,
       generation: 1,
-      geometry: { ...geometry, x: 999 },
+      change: { kind: "geometry", geometry: { ...geometry, x: 999 } },
     }),
   ).toBe(false);
-  expect(await t.query(api.Canvas.list, {})).toEqual([
-    { id, ...geometry, color: "coral", generation: 3 },
+  expect(await t.query(api.Canvas.documentCards, {})).toMatchObject([
+    { id, geometry, generation: 3 },
   ]);
   expect((await t.mutation(api.Canvas.deleteElement, command)).status).toBe(
     "conflict",
   );
   const moved = { ...geometry, x: 120 };
   expect(
-    await t.mutation(api.Canvas.updateGeometry, {
+    await t.mutation(api.Canvas.changeDocument, {
       id,
       generation: 3,
-      geometry: moved,
+      change: { kind: "geometry", geometry: moved },
     }),
   ).toBe(true);
   const redo = { id, generation: 3, ...credential() };
@@ -75,57 +76,16 @@ test("rectangle deletion preserves identity/color/geometry; stale writes stay in
     operation: redo.operation,
     secret: redo.secret,
   });
-  expect(await t.query(api.Canvas.list, {})).toMatchObject([
-    { id, ...moved, generation: 5 },
+  expect(await t.query(api.Canvas.documentCards, {})).toMatchObject([
+    { id, geometry: moved, generation: 5 },
   ]);
 });
-
-test("legacy rectangles are active at generation one; deleted rows do not consume capacity", async () => {
-  const t = setup();
-  const id = await t.run((ctx) =>
-    ctx.db.insert("rectangles", { ...geometry, color: "blue" }),
-  );
-  expect(await t.query(api.Canvas.list, {})).toMatchObject([
-    { id, generation: 1 },
-  ]);
-  const proof = credential();
-  await t.mutation(api.Canvas.deleteElement, { id, generation: 1, ...proof });
-  await t.run(async (ctx) => {
-    for (let i = 0; i < 199; i++)
-      await ctx.db.insert("rectangles", { ...geometry, color: "blue" });
-  });
-  const replacement = await t.mutation(api.Canvas.create, {
-    geometry,
-    color: "gold",
-  });
-  expect(await t.query(api.Canvas.list, {})).toHaveLength(200);
-  expect((await t.mutation(api.Canvas.undoDeletion, proof)).status).toBe(
-    "full",
-  );
-  const receipt = await t.run((ctx) =>
-    ctx.db
-      .query("canvasDeletions")
-      .withIndex("by_operation", (q) => q.eq("operation", proof.operation))
-      .unique(),
-  );
-  expect(receipt?.restoredGeneration).toBeUndefined();
-  await t.mutation(api.Canvas.deleteElement, {
-    id: replacement,
-    generation: 1,
-    ...credential(),
-  });
-  expect((await t.mutation(api.Canvas.undoDeletion, proof)).status).toBe(
-    "restored",
-  );
-});
-
-test("receipts bind owner, capability and Element identity across types", async () => {
+test("receipts bind owner, capability and Element identity across documents", async () => {
   const t = setup();
   const user = await t.run((ctx) => ctx.db.insert("users", {}));
   const owner = t.withIdentity({ subject: user });
-  const id = await owner.mutation(api.Canvas.create, {
+  const id = await owner.mutation(api.Canvas.createDocument, {
     geometry,
-    color: "blue",
   });
   const document = await owner.mutation(api.Canvas.createDocument, {
     geometry,
@@ -166,10 +126,11 @@ test("receipts bind owner, capability and Element identity across types", async 
     (await owner.mutation(api.Canvas.undoDeletion, documentProof)).status,
   ).toBe("restored");
 });
-
 test("rejected stale deletion writes no receipt", async () => {
   const t = setup();
-  const id = await t.mutation(api.Canvas.create, { geometry, color: "blue" });
+  const id = await t.mutation(api.Canvas.createDocument, {
+    geometry,
+  });
   const proof = credential();
   expect(
     (

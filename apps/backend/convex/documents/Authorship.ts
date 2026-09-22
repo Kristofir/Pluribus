@@ -66,7 +66,13 @@ export async function acceptAuthorship(
           let moveGroup = step.move?.group,
             movePart = step.move?.part;
           if (receipt) {
-            const inverse = await mappedInverse(ctx, document, receipt, baseVersion, local);
+            const inverse = await mappedInverse(
+              ctx,
+              document,
+              receipt,
+              baseVersion,
+              local,
+            );
             const expected = inverse?.apply(doc),
               actual = step.apply(doc);
             if (!expected?.doc || !actual.doc || !expected.doc.eq(actual.doc))
@@ -185,17 +191,22 @@ function operationEvidence(
 }
 
 /** Shared editor-mechanics adapter for personal and explicitly delegated inverse proof. */
-export async function mappedInverse(ctx: MutationCtx, document: Id<"documents">, receipt: { version: number; proof: string }, baseVersion: number, local: AuthoredStep[]) {
+export async function mappedInverse(
+  ctx: MutationCtx,
+  document: Id<"documents">,
+  receipt: { version: number; proof: string },
+  baseVersion: number,
+  local: AuthoredStep[],
+) {
   let cursor = receipt.version;
   const intervening: Step[] = [];
   while (cursor < baseVersion) {
-    const batch = await ctx.runQuery(
-      components.prosemirrorSync.lib.getSteps,
-      { id: document, version: cursor },
-    );
+    const batch = await ctx.runQuery(components.prosemirrorSync.lib.getSteps, {
+      id: document,
+      version: cursor,
+    });
     const values = batch.steps.slice(0, baseVersion - cursor);
-    if (!values.length)
-      throw new Error("Restoration history unavailable");
+    if (!values.length) throw new Error("Restoration history unavailable");
     intervening.push(
       ...values.map((value) =>
         Step.fromJSON(documentSchema, JSON.parse(value)),
@@ -215,10 +226,9 @@ export async function mappedInverse(ctx: MutationCtx, document: Id<"documents">,
     mapping.appendMap(other.getMap(), mirror);
     if (other instanceof AuthoredStep) positions.set(other.id, pos);
   }
-  const inverse = Step.fromJSON(
-    documentSchema,
-    JSON.parse(receipt.proof),
-  ).map(mapping);
+  const inverse = Step.fromJSON(documentSchema, JSON.parse(receipt.proof)).map(
+    mapping,
+  );
 
   return inverse;
 }

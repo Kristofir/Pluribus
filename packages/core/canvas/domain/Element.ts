@@ -1,13 +1,16 @@
 import type { Geometry } from "./Geometry";
 import type { DocumentId } from "../../documents/domain/Document";
 
+declare const sourceIdBrand: unique symbol;
+export type SourceElementId = string & { readonly [sourceIdBrand]: true };
+
 declare const rectangleIdBrand: unique symbol;
 declare const documentElementIdBrand: unique symbol;
 export type RectangleId = string & { readonly [rectangleIdBrand]: true };
 export type DocumentElementId = string & {
   readonly [documentElementIdBrand]: true;
 };
-export type ElementId = RectangleId | DocumentElementId;
+export type ElementId = RectangleId | DocumentElementId | SourceElementId;
 /** The prototype currently has one canvas; adding others requires an access policy. */
 export type CanvasId = string;
 export const rectangleColors = ["blue", "coral", "gold"] as const;
@@ -32,5 +35,9 @@ export interface DocumentElement extends ElementBase {
   /** Internal text identity; the document element remains the user-managed object. */
   documentId: DocumentId;
 }
+export interface SourceElement extends ElementBase {
+  id: SourceElementId;
+  kind: "source";
+}
 /** Narrow by kind before accessing content-specific data; variants are never bags of optional fields. */
-export type CanvasElement = RectangleElement | DocumentElement;
+export type CanvasElement = RectangleElement | DocumentElement | SourceElement;

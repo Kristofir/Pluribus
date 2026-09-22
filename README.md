@@ -2,7 +2,7 @@
 
 React + Vite + TypeScript frontend with a Convex backend. The page checks
 backend connectivity and integrates Convex Auth v1 with Google sign-in.
-The shared rectangle canvas at `/canvas` uses core domain rules and use cases,
+The shared document canvas at `/canvas` uses core domain rules and use cases,
 Convex persistence, and a feature-scoped Zustand interaction store. Google sign-in is configured
 and verified locally; see [Authentication](docs/authentication.md) for fresh setup.
 
@@ -31,20 +31,21 @@ processes; Ctrl+C stops both. They can also run separately using
 
 TanStack Router defines the typed route tree in `apps/frontend/src/Router.tsx`.
 Its inline style guide covers adding routes, typed navigation, URL validation,
-auth callbacks, and Convex boundaries. The home route renders the scaffold; `/canvas` loads the multiplayer
+auth callbacks, and Convex boundaries. The home route renders the workspace dashboard; `/canvas` loads the multiplayer
 canvas. Unknown paths show a recovery link. The deployment host must serve `index.html` for deep links.
 
 ## Shared canvas
 
 [Canvas behavior spec](docs/canvas-behavior.md) defines expected interactions and how to verify changes.
 
-Open `/canvas` in two local browser sessions. Add rectangles, drag them,
-resize a selected rectangle with its handles, and delete with the toolbar or
-Delete/Backspace. Pan, zoom, and selection belong to each client. Shared geometry
-is saved in the existing local Convex deployment; the latest accepted update wins.
-Editing pauses offline; already-submitted writes may finish after reconnecting.
-The canvas is limited to 200 rectangles. Its current core access policy explicitly
-allows anonymous participants; workspace membership/isolation is not implemented.
+Open `/canvas` in two local browser sessions. Add document cards, drag them,
+resize selected cards and delete with the toolbar or Delete/Backspace. Pan, zoom
+and selection belong to each client. Shared geometry persists in local Convex;
+the latest accepted update wins. Editing pauses offline. The canvas supports 100
+active document cards. Rectangles are retired; their stored rows and historical
+receipts are retained but cannot be restored or changed.
+The shared canvas allows anonymous participants; private workspaces enforce
+membership separately; see [Workspace prototype](docs/workspaces.md).
 The previous `/prototypes/p00` URL redirects to `/canvas`.
 See [P00 evidence and repeatable checks](docs/research/prototypes.md#p00--multiplayer-canvas-basics).
 
@@ -88,6 +89,19 @@ Use `npm run check:architecture` or `npm run typecheck:core` for focused checks.
 `build` creates static frontend files in `apps/frontend/dist/`; it does not deploy.
 Use `npm run format` to format source and `npm run preview` to preview a build.
 The configured backend must be running for the preview's connectivity check.
+
+Firecrawl HTTP contracts and capture-job failure recovery run in the normal test
+suite. For a real provider smoke test, supply `FIRECRAWL_API_KEY` securely in the
+shell environment and run:
+
+```sh
+FIRECRAWL_LIVE_TEST=1 npx vitest run apps/backend/convex/Firecrawl.test.ts
+```
+
+This captures `example.com`, consumes provider credits, and writes no workspace
+data. It verifies provider connectivity, not support for every website. HTTP 403
+can indicate an unsupported or access-restricted site; successful configuration
+does not make such sites retrievable.
 
 ## Layout
 
@@ -133,12 +147,11 @@ open for pending edits to recover. Pending work is not stored durably offline.
 
 ## Documents on the canvas
 
-Use **Add document** for up to two active child cards. Drag by the outer padding
+Use **Add document** for up to 100 active child cards. Drag by the outer padding
 and edit the text directly. Delete removes a document from the canvas; **Undo**
 restores its saved text and position, and **Redo** deletes it again.
 Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z use personal Element History outside text inputs;
-focused editors keep their own text undo. The same history restores deleted rectangles,
-including their identity, color and geometry. Creation also records one entry: Undo
+focused editors keep their own text undo. Creation also records one entry: Undo
 hides the created Element; Redo restores its identity and saved content.
 Deletions produce one entry per Element;
 move/resize gestures produce one entry for the whole group. Geometry Undo/Redo is
@@ -154,3 +167,11 @@ retains a readable copy and JSON download. Recovery survives route changes until
 explicitly discarded, but is lost on reload or account change. Undo opens saved
 content with a fresh editing session and never replays old pending text.
 `/document` redirects to `/canvas`; existing standalone stored content is retained.
+
+## Web Pages
+
+In a private workspace, **Add web page** captures a URL with an optional extraction
+prompt. Cards support selection, movement, resizing, full read-only capture viewing,
+refresh and inclusion in agent context. Refresh failures retain the previous capture.
+Creation, geometry and deletion participate in Canvas Undo/Redo. Up to 20 Web Pages
+are supported separately from the 100-document limit; captures are not editable text.
