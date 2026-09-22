@@ -17,7 +17,7 @@ export const Authorship = Mark.create({
 export const documentExtensions = [
   StarterKit.configure({
     heading: { levels: [1, 2, 3] },
-    link: false,
+    link: { openOnClick: false, autolink: false },
     underline: false,
   }),
   Authorship,

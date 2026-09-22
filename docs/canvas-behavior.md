@@ -22,7 +22,7 @@ The canvas has no header toolbar, theme picker or interaction-hint row. Workspac
 | Pinch                        | Pointer over background           | Zoom the viewport.                     |
 
 Primary-button drag on empty background draws a marquee; intersecting cards are selected.
-Space-drag or middle-button drag pans. The native browser context menu is suppressed throughout the canvas, its cards/paper and its custom context menu. Right-click the background opens the card-creation menu; Shift+F10 or the Context Menu key opens it at the canvas center when the canvas is focused. Document cards are created at that canvas position; Web Page creation retains it while URL/prompt are entered. Escape/outside click dismisses the menu. Toolbar create/delete buttons are omitted; Delete/Backspace removes selected cards. Shift-click toggles an element in the
+Space-drag or middle-button drag pans. The native browser context menu is suppressed throughout the canvas, its cards and its custom context menu. Right-click the background opens the card-creation menu; Shift+F10 or the Context Menu key opens it at the canvas center when the canvas is focused. Document cards are created at that canvas position; Web Page creation retains it while URL/prompt are entered. Escape/outside click dismisses the menu. Toolbar create/delete buttons are omitted; Delete/Backspace removes selected cards. Shift-click toggles an element in the
 selection without entering document editing; inside an active editor, Shift-click
 keeps its normal text-selection behavior. Double-click behavior remains undecided.
 
@@ -53,11 +53,11 @@ Real browser focus/handoff remains unverified; a disposable fixture timed out.
 
 ## Supported elements
 
-Each canvas supports up to 100 active document cards. Removed cards and main/reply panel documents do not count toward this cap. Creation and restoration both enforce the cap.
+Each canvas supports up to 100 active document cards. Removed cards and reply panel documents do not count toward this cap. Creation and restoration both enforce the cap.
 
 Document cards, workspace Web Pages, and workspace Images are active spatial elements. Images are dropped from local files onto the canvas, display an immediate preview with upload progress, and become shared cards after file validation. Failed uploads remain local with Retry and Remove. PNG, JPEG, GIF and WebP files up to 10 MB are accepted; up to 100 active Image cards are supported separately from documents and Web Pages. Images move, resize, select, delete and restore through Element History. Their stored files remain available when a card is removed for Undo. The public shared canvas does not accept image uploads.
 
-New Image cards start at the source image's aspect ratio where that ratio fits within canvas size limits. Existing cards keep their saved geometry.
+New Image cards start at the source image's aspect ratio where that ratio fits within canvas size limits. Existing cards keep their saved geometry. An AI description is generated after upload when the model is available; a failure does not block the card.
 
 Workspace-wide MCP agents may create Document and Web Page cards, set the full
 geometry of existing Document, Web Page and Image cards, and delete those cards.
@@ -65,10 +65,9 @@ The same size, capacity, lifecycle and conditional Element History rules apply.
 Agent geometry is a direct saved value; browser-only snapping and animation do
 not apply. Agent geometry commands compare the card's current saved geometry
 with the value the agent read before changing it. Image creation still requires
-an upload, and fixed main and panel
-documents are not spatial card targets.
+an upload, and reply documents are not spatial card targets.
 
-In a private workspace, a dropped browser image/link or **Import URL…** checks the remote response. A supported image becomes an Image card; an HTML or text page becomes a Web Page card and follows its normal capture flow. A checking draft appears at the drop/creation point; failed checks can be retried or removed. Direct URL imports reject private destinations, redirects, unsupported formats and images over 10 MB.
+In a private workspace, a dropped browser image/link checks the remote response. A supported image becomes an Image card; an HTML or text page becomes a Web Page card and follows its normal capture flow. A checking draft appears at the drop point; failed checks can be retried or removed. Direct URL imports reject private destinations, redirects, unsupported formats and images over 10 MB.
 
 Rectangles are retired: no
 creation, rendering, selection, movement, deletion, paragraph linking or agent
@@ -97,28 +96,17 @@ result and stops subsequent deletions. Group movement remains one History gestur
 
 Undecided: double-click and keyboard movement.
 
-## Main document paper
+## Reply document panel
 
-- **M1 — Identity:** One canonical main-document editor lives on the workspace canvas, centered at x=0 with its top at y=0. Opening Inbox, replies or tools keeps that editor mounted. There is no duplicate main-document sidebar editor.
-- **M2 — Geometry:** Paper width is 800 canvas pixels; height grows naturally with content. It cannot be selected, moved, resized or deleted and never enters Element History. Pan/zoom moves the view of the paper and surrounding cards together. Existing cards retain their saved positions; default card placement avoids the paper; explicit context-menu creation uses the clicked canvas position. Paper sits above unselected cards, while selected cards rise above it so overlapping cards can be selected with a marquee and moved.
-- **M3 — Navigation:** Initial view and Main document frame the paper top at a width-based zoom, independent of document length. Main document and clicking paper clear local element selection. Linked paragraphs pan into view and highlight without scrolling the outer workspace.
+Reply drafts open their collaborative editor from an inbox thread. Closing or switching panels keeps a draft editor mounted so pending text survives. Retired main documents remain stored for older workspaces but have no navigation or editor surface.
 
-| Event                       | Condition                  | Behavior                                     |
-| --------------------------- | -------------------------- | -------------------------------------------- |
-| **Mouse / trackpad**        |                            |                                              |
-| Click / drag text           | Paper editor available     | Place caret / select text; never move paper. |
-| Marquee / Shift-click       | Paper crossed or clicked   | Exclude paper from canvas selection.         |
-| Two-finger movement / pinch | Over paper                 | Pan / zoom the viewport.                     |
-| **Keyboard**                |                            |                                              |
-| Type / paste / Enter        | Paper focused and editable | Edit canonical text; extend paper height.    |
-| Delete / Backspace          | Paper editor focused       | Delete text only.                            |
-| Undo / Redo                 | Paper editor focused       | Use text history, never Element History.     |
-
-Formatting, collaboration, pending-text recovery and access-paused guards use the existing document session. Replies remain panel editors.
+All rich-text editors show a compact floating menu for a non-empty text selection while editing. It offers bold, italic and a dropdown of Text and Heading 1–3 presets; it closes when the selection collapses. Formatting uses the existing editor session and is unavailable when editing is paused.
 
 ## Document cards
 
-- **D1 — Content:** Text directly on the card: no title bar, formatting toolbar or inset editor surface. Content may contain headings, lists and other text formatting. Do not display loading placeholders or routine status text inside cards; actionable recovery controls remain available.
+- **D1 — Content:** Text directly on the card: no title bar, persistent formatting toolbar or inset editor surface. A floating formatting menu appears for selected text while editing. Content may contain headings, lists, links and other text formatting. Do not display loading placeholders or routine status text inside cards; actionable recovery controls remain available.
+- **D4 — Authorship color:** Canvas Note cards render other authors' text in a stable color per author, including while not editing. The current viewer's own text and unattributed legacy text use the normal text color. Hovering attributed text, including one's own, shows the resolved author name. The colors adapt to light and dark themes and do not change stored document content. Other editor surfaces retain their existing optional authorship highlight.
+- **D0 — Initial size:** New Note cards start 300×300 and can resize freely; their aspect ratio is not locked.
 - **D2 — Interaction:** Outside editing, press without Shift anywhere on a card; release within 5 screen pixels to edit at that position, or move beyond 5 pixels to drag. Once dragging, returning to the start does not turn it into a click. While editing, text drag selects text; padding drag moves the card. Escape or clicking outside exits editing. Moving the card must not remount its editor or lose unsaved text.
 - **D3 — Height:** Minimum height fits rendered content plus padding. Users can make the card taller without a fixed height cap. Overflowing new text grows the card; spare height is preserved. Deleting text does not automatically shrink it. Width changes must also respect the content minimum.
 
@@ -240,11 +228,11 @@ do not claim complete conformance from passing unit tests alone.
   Fetching shows a pink/purple Paper MeshGradient with a centered globe and label.
   Motion pauses offscreen, in hidden tabs and for reduced-motion preferences.
   Ready cards show Web Content, title, URL and preview without footer controls.
-  Only the Details button opens the full read-only capture sheet; title and screenshot clicks do not. Refresh and recovery controls live there.
+  Only the Details button opens the full read-only capture sheet; it is hidden during Fetching. Title and screenshot clicks do not open the sheet. Failed and overdue captures retain recovery controls there.
   Failed cards retain a details/retry action.
 - **W2 — Refresh:** Keep the last successful capture visible on the card and in the full panel while refreshing and after a
   failed refresh. Replace it only on successful current-revision completion.
-  Retain the capture URL, prompt and timestamp as provenance. Refresh/retry uses the subscribed request revision; conflicts require review or waiting, never automatic replacement.
+  Retain the capture URL, prompt and timestamp as backend provenance, without showing the extraction prompt or Captured line in Details. Retry uses the subscribed request revision; conflicts require review or waiting, never automatic replacement. The ready-state Refresh button is removed.
   The details panel offers explicit Stop waiting for overdue or legacy busy requests.
   Recovery never fetches automatically; Retry is a separate action after failure.
   Missing deadlines are not labeled as confirmed timeouts.
@@ -370,9 +358,10 @@ image over240ms, preserving proportions; Escape or backdrop click reverses it.
 Trap focus while open and restore it to the image on close; respect reduced motion.
 
 Canvas load: cards pop in over450ms on mount, scaling from0.88 through1.025 to1 (reduced motion skips it).
-Remember the viewport center and zoom per workspace in local storage; restore before
-default paper framing. Missing/invalid/unavailable storage uses the existing default.
-Explicit Main document navigation still frames the paper.
+Remember the viewport center and zoom per workspace in local storage. Missing,
+invalid or unavailable storage frames the existing cards at up to 100% zoom;
+an empty canvas uses the default view. The prior paper-centered view is not
+restored. Opening an inbox draft does not change the canvas viewport.
 
 Each card samples a0–180ms entrance delay once per mount; rerenders keep it stable.
 Reduced motion bypasses both entrance animation and delay.
@@ -382,3 +371,5 @@ preview geometry as the final position. Alt/Option bypass and cancellation do no
 
 Snap shadows fade/scale in and out over140ms. Exit retains only a noninteractive
 visual ghost; it is no longer a snap target. Reduced motion skips the transition.
+
+Editable cards expose resize grips near each edge or corner, without requiring selection. Only the nearby side bar or corner dot appears; it fades and scales in and out over 180ms as the pointer enters or leaves. Reduced motion removes the animation. Existing size constraints and resize History still apply.

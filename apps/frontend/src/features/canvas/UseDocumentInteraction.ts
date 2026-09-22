@@ -46,6 +46,15 @@ export function useDocumentInteraction(
     };
     const cancel = () => press.current.cancel();
     const outside = (event: globalThis.PointerEvent) => {
+      const menu =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>("[data-document-formatting-for]")
+          : null;
+      if (
+        menu &&
+        menu.dataset.documentFormattingFor === card.current?.dataset.documentId
+      )
+        return;
       if (
         current.current.editing &&
         !card.current?.contains(event.target as Node)

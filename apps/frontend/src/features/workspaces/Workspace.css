@@ -30,6 +30,43 @@
   height: 20px;
   border-left: 1px solid var(--border);
 }
+.workspace-share-host {
+  position: relative;
+}
+.workspace-share-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(390px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--overlay);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.13);
+}
+.workspace-share-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workspace-share-content input {
+  min-width: 0;
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 12px;
+}
+.workspace-share-content p {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  padding: 5px;
+  background: var(--overlay);
+}
 .workspace-body {
   display: flex;
   flex: 1;
@@ -266,44 +303,4 @@
   .workspace-document-scroll .document-page .tiptap {
     padding: 28px 22px 44px;
   }
-}
-
-/* The main document is one growing sheet in canvas coordinates, not a scroll pane. */
-.canvas-paper-document.workspace-document-panel {
-  height: auto;
-  min-height: 1000px;
-  overflow: visible;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 8px 32px #00000012;
-}
-.canvas-paper-document .workspace-document-scroll {
-  flex: none;
-  overflow: visible;
-  padding: 0;
-  background: transparent;
-}
-.canvas-paper-document .document-writing-surface,
-.canvas-paper-document .workspace-document-secondary {
-  max-width: none;
-}
-.canvas-paper-document .document-page {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-.canvas-paper-document .document-page .tiptap {
-  min-height: 720px;
-  padding: 48px 64px 64px;
-}
-.canvas-paper-document .workspace-document-secondary {
-  margin: 0;
-  padding: 0 64px 36px;
-}
-.canvas-paper-document .workspace-panel-heading {
-  padding: 24px 32px;
-}
-.canvas-paper-document .document-formatting-toolbar {
-  padding-inline: 24px;
 }

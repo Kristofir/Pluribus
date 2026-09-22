@@ -12,3 +12,6 @@ coverage/
 
 # Local competitive research
 /.competitive-research/
+/.codex/
+/.playwright-cli/
+/.playwright-mcp/

@@ -1,4 +1,3 @@
-import { besideMainPaper } from "./MainPaperNode";
 import { sourceLimits } from "@pluribus/core/sources/domain";
 import { useReactFlow } from "@xyflow/react";
 import { documentLimits } from "@pluribus/core/canvas/domain";
@@ -43,8 +42,7 @@ export function useCanvasCommands({
   pendingEditors: RefObject<Map<ElementId, boolean>>;
   surface: RefObject<HTMLDivElement | null>;
 }) {
-  const { workspaceId, mainPaper } = useCanvasScope();
-  const hasMainPaper = !!mainPaper;
+  const { workspaceId } = useCanvasScope();
   const flow = useReactFlow();
   const open = useMutation(api.Canvas.openHistorySession);
   const apply = useMutation(api.Canvas.applyHistoryAction);
@@ -107,12 +105,9 @@ export function useCanvasCommands({
           element: {
             kind: "document",
             geometry: {
-              ...(position ??
-                (hasMainPaper
-                  ? besideMainPaper({ x: 80 + documentCount * 460, y: 80 }, 430)
-                  : { x: 80 + documentCount * 460, y: 80 })),
+              ...(position ?? { x: 80 + documentCount * 460, y: 80 }),
               width: 300,
-              height: 500,
+              height: 300,
             },
           },
         });
@@ -128,7 +123,7 @@ export function useCanvasCommands({
           );
       }
     },
-    [connected, store, history, documentCount, hasMainPaper],
+    [connected, store, history, documentCount],
   );
   const addWebPage = useCallback(
     async (
@@ -160,13 +155,7 @@ export function useCanvasCommands({
             kind: "source",
             ...input,
             geometry: {
-              ...(position ??
-                (hasMainPaper
-                  ? besideMainPaper(
-                      { x: center.x - 150, y: center.y - 88 },
-                      300,
-                    )
-                  : { x: center.x - 150, y: center.y - 88 })),
+              ...(position ?? { x: center.x - 150, y: center.y - 88 }),
               width: 300,
               height: 176,
             },
@@ -182,16 +171,7 @@ export function useCanvasCommands({
         store.getState().finishCreate();
       }
     },
-    [
-      workspaceId,
-      connected,
-      store,
-      history,
-      flow,
-      surface,
-      sourceCount,
-      hasMainPaper,
-    ],
+    [workspaceId, connected, store, history, flow, surface, sourceCount],
   );
   const addImage = useCallback(
     async (

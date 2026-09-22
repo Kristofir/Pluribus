@@ -66,8 +66,8 @@ test("screenshot is accessible, non-draggable, and rejects executable URL scheme
   expect(invalid).toContain("Preview unavailable");
 });
 
-test("Details is the only card button that opens the sheet", () => {
-  for (const status of ["ready", "fetching", "failed"] as const) {
+test("Details opens the sheet only after fetching ends", () => {
+  for (const status of ["ready", "failed"] as const) {
     const html = renderToStaticMarkup(
       h(WebPageCard, { source: { ...source, status }, onOpen: () => {} }),
     );
@@ -76,4 +76,11 @@ test("Details is the only card button that opens the sheet", () => {
     expect(html).not.toContain("Open capture:");
     expect(html).not.toContain("Open captured screenshot");
   }
+  const fetching = renderToStaticMarkup(
+    h(WebPageCard, {
+      source: { ...source, status: "fetching" },
+      onOpen: () => {},
+    }),
+  );
+  expect(fetching).not.toContain(">Details</button>");
 });

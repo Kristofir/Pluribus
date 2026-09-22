@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/Button";
 import { WebPageActions } from "./WebPageActions";
 import {
   captureUrl,
-  capturePrompt,
   webPageStatus,
   webPageTitle,
   webPageUrl,
@@ -18,8 +17,7 @@ export function WebPagePanel({
 }: WebPageActionsProps & { onClose: () => void }) {
   const heading = useId();
   const { source } = props,
-    url = webPageUrl(captureUrl(source)),
-    prompt = capturePrompt(source);
+    url = webPageUrl(captureUrl(source));
   return (
     <aside className="web-page-panel" aria-labelledby={heading}>
       <header className="web-page-panel-heading">
@@ -51,20 +49,13 @@ export function WebPagePanel({
         ) : (
           <p className="web-page-source-link">{captureUrl(source)}</p>
         )}
-        <p className="web-page-status" role="status">
-          {webPageStatus(source)}
-          {source.capture?.capturedAt !== undefined && (
-            <> · {new Date(source.capture.capturedAt).toLocaleString()}</>
-          )}
-        </p>
+        {source.status !== "ready" && (
+          <p className="web-page-status" role="status">
+            {webPageStatus(source)}
+          </p>
+        )}
         {source.capture?.url && source.capture.url !== source.url && (
           <p className="web-page-prompt">Latest requested URL: {source.url}</p>
-        )}
-        {prompt && (
-          <details>
-            <summary>Extraction prompt</summary>
-            <p className="web-page-prompt">{prompt}</p>
-          </details>
         )}
         {source.status === "failed" && source.error && (
           <p role="alert" className="web-page-error">
@@ -84,9 +75,6 @@ export function WebPagePanel({
               url={source.capture.screenshot?.url ?? ""}
               title={webPageTitle(source)}
             />
-            <p className="web-page-status">
-              Captured viewport · above the fold
-            </p>
           </div>
         )}
         {source.capture &&
@@ -101,7 +89,7 @@ export function WebPagePanel({
         ) : (
           <p className="web-page-empty">
             {source.status === "failed"
-              ? "The page could not be captured. Refresh to try again."
+              ? "The page could not be captured. Use Retry to fetch it again."
               : source.status === "ready"
                 ? "No readable content was returned."
                 : "Fetching page content…"}

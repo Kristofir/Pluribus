@@ -2,15 +2,15 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { Id } from "@pluribus/backend/dataModel";
 import { CollaborativeEditor } from "../documents/CollaborativeEditor";
 import { ReplyReview } from "../inbox/ReplyReview";
-import { MainDocumentPanel } from "./MainDocumentPanel";
+import { ReplyDocumentPanel } from "./ReplyDocumentPanel";
 import { DocumentParagraphTools } from "./DocumentParagraphTools";
 
 export type PanelDocument = {
   documentId: Id<"documents">;
   generation: number;
   title: string;
-  kind: "main" | "reply";
-  threadId?: Id<"inboxThreads">;
+  kind: "reply";
+  threadId: Id<"inboxThreads">;
 };
 /** One mounted editor per canonical document; panel navigation only changes visibility. */
 export function DocumentPanelSession({
@@ -21,12 +21,8 @@ export function DocumentPanelSession({
   selected,
   onClose,
   reveal,
-  presentation = "panel",
-  onRevealTarget,
 }: {
   document: PanelDocument;
-  presentation?: "panel" | "canvas";
-  onRevealTarget?: (target: HTMLElement) => void;
   workspaceId: Id<"workspaces">;
   active: boolean;
   paused: boolean;
@@ -56,8 +52,7 @@ export function DocumentPanelSession({
       if (!target) return false;
       highlighted = target;
       setHighlightedParagraph(reveal.paragraphId);
-      if (onRevealTarget) onRevealTarget(target);
-      else target.scrollIntoView({ block: "center", behavior: "auto" });
+      target.scrollIntoView({ block: "center", behavior: "auto" });
       setTargetNotice("Linked paragraph highlighted.");
       return true;
     };
@@ -83,15 +78,11 @@ export function DocumentPanelSession({
       clearTimeout(timeout);
       setHighlightedParagraph(undefined);
     };
-  }, [active, reveal, onRevealTarget]);
+  }, [active, reveal]);
   return (
     <div
       hidden={!active}
-      className={
-        presentation === "canvas"
-          ? "workspace-paper-session"
-          : "workspace-panel-session"
-      }
+      className="workspace-panel-session"
       onFocusCapture={(event) =>
         setFocused(
           event.target instanceof Element &&
@@ -109,10 +100,8 @@ export function DocumentPanelSession({
         );
       }}
     >
-      <MainDocumentPanel
-        presentation={presentation}
+      <ReplyDocumentPanel
         title={doc.title}
-        kind={doc.kind}
         onClose={onClose}
         targetNotice={targetNotice}
         toolbar={
@@ -156,7 +145,7 @@ export function DocumentPanelSession({
             />
           )}
         </div>
-      </MainDocumentPanel>
+      </ReplyDocumentPanel>
     </div>
   );
 }

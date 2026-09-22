@@ -116,6 +116,16 @@ export default defineSchema({
     uploadId: v.id("imageUploadIntents"),
     storageId: v.id("_storage"),
     name: v.string(),
+    aiDescription: v.optional(v.string()),
+    aiDescriptionStatus: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("generating"),
+        v.literal("ready"),
+        v.literal("unavailable"),
+        v.literal("failed"),
+      ),
+    ),
     geometry,
     generation: v.number(),
     removed: v.boolean(),
@@ -198,12 +208,15 @@ export default defineSchema({
   workspaces: defineTable({
     name: v.string(),
     slug: v.string(),
+    demo: v.optional(v.literal("landing")),
+    demoOwnerId: v.optional(v.id("users")),
     mainDocumentId: v.optional(v.id("documents")),
   }).index("by_slug", ["slug"]),
   workspaceShareLinks: defineTable({
     workspaceId: v.id("workspaces"),
     createdBy: v.id("users"),
     tokenHash: v.string(),
+    token: v.optional(v.string()),
     revoked: v.boolean(),
   })
     .index("by_workspace_revoked", ["workspaceId", "revoked"])

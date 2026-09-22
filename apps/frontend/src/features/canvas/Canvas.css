@@ -90,8 +90,7 @@
   opacity: 0.5;
   cursor: default;
 }
-.canvas-url-draft,
-.canvas-url-form {
+.canvas-url-draft {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -108,15 +107,6 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--muted-fg);
-}
-.canvas-url-form input {
-  min-width: 0;
-  width: 100%;
-  padding: 8px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--canvas-bg);
-  color: var(--fg);
 }
 .canvas-image-file-input {
   position: absolute;
@@ -280,17 +270,6 @@
   border: 1px solid var(--ring);
 }
 
-.canvas-main-paper {
-  pointer-events: auto;
-  width: 800px;
-  cursor: auto;
-  user-select: text;
-}
-.canvas .react-flow__node-mainPaper {
-  cursor: auto;
-  transition: none;
-}
-
 .web-page-node-content {
   display: contents;
 }
@@ -309,9 +288,109 @@
   }
 }
 
-/* Invisible edge/corner hit targets keep resizing available without selection chrome. */
+/* Each edge owns a generous hit area; only its nearby grip is revealed. */
 .canvas .react-flow__resize-control {
+  border: 0;
+  background: transparent;
+  z-index: 11;
+}
+.canvas .react-flow__resize-control::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg) 35%, transparent);
   opacity: 0;
+  scale: 0.65;
+  transform-origin: center;
+  transition:
+    opacity 180ms ease,
+    scale 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  pointer-events: none;
+}
+.canvas .react-flow__resize-control:is(:hover, :active)::after {
+  opacity: 1;
+  scale: 1;
+}
+.canvas .react-flow__resize-control.line {
+  transform: none;
+}
+.canvas .react-flow__resize-control.line:is(.left, .right) {
+  width: 14px;
+  height: calc(100% - 32px);
+  top: 16px;
+}
+.canvas .react-flow__resize-control.line.left {
+  left: 0;
+}
+.canvas .react-flow__resize-control.line.right {
+  left: auto;
+  right: 0;
+}
+.canvas .react-flow__resize-control.line:is(.top, .bottom) {
+  height: 14px;
+  width: calc(100% - 32px);
+  left: 16px;
+}
+.canvas .react-flow__resize-control.line.top {
+  top: 0;
+}
+.canvas .react-flow__resize-control.line.bottom {
+  top: auto;
+  bottom: 0;
+}
+.canvas .react-flow__resize-control.line:is(.left, .right)::after {
+  width: 3px;
+  height: 50%;
+  left: 5px;
+  top: 25%;
+  scale: 1 0.65;
+}
+.canvas .react-flow__resize-control.line:is(.top, .bottom)::after {
+  height: 3px;
+  width: 50%;
+  top: 5px;
+  left: 25%;
+  scale: 0.65 1;
+}
+.canvas
+  .react-flow__resize-control.line:is(.left, .right):is(:hover, :active)::after,
+.canvas
+  .react-flow__resize-control.line:is(.top, .bottom):is(
+    :hover,
+    :active
+  )::after {
+  scale: 1;
+}
+.canvas .react-flow__resize-control.handle {
+  width: 18px;
+  height: 18px;
+  translate: none;
+  z-index: 12;
+}
+.canvas .react-flow__resize-control.handle.left {
+  left: 0;
+}
+.canvas .react-flow__resize-control.handle.right {
+  left: auto;
+  right: 0;
+}
+.canvas .react-flow__resize-control.handle.top {
+  top: 0;
+}
+.canvas .react-flow__resize-control.handle.bottom {
+  top: auto;
+  bottom: 0;
+}
+.canvas .react-flow__resize-control.handle::after {
+  width: 5px;
+  height: 5px;
+  top: 6px;
+  left: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas .react-flow__resize-control::after {
+    transition: none;
+  }
 }
 .canvas .react-flow__nodesselection-rect {
   border: none;

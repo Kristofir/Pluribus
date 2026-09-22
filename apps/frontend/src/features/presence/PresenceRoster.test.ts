@@ -21,6 +21,7 @@ test("agent activity is visibly labeled as recent without implying a live connec
   expect(html).toContain("Agent: Researcher · recently active");
   expect(html).toContain("MCP request within the last 30 seconds");
   expect(html).not.toContain("connected");
-  expect(html).toContain('class="presence-avatar presence-agent"');
+  expect(html).toContain('data-slot="avatar"');
+  expect(html).toContain("presence-avatar presence-agent");
   expect(html).not.toContain('type="checkbox"');
 });

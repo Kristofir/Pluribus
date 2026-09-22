@@ -390,7 +390,22 @@ session, so exact retries and conditional inverses use the same core rules as
 browser card actions. The adapter rechecks the grant and issuer membership on
 each write; old narrow grants do not acquire canvas writes. Web Page creation
 uses the existing capture request with the grant issuer as the member. Image
-creation remains with the upload flow; the main paper is not a spatial target.
+creation remains with the upload flow; main and reply documents are not spatial targets.
+
+## 2026-09-22 — Main document returns to the workspace panel
+
+Remove the fixed React Flow paper presentation. The canonical main document stays
+in its existing document record and ProseMirror Sync session, mounted in the side
+panel like replies. Canvas cards and saved geometry are unchanged. `read_canvas`
+keeps the main document ID as a separate reference, without inventing a spatial
+element; `read_document` still provides its content to authorized agents.
+
+## 2026-09-22 — Retire the main document feature
+
+New workspaces no longer provision a main document, and the workspace open and
+MCP canvas reads no longer expose one. Existing main document records and text
+remain stored for compatibility; reply documents and spatial Note cards retain
+their editors and access rules.
 
 ## 2026-09-22 — Revocable anonymous workspace membership
 
@@ -444,3 +459,19 @@ Claims retire old context activity atomically and bind ownership to current auth
 This keeps the existing context registry, pure activity policy and component expiry.
 Failed channel writes retry the same sequence; newer state supersedes them. No
 browser-process lifetime inference, idle timeout or leader-election framework.
+
+## Landing canvas demo isolation
+
+- **Status:** Accepted
+- **Date:** 2026-09-22
+- **Decision:** Mount the real Canvas against one private Convex workspace per
+  anonymous guest identity, instead of a separate frontend-only imitation.
+- **Why:** Visitors can use the actual editor, card gestures, menus, and History
+  without seeing or changing another visitor's material.
+- **Boundary:** Normal workspace membership protects all persisted data. The
+  Carol Document is seeded, and one fixed Gatorade product page is captured via
+  the existing provider job. An Image is displayed as a local example. Demo
+  workspaces reject visitor-requested page capture and image upload. They
+  reset to the seed arrangement on each landing mount without another provider
+  request. Workspace records persist beyond a tab session until a separate
+  retention policy is built.

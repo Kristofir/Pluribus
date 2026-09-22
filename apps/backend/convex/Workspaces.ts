@@ -8,6 +8,13 @@ import {
   claimAssignments,
 } from "./workspaces/Handlers";
 import { activeWorkspaceMember, requireAdmin } from "./workspaces/Access";
+import { ensureLandingDemo as ensureLandingDemoHandler } from "./workspaces/LandingDemo";
+/** Create or reopen the calling anonymous user's own live canvas. */
+export const ensureLandingDemo = mutation({
+  args: {},
+  returns: v.id("workspaces"),
+  handler: ensureLandingDemoHandler,
+});
 export const list = query({
   args: {},
   returns: v.array(
@@ -30,8 +37,6 @@ export const open = query({
     workspaceId: v.id("workspaces"),
     name: v.string(),
     canvasId: v.string(),
-    mainDocumentId: v.id("documents"),
-    mainGeneration: v.number(),
   }),
   handler: openWorkspace,
 });

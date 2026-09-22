@@ -48,6 +48,9 @@ test("a share link admits anonymous collaborators to the normal workspace and re
   expect(await guest.query(api.Workspaces.access, { workspaceId })).toBe(false);
   const token = await owner.mutation(api.ShareLinks.create, { workspaceId });
   expect(token).toHaveLength(72);
+  expect(await owner.mutation(api.ShareLinks.ensure, { workspaceId })).toBe(
+    token,
+  );
   await expect(t.mutation(api.ShareLinks.redeem, { token })).rejects.toThrow(
     "Guest session required",
   );
@@ -79,9 +82,16 @@ test("a share link admits anonymous collaborators to the normal workspace and re
       (card) => card.id,
     ),
   ).toContain(cardId);
+  const documentCard = (
+    await guest.query(api.Canvas.documentCards, { workspaceId })
+  ).find((card) => card.id === cardId)!;
+  const card = await guest.query(api.Documents.describe, {
+    documentId: documentCard.documentId,
+  });
+  expect(card.role).toBe("card");
   expect(
     await guest.query(api.Documents.latestVersion, {
-      id: `${opened.mainDocumentId}:${opened.mainGeneration}`,
+      id: `${documentCard.documentId}:${card.generation}`,
     }),
   ).toBe(1);
   await expect(
@@ -94,6 +104,9 @@ test("a share link admits anonymous collaborators to the normal workspace and re
   await secondGuest.mutation(api.ShareLinks.redeem, { token });
   const rotated = await guest.mutation(api.ShareLinks.create, { workspaceId });
   expect(rotated).not.toBe(token);
+  expect(await owner.mutation(api.ShareLinks.ensure, { workspaceId })).toBe(
+    rotated,
+  );
   expect((await guest.query(api.Workspaces.open, { workspaceId })).name).toBe(
     "Guest collaboration",
   );

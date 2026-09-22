@@ -19,13 +19,17 @@ test("MCP HTTP client initializes, reads, edits, retries and loses access after 
     ctx.db.insert("workspaceMembers", { workspaceId, userId }),
   );
   const user = t.withIdentity({ subject: userId });
-  const { mainDocumentId } = await user.query(api.Workspaces.open, {
-    workspaceId,
-  });
   const cardId = await user.mutation(api.Canvas.createDocument, {
     workspaceId,
     geometry: { x: 12, y: 34, width: 430, height: 500 },
   });
+  const legacyCardId = await user.mutation(api.Canvas.createDocument, {
+    workspaceId,
+    geometry: { x: 500, y: 34, width: 430, height: 500 },
+  });
+  const legacyDocumentId = await t.run(
+    async (ctx) => (await ctx.db.get(legacyCardId))!.documentId!,
+  );
   const sourceId = await t.run((ctx) =>
     ctx.db.insert("sources", {
       workspaceId,
@@ -87,24 +91,21 @@ test("MCP HTTP client initializes, reads, edits, retries and loses access after 
   ).toEqual([{ id: grant.grantId, label: "HTTP fixture" }]);
   expect(
     await user.query(api.Presence.agents, {
-      context: { kind: "document", id: mainDocumentId },
+      context: { kind: "document", id: legacyDocumentId },
     }),
   ).toEqual([{ id: grant.grantId, label: "HTTP fixture" }]);
   expect(
     (await (await request("tools/list")).json()).result.tools,
   ).toHaveLength(9);
   const canvas = await call("read_canvas", {});
-  expect(canvas.mainDocumentId).toBe(mainDocumentId);
+  expect(canvas).not.toHaveProperty("mainDocumentId");
+  expect(canvas.elements).not.toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ kind: "main_document" }),
+    ]),
+  );
   expect(canvas.elements).toEqual(
     expect.arrayContaining([
-      expect.objectContaining({
-        kind: "main_document",
-        documentId: mainDocumentId,
-        x: -400,
-        y: 0,
-        width: 800,
-        canReadContent: true,
-      }),
       expect.objectContaining({
         kind: "document",
         id: cardId,
@@ -170,7 +171,7 @@ test("MCP HTTP client initializes, reads, edits, retries and loses access after 
     ctx.db.insert("agentGrants", {
       workspaceId,
       userId,
-      documentIds: [mainDocumentId],
+      documentIds: [legacyDocumentId],
       canvasRead: false,
       label: "Document only",
       tokenHash: await hashSecret(legacyToken),
@@ -181,10 +182,10 @@ test("MCP HTTP client initializes, reads, edits, retries and loses access after 
     (
       await t.query(internal.agentAccess.Tools.readDocument, {
         token: oldGrant.token,
-        documentId: mainDocumentId,
+        documentId: legacyDocumentId,
       })
     ).documentId,
-  ).toBe(mainDocumentId);
+  ).toBe(legacyDocumentId);
   await expect(
     t.query(internal.agentAccess.Tools.readDocument, {
       token: oldGrant.token,
@@ -210,9 +211,9 @@ test("MCP HTTP client initializes, reads, edits, retries and loses access after 
       ).json()
     ).result.isError,
   ).toBe(true);
-  const doc = await call("read_document", { documentId: mainDocumentId });
+  const doc = await call("read_document", { documentId: legacyDocumentId });
   const edit = {
-    documentId: mainDocumentId,
+    documentId: legacyDocumentId,
     generation: doc.generation,
     baseVersion: doc.version,
     requestId: crypto.randomUUID(),
@@ -228,8 +229,8 @@ test("MCP HTTP client initializes, reads, edits, retries and loses access after 
   expect(accepted.status).toBe("applied");
   expect(await call("edit_document", edit)).toEqual(accepted);
   expect(
-    (await call("read_document", { documentId: mainDocumentId })).paragraphs[0]
-      .text,
+    (await call("read_document", { documentId: legacyDocumentId }))
+      .paragraphs[0].text,
   ).toBe("HTTP authored text");
   const agentChange = await t.run((ctx) =>
     ctx.db.get("agentChanges", accepted.operationGroupId),

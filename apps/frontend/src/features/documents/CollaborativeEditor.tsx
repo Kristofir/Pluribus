@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { DocumentToolbar } from "./DocumentToolbar";
+import { SelectionFormattingMenu } from "./SelectionFormattingMenu";
 import { EditorContent, type Content, type AnyExtension } from "@tiptap/react";
 import { syncExtension } from "@convex-dev/prosemirror-sync/tiptap";
 import { useConvex } from "convex/react";
@@ -189,6 +190,7 @@ function DocumentEditor({
     participate,
     interactionEnabled,
     focusPoint,
+    presentation,
     content,
     extension,
     error,
@@ -333,6 +335,13 @@ function DocumentEditor({
         editor={editor}
         className={`document-paper${presentation === "document" ? " document-page" : ""}`}
       />
+      {editor && (
+        <SelectionFormattingMenu
+          documentId={id}
+          editor={editor}
+          disabled={disabled || !interactionEnabled}
+        />
+      )}
     </>
   );
 }

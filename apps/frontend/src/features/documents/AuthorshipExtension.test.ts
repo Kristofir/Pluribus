@@ -4,7 +4,12 @@ import { history, undo, redo } from "@tiptap/pm/history";
 import { Transform } from "@tiptap/pm/transform";
 import { documentSchema } from "@pluribus/editor/schema";
 import { AuthoredStep } from "@pluribus/editor/protocol";
-import { attributeTransaction } from "./AuthorshipExtension";
+import {
+  attributeTransaction,
+  authorDisplayDecorations,
+  authorHue,
+  authorTextClass,
+} from "./AuthorshipExtension";
 const attributed = documentSchema.text("Other", [
   documentSchema.marks.authorship.create({ author: "alice" }),
 ]);
@@ -70,4 +75,37 @@ test("formatting preserves attribution and authored inversion preserves ordinary
   expect((mapped as AuthoredStep).undoOf).toBe(
     (tr.steps[0] as AuthoredStep).id,
   );
+});
+
+test("canvas author colors distinguish writers and leave unattributed text neutral", () => {
+  const author = (id: string) =>
+    documentSchema.marks.authorship.create({ author: id });
+  const doc = documentSchema.node("doc", null, [
+    documentSchema.node("paragraph", null, [
+      documentSchema.text("A", [author("alice")]),
+      documentSchema.text("B", [author("bob")]),
+      documentSchema.text("C"),
+      documentSchema.text("D", [author("alice")]),
+    ]),
+  ]);
+  const labels = new Map([
+    ["alice", "Alice"],
+    ["bob", "Bob"],
+  ]);
+  const attributed = authorDisplayDecorations(
+    doc,
+    "color",
+    labels,
+    "alice",
+  ).find();
+  expect(attributed).toHaveLength(3);
+  expect(authorTextClass("alice", "alice")).toBe("author-text-own");
+  expect(authorTextClass("bob", "alice")).toBe("author-text");
+  expect(authorHue("alice")).toBe(authorHue("alice"));
+  expect(authorHue("alice")).not.toBe(authorHue("bob"));
+  expect(
+    authorDisplayDecorations(doc, "highlight", labels).find(),
+  ).toHaveLength(4);
+  expect(authorDisplayDecorations(doc, "off", labels).find()).toHaveLength(0);
+  expect(doc.textContent).toBe("ABCD");
 });

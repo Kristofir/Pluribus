@@ -2,21 +2,14 @@ import { useCardEntrance } from "../../hooks/UseCardEntrance";
 import { CanvasElementMenu } from "./CanvasElementMenu";
 import { SnapPreview } from "./SnapPreview";
 import { CanvasCreateMenu } from "./CanvasCreateMenu";
-import {
-  MainPaper,
-  MainPaperViewport,
-  mainPaperNode,
-  mainPaperId,
-  type MainPaperNode,
-} from "./MainPaperNode";
+import { CanvasViewport } from "./CanvasViewport";
 import { canvasSelection } from "./CanvasSelection";
 import { WebPageNodeCard } from "./WebPageNode";
-import { ImageCard } from "./ImageNode";
+import { ImageCard, type ImageNode } from "./ImageNode";
 import { ImageDraftCard, type ImageDraftNode } from "./ImageDraftNode";
 import { useImageUploads } from "./UseImageUploads";
 import { useUrlImports } from "./UseUrlImports";
 import { droppedUrl } from "./UrlDrops";
-import { ImportUrlForm } from "./ImportUrlForm";
 import {
   UrlImportDraftCard,
   type UrlImportDraftNode,
@@ -64,7 +57,6 @@ import "@xyflow/react/dist/style.css";
 import "./Canvas.css";
 type WebPageDraftNode = Node<{ content: ReactNode }, "webPageDraft">;
 const webPageDraftId = "local-web-page-draft";
-const urlFormId = "local-url-form";
 function WebPageDraft({ data }: NodeProps<WebPageDraftNode>) {
   const entrance = useCardEntrance();
   return (
@@ -78,22 +70,35 @@ function WebPageDraft({ data }: NodeProps<WebPageDraftNode>) {
   );
 }
 type SceneNode =
-  | CanvasNode
-  | MainPaperNode
-  | WebPageDraftNode
-  | ImageDraftNode
-  | UrlImportDraftNode;
+  CanvasNode | WebPageDraftNode | ImageDraftNode | UrlImportDraftNode;
 const nodeTypes = {
   document: DocumentCard,
   source: WebPageNodeCard,
   image: ImageCard,
   imageDraft: ImageDraftCard,
   urlImportDraft: UrlImportDraftCard,
-  mainPaper: MainPaper,
   webPageDraft: WebPageDraft,
 };
 
 const emptyEdges: Edge[] = [];
+const demoImageId = "landing-demo-example-image";
+const demoImageNode: ImageNode = {
+  id: demoImageId,
+  type: "image",
+  position: { x: 640, y: 45 },
+  width: 330,
+  height: 280,
+  draggable: false,
+  selectable: false,
+  deletable: false,
+  connectable: false,
+  data: {
+    name: "Colorful folded paper forms",
+    url: "/images/demo-paper.jpg",
+    editable: false,
+  },
+  ariaLabel: "Example image card",
+};
 const nodeExtent: CoordinateExtent = [
   [-geometryLimits.maxCoordinate, -geometryLimits.maxCoordinate],
   [geometryLimits.maxCoordinate, geometryLimits.maxCoordinate],
@@ -131,22 +136,19 @@ const CanvasScene = memo(function CanvasScene({
   presenceId: string | null;
   roster: ReactNode;
 }) {
-  const {
-    workspaceId,
-    onSelectionChange,
-    mainPaper,
-    paperFocus = 0,
-  } = useCanvasScope();
+  const { workspaceId, embedded, demo, viewportStorageKey, onSelectionChange } =
+    useCanvasScope();
   const flow = useReactFlow();
-  const viewportKey = `pluribus:viewport:${workspaceId ?? "shared"}`;
+  const viewportKey =
+    viewportStorageKey ??
+    (workspaceId
+      ? `pluribus:viewport:cards:${workspaceId}`
+      : "pluribus:viewport:shared");
   const [addingWebPage, setAddingWebPage] = useState<{
     x: number;
     y: number;
     sourceId?: string;
   } | null>(null);
-  const [addingUrl, setAddingUrl] = useState<{ x: number; y: number } | null>(
-    null,
-  );
   const [createMenu, setCreateMenu] = useState<{
     screen: { x: number; y: number };
     position: { x: number; y: number };
@@ -179,18 +181,25 @@ const CanvasScene = memo(function CanvasScene({
 
     surface,
   } = useCanvas(emit);
+  const framedNodeIds = useMemo(
+    () => [
+      ...nodes.map((node) => node.id),
+      ...(demo && nodes.length ? [demoImageId] : []),
+    ],
+    [demo, nodes],
+  );
   const creating = useStore(store, (state) => state.creating);
   const imagePicker = useRef<HTMLInputElement>(null);
   const imagePickerPosition = useRef({ x: 0, y: 0 });
   const uploads = useImageUploads({
     workspaceId,
-    enabled: interactionEnabled && imageCount < 100,
+    enabled: !demo && interactionEnabled && imageCount < 100,
     addImage,
     imageIds: imageUploadIds,
   });
   const urlImports = useUrlImports({
     workspaceId,
-    enabled: interactionEnabled,
+    enabled: !demo && interactionEnabled,
     addImage,
     addWebPage,
     imageIds: imageUploadIds,
@@ -206,14 +215,6 @@ const CanvasScene = memo(function CanvasScene({
     emit({ type: "selection-changed", elements: [...selected] });
     onSelectionChange?.([...selected]);
   }, [selected, emit, presenceId, onSelectionChange]);
-  useEffect(() => {
-    if (paperFocus === 0) return;
-    const current = store.getState();
-    current.setEditing(null);
-    current.select(
-      [...current.selected].map((id) => ({ id, selected: false })),
-    );
-  }, [paperFocus, store]);
   const [elementMenu, setElementMenu] = useState<{
     x: number;
     y: number;
@@ -244,14 +245,8 @@ const CanvasScene = memo(function CanvasScene({
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: SceneNode) => {
       if (event.shiftKey || node.type !== "document") stopEditing();
-      if (node.type === "mainPaper") {
-        const current = store.getState();
-        current.select(
-          [...current.selected].map((id) => ({ id, selected: false })),
-        );
-      }
     },
-    [stopEditing, store],
+    [stopEditing],
   );
   const draftReplaced =
     !!addingWebPage?.sourceId &&
@@ -260,9 +255,8 @@ const CanvasScene = memo(function CanvasScene({
     if (draftReplaced) setAddingWebPage(null);
   }, [draftReplaced]);
   const sceneNodes = useMemo(() => {
-    const sceneNodes: SceneNode[] = mainPaper
-      ? [mainPaperNode(mainPaper), ...nodes]
-      : [...nodes];
+    const sceneNodes: SceneNode[] = [...nodes];
+    if (demo && nodes.length) sceneNodes.push(demoImageNode);
     if (addingWebPage && workspaceId && !draftReplaced)
       sceneNodes.push({
         id: webPageDraftId,
@@ -330,29 +324,6 @@ const CanvasScene = memo(function CanvasScene({
         },
       });
     }
-    if (addingUrl)
-      sceneNodes.push({
-        id: urlFormId,
-        type: "webPageDraft",
-        position: addingUrl,
-        width: 320,
-        draggable: false,
-        selectable: false,
-        deletable: false,
-        connectable: false,
-        zIndex: 1001,
-        data: {
-          content: (
-            <ImportUrlForm
-              onCancel={() => setAddingUrl(null)}
-              onSubmit={(url) => {
-                urlImports.add(url, addingUrl);
-                setAddingUrl(null);
-              }}
-            />
-          ),
-        },
-      });
     for (const draft of urlImports.drafts) {
       if (
         (draft.uploadId && imageUploadIds.has(draft.uploadId)) ||
@@ -379,8 +350,8 @@ const CanvasScene = memo(function CanvasScene({
     }
     return sceneNodes;
   }, [
-    mainPaper,
     nodes,
+    demo,
     addingWebPage,
     workspaceId,
     draftReplaced,
@@ -392,26 +363,22 @@ const CanvasScene = memo(function CanvasScene({
     uploads.retry,
     uploads.remove,
     imageUploadIds,
-    addingUrl,
     urlImports.drafts,
-    urlImports.add,
     urlImports.retry,
     urlImports.remove,
   ]);
   const onSceneNodesChange = useCallback(
     (changes: NodeChange<SceneNode>[]) => {
-      // Paper measurement/selection is local to React Flow and cannot become an element operation.
+      // Temporary draft nodes cannot become durable element operations.
       onNodesChange(
         changes.filter((change) =>
           "id" in change
-            ? change.id !== mainPaperId &&
+            ? change.id !== demoImageId &&
               change.id !== webPageDraftId &&
-              change.id !== urlFormId &&
               !urlImports.drafts.some((d) => d.id === change.id) &&
               !uploads.drafts.some((d) => d.id === change.id)
-            : change.item.id !== mainPaperId &&
+            : change.item.id !== demoImageId &&
               change.item.id !== webPageDraftId &&
-              change.item.id !== urlFormId &&
               !urlImports.drafts.some((d) => d.id === change.item.id) &&
               !uploads.drafts.some((d) => d.id === change.item.id),
         ) as NodeChange<CanvasNode>[],
@@ -419,10 +386,11 @@ const CanvasScene = memo(function CanvasScene({
     },
     [onNodesChange, uploads.drafts, urlImports.drafts],
   );
+  const Surface = embedded ? "div" : "main";
   return (
-    <main
+    <Surface
       onContextMenuCapture={(event) => event.preventDefault()}
-      className={workspaceId ? "canvas canvas-embedded" : "canvas"}
+      className={workspaceId || embedded ? "canvas canvas-embedded" : "canvas"}
       tabIndex={-1}
       onPointerDownCapture={(event) => {
         if (
@@ -511,12 +479,15 @@ const CanvasScene = memo(function CanvasScene({
             documentCount < documentLimits.maxCount
           }
           canWebPage={
+            !demo &&
             interactionEnabled &&
             !creating &&
             sourceCount < sourceLimits.maxCount
           }
-          canImage={interactionEnabled && !creating && imageCount < 100}
-          hasWebPages={!!workspaceId}
+          canImage={
+            !demo && interactionEnabled && !creating && imageCount < 100
+          }
+          hasWebPages={!!workspaceId && !demo}
           onClose={() => setCreateMenu(null)}
           onDocument={() => {
             const position = createMenu.position;
@@ -531,10 +502,6 @@ const CanvasScene = memo(function CanvasScene({
             imagePickerPosition.current = createMenu.position;
             setCreateMenu(null);
             imagePicker.current?.click();
-          }}
-          onImportUrl={() => {
-            setAddingUrl(createMenu.position);
-            setCreateMenu(null);
           }}
         />
       )}
@@ -552,7 +519,7 @@ const CanvasScene = memo(function CanvasScene({
             id={openSourceId}
             workspaceId={workspaceId}
             onClose={() => setOpenSourceId(null)}
-            disabled={!interactionEnabled}
+            disabled={demo || !interactionEnabled}
           />
         </div>
       )}
@@ -568,7 +535,8 @@ const CanvasScene = memo(function CanvasScene({
         onChange={(event) => {
           const files = Array.from(event.currentTarget.files ?? []);
           event.currentTarget.value = "";
-          if (files.length) uploads.add(files, imagePickerPosition.current);
+          if (!demo && files.length)
+            uploads.add(files, imagePickerPosition.current);
         }}
       />
       <div
@@ -582,7 +550,7 @@ const CanvasScene = memo(function CanvasScene({
           ) {
             event.preventDefault();
             event.dataTransfer.dropEffect =
-              workspaceId && interactionEnabled ? "copy" : "none";
+              workspaceId && interactionEnabled && !demo ? "copy" : "none";
           }
         }}
         onDropCapture={(event) => {
@@ -590,7 +558,7 @@ const CanvasScene = memo(function CanvasScene({
           if (!url && !event.dataTransfer.types.includes("Files")) return;
           event.preventDefault();
           event.stopPropagation();
-          if (!workspaceId || !interactionEnabled) return;
+          if (!workspaceId || !interactionEnabled || demo) return;
           const files = Array.from(event.dataTransfer.files);
           if (!files.length && !url) return;
           const position = flow.screenToFlowPosition({
@@ -633,6 +601,7 @@ const CanvasScene = memo(function CanvasScene({
           }}
           onNodeContextMenu={(event, node) => {
             event.preventDefault();
+            if (node.id === demoImageId) return;
             if (
               node.type === "document" ||
               node.type === "source" ||
@@ -668,11 +637,11 @@ const CanvasScene = memo(function CanvasScene({
           maxZoom={3}
           nodeExtent={nodeExtent}
         >
-          <MainPaperViewport
-            request={paperFocus}
+          <CanvasViewport
             surface={surface}
             storageKey={viewportKey}
-            framePaper={!!mainPaper}
+            nodeIds={framedNodeIds}
+            initialLoadComplete={connected}
           />
           <CanvasActivity nodes={nodes} />
           <SnapPreview previews={snapPreviews} />
@@ -692,7 +661,7 @@ const CanvasScene = memo(function CanvasScene({
           />
         </ReactFlow>
       </div>
-    </main>
+    </Surface>
   );
 });
 
@@ -752,18 +721,26 @@ const CanvasActivity = memo(function CanvasActivity({
 
 export default function CanvasPage({
   workspaceId,
+  embedded,
+  demo,
+  viewportStorageKey,
   onSelectionChange,
-  mainPaper,
-  paperFocus,
 }: {
   workspaceId?: Id<"workspaces">;
+  embedded?: boolean;
+  demo?: boolean;
+  viewportStorageKey?: string;
   onSelectionChange?: (ids: string[]) => void;
-  mainPaper?: ReactNode;
-  paperFocus?: number;
 } = {}) {
   return (
     <CanvasScope.Provider
-      value={{ workspaceId, onSelectionChange, mainPaper, paperFocus }}
+      value={{
+        workspaceId,
+        embedded,
+        demo,
+        viewportStorageKey,
+        onSelectionChange,
+      }}
     >
       <ReactFlowProvider key={workspaceId ?? "shared"}>
         <Canvas />

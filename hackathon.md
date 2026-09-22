@@ -10,9 +10,9 @@
 - **Components:** @convex-dev/migrations, @convex-dev/prosemirror-sync, @convex-dev/presence
 - **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime queries, document lifecycle and History
 - **Auth:** Convex Auth
-- **AI models:** none
+- **AI models:** gpt-4.1-mini (image descriptions; configured key required)
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-22T09:15:34Z
+- **Last updated:** 2026-09-22T10:48:37Z
 
 ## Log
 
@@ -1092,3 +1092,90 @@ Reduced motion skips the transition. Full check and build passed.
 
 Removed the image lightbox close button. Escape and backdrop click still close it;
 local browser checks passed, with 370 tests passed/one skipped and build passing.
+
+### 2026-09-22T09:31:42Z — working tree
+
+Rebuilt the signed-out home page with a minimal dark hero, Google login CTA and
+a real canvas preview. Existing Google login returned to the workspace dashboard;
+desktop/mobile and keyboard checks passed. Full check: 370 tests passed, one skipped;
+build passed. Copy remains provisional.
+
+### 2026-09-22T09:35:43Z — working tree
+
+Removed the fixed main-document editor from React Flow and restored its single
+canonical session to the workspace side panel. Main document and paragraph links
+open that panel; card geometry and document content are unchanged. The agent
+canvas read returns its document ID separately, without a paper element. Local
+workspace browser review passed; full check passed 368 tests/one skipped and build
+passed. The MCP change was pushed to the local-anonymous Convex backend only.
+
+### 2026-09-22T09:42:40Z — working tree
+
+The signed-out landing now embeds the existing anonymous shared canvas instead
+of a static capture. Live reads and a disposable create/delete cycle worked
+without sign-in; edits are visibly labeled public. The landing and full canvas
+keep separate saved views. Full check passed 368 tests/one skipped; build passed.
+
+### 2026-09-22T09:52:43Z — working tree
+
+The signed-out live canvas now shows all active card types. Shared Document cards
+remain editable; local Image and Web Page examples open in their viewers without
+granting anonymous uploads or page capture. Browser interaction checks passed.
+Full check passed 368 tests/one skipped, and build passed.
+
+### 2026-09-22T09:54:13Z — working tree
+
+Canvas participant initials and agent markers now use the shared Avatar component,
+with a fixed circular size and overlap. Live workspace preview showed the corrected
+circle; full check passed 368 tests/one skipped and build passed.
+
+### 2026-09-22T10:05:18Z — working tree
+
+The signed-out landing now uses a separate session-only canvas with a curated
+Carol message, Image, and Web Page. Visitors can edit, move, resize, remove, and
+add local notes without reading or changing the public canvas. A browser check
+showed edits survive reload in one tab while a new tab starts clean. Full check
+passed 368 tests/one skipped, and build passed.
+
+### 2026-09-22T10:05:32Z — working tree
+
+Selected rich text now shows a floating link, bold, italic and style menu in
+document cards and panel editors. The shared schema accepts safe web links.
+Browser checks covered selection, dismissal and link entry; full check passed
+368 tests/one skipped, and build passed.
+
+### 2026-09-22T10:21:47Z — working tree
+
+The landing demo now mounts the real Canvas against one private Convex workspace
+per anonymous guest. It seeds the Carol document and captures the specified
+Gatorade product page through the existing Web Page job; the image remains a
+local illustration. The local browser showed the fetched page title, text and
+screenshot, and Document creation plus Undo worked. Backend access checks block
+other visitors and stale sharing or agent grants. The production build passed;
+65 test files passed (369 tests, one skipped).
+
+### 2026-09-22T10:28:14Z — working tree
+
+Reloading the landing page now resets the anonymous guest canvas to the Carol
+note and original card layout. The backend retires added cards, restores edited
+text through ProseMirror Sync, and reuses the Gatorade capture; the frontend
+clears the saved viewport. A browser edit disappeared after reload while the
+captured page remained. Full check passed 370 tests/one skipped, and build passed.
+
+### 2026-09-22T10:40:42Z — working tree
+
+Simplified canvas creation and Web Page details, started Note cards square,
+and moved Share into a compact popover with one reusable guest URL. Retired the
+main document from new workspaces and navigation while retaining old data and
+reply editors. Image uploads and imported image URLs now schedule a best-effort
+AI description after card creation. Local Convex codegen synced the backend;
+full check passed 370 tests/one skipped and build passed. Live AI description
+was not verified because the local backend has no model key configured.
+
+### 2026-09-22T10:48:37Z — working tree
+
+Canvas Note cards now color collaborators' attributed text and show a resolved
+author label on hover. The current viewer's own text and unattributed legacy
+text remain neutral; the effect does not alter synced document content. A
+focused authorship test and full check passed (371 tests, one skipped); the
+frontend build passed. Browser appearance was not checked in this run.

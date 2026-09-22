@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { useMutation, useConvexAuth } from "convex/react";
+import { useMutation, useConvexAuth, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
 import { api } from "@pluribus/backend/api";
 import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
 import { DashboardPage } from "./DashboardPage";
 import { Button } from "@/components/ui/Button";
 import { AuthPanel } from "../auth/AuthPanel";
+import { LandingPage } from "./LandingPage";
 /** Claims only preassigned access; account creation itself never selects a workspace. */
 export function DashboardRoute() {
   const auth = useConvexAuth(),
     claim = useMutation(api.Workspaces.claim),
     navigate = useNavigate();
+  const user = useQuery(api.Users.current, auth.isAuthenticated ? {} : "skip");
   const result = useRetainedQuery(
     api.Workspaces.list,
     auth.isAuthenticated ? {} : "skip",
@@ -25,14 +27,17 @@ export function DashboardRoute() {
   useEffect(() => {
     let active = true;
     setFailure(undefined);
-    if (auth.isAuthenticated)
+    if (auth.isAuthenticated && user && !user.isAnonymous)
       void claim({}).catch(() => {
         if (active) setFailure("Could not check preassigned access.");
       });
     return () => {
       active = false;
     };
-  }, [auth.isAuthenticated, claim]);
+  }, [auth.isAuthenticated, claim, user]);
+  if (!auth.isAuthenticated || user === undefined || user?.isAnonymous) {
+    return <LandingPage account={<AuthPanel />} />;
+  }
   return (
     <DashboardPage
       signedOut={!auth.isLoading && !auth.isAuthenticated}

@@ -118,6 +118,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
               generation: row.generation,
               removed: false,
               name: row.name,
+              aiDescription: row.aiDescription,
               url: row.url,
             })),
           ]

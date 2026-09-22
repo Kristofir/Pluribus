@@ -64,6 +64,7 @@ export function canvasNodes(
             draggable: interactionEnabled && !removing.has(r.id),
             data: {
               name: r.name,
+              aiDescription: r.aiDescription,
               url: r.url,
               editable: interactionEnabled && !removing.has(r.id),
             },

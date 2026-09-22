@@ -41,6 +41,8 @@ import type * as canvas_History from "../canvas/History.js";
 import type * as canvas_HistoryCredentials from "../canvas/HistoryCredentials.js";
 import type * as canvas_HistoryModel from "../canvas/HistoryModel.js";
 import type * as canvas_HistoryPersistence from "../canvas/HistoryPersistence.js";
+import type * as canvas_ImageDescription from "../canvas/ImageDescription.js";
+import type * as canvas_ImageDescriptionJob from "../canvas/ImageDescriptionJob.js";
 import type * as canvas_Images from "../canvas/Images.js";
 import type * as canvas_LegacyDocuments from "../canvas/LegacyDocuments.js";
 import type * as canvas_Model from "../canvas/Model.js";
@@ -73,6 +75,7 @@ import type * as sources_Persistence from "../sources/Persistence.js";
 import type * as sources_Screenshot from "../sources/Screenshot.js";
 import type * as workspaces_Access from "../workspaces/Access.js";
 import type * as workspaces_Handlers from "../workspaces/Handlers.js";
+import type * as workspaces_LandingDemo from "../workspaces/LandingDemo.js";
 import type * as workspaces_Provisioning from "../workspaces/Provisioning.js";
 
 import type {
@@ -115,6 +118,8 @@ declare const fullApi: ApiFromModules<{
   "canvas/HistoryCredentials": typeof canvas_HistoryCredentials;
   "canvas/HistoryModel": typeof canvas_HistoryModel;
   "canvas/HistoryPersistence": typeof canvas_HistoryPersistence;
+  "canvas/ImageDescription": typeof canvas_ImageDescription;
+  "canvas/ImageDescriptionJob": typeof canvas_ImageDescriptionJob;
   "canvas/Images": typeof canvas_Images;
   "canvas/LegacyDocuments": typeof canvas_LegacyDocuments;
   "canvas/Model": typeof canvas_Model;
@@ -147,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   "sources/Screenshot": typeof sources_Screenshot;
   "workspaces/Access": typeof workspaces_Access;
   "workspaces/Handlers": typeof workspaces_Handlers;
+  "workspaces/LandingDemo": typeof workspaces_LandingDemo;
   "workspaces/Provisioning": typeof workspaces_Provisioning;
 }>;
 

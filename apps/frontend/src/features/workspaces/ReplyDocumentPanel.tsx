@@ -1,21 +1,18 @@
 import { useId, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import "./Workspace.css";
-/** Nonmodal dock. Keep this component mounted when hiding it; editor owns text. */
-export function MainDocumentPanel({
+
+/** Keep this dock mounted when hiding it; the reply editor owns its text. */
+export function ReplyDocumentPanel({
   title,
-  kind = "main",
   children,
   onClose,
   status,
   targetNotice,
   actions,
   toolbar,
-  presentation = "panel",
 }: {
   title: string;
-  presentation?: "panel" | "canvas";
-  kind?: "main" | "reply";
   children: ReactNode;
   onClose: () => void;
   status?: ReactNode;
@@ -25,29 +22,22 @@ export function MainDocumentPanel({
 }) {
   const heading = useId();
   return (
-    <aside
-      className={`workspace-document-panel${presentation === "canvas" ? " canvas-paper-document" : ""}`}
-      aria-labelledby={heading}
-    >
+    <aside className="workspace-document-panel" aria-labelledby={heading}>
       <header className="workspace-panel-heading">
         <div>
-          <p className="workspace-eyebrow">
-            {kind === "reply" ? "Collaborative reply" : "Main document"}
-          </p>
+          <p className="workspace-eyebrow">Collaborative reply</p>
           <h2 id={heading} tabIndex={-1}>
             {title}
           </h2>
         </div>
-        {presentation === "panel" && (
-          <Button
-            intent="plain"
-            size="sm"
-            onPress={onClose}
-            aria-label={`Close ${kind === "reply" ? "reply" : "main document"} panel`}
-          >
-            Close ×
-          </Button>
-        )}
+        <Button
+          intent="plain"
+          size="sm"
+          onPress={onClose}
+          aria-label="Close reply panel"
+        >
+          Close ×
+        </Button>
       </header>
       {status && (
         <div className="workspace-panel-status" role="status">

@@ -51,6 +51,48 @@ export async function requestSourceForMember(
   args: Parameters<typeof requestSource>[1],
   userId: Id<"users">,
 ) {
+  if ((await ctx.db.get(args.workspaceId))?.demo === "landing")
+    throw new SourceInputError(
+      "Web Page capture is unavailable in the landing demo",
+    );
+  return enqueueSourceForMember(ctx, args, userId);
+}
+
+/** Trusted bootstrap for the one fixed example page; never exposed as a Convex endpoint. */
+export const landingDemoSourceUrl =
+  "https://www.gatorade.com/sports-drinks/gatorade-thirst-quencher/fruit-punch";
+export const landingDemoSourceGeometry = {
+  x: 655,
+  y: 355,
+  width: 320,
+  height: 230,
+};
+export async function requestLandingDemoSource(
+  ctx: MutationCtx,
+  workspaceId: Id<"workspaces">,
+  userId: Id<"users">,
+  sourceId?: Id<"sources">,
+) {
+  const workspace = await ctx.db.get(workspaceId);
+  if (workspace?.demo !== "landing" || workspace.demoOwnerId !== userId)
+    throw new Error("Demo workspace unavailable");
+  return enqueueSourceForMember(
+    ctx,
+    {
+      workspaceId,
+      sourceId,
+      url: landingDemoSourceUrl,
+      geometry: landingDemoSourceGeometry,
+    },
+    userId,
+  );
+}
+
+async function enqueueSourceForMember(
+  ctx: MutationCtx,
+  args: Parameters<typeof requestSource>[1],
+  userId: Id<"users">,
+) {
   let url: string;
   try {
     url = publicSourceUrl(args.url);

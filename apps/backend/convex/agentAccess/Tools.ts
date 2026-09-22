@@ -79,17 +79,8 @@ export const readCanvas = internalQuery({
   args: { token: v.string() },
   returns: v.object({
     workspaceId: v.id("workspaces"),
-    mainDocumentId: v.union(v.id("documents"), v.null()),
     elements: v.array(
       v.union(
-        v.object({
-          kind: v.literal("main_document"),
-          documentId: v.id("documents"),
-          x: v.number(),
-          y: v.number(),
-          width: v.number(),
-          canReadContent: v.boolean(),
-        }),
         v.object({
           kind: v.literal("document"),
           id: v.id("canvasDocuments"),

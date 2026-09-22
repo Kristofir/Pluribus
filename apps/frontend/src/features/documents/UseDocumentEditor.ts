@@ -32,6 +32,7 @@ export function useDocumentEditor({
   participate,
   interactionEnabled,
   focusPoint,
+  presentation,
   content,
   extension,
   error,
@@ -41,6 +42,7 @@ export function useDocumentEditor({
   participate: boolean;
   interactionEnabled: boolean;
   focusPoint?: { x: number; y: number } | null;
+  presentation?: "document" | "card";
   authorSession: AuthorSession | null;
   syncId: string;
   suspended: boolean;
@@ -166,7 +168,7 @@ export function useDocumentEditor({
     if (editor && authorship)
       authorship.setDisplay(
         editor,
-        showAuthors,
+        presentation === "card" ? "color" : showAuthors ? "highlight" : "off",
         new Map(
           profiles.map((row) => [
             row.id,
@@ -174,7 +176,7 @@ export function useDocumentEditor({
           ]),
         ),
       );
-  }, [editor, authorship, showAuthors, profiles]);
+  }, [editor, authorship, showAuthors, profiles, presentation]);
   useEffect(() => {
     if (!editor || !moveSource) return;
     const changed = ({

@@ -11,7 +11,9 @@ export const grant = mutation({
   },
   returns: v.object({ grantId: v.id("agentGrants"), token: v.string() }),
   handler: async (ctx, args) => {
-    const { userId } = await requireWorkspace(ctx, args.workspaceId);
+    const { userId, workspace } = await requireWorkspace(ctx, args.workspaceId);
+    if (workspace.demo === "landing")
+      throw new Error("Agent grants are unavailable in the landing demo");
     if (!args.label.trim() || args.label.length > 80)
       throw new Error("Invalid agent grant");
     const active = await ctx.db

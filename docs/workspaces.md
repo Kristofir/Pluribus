@@ -1,14 +1,26 @@
 # Workspace prototype
 
 Private workspaces share the existing Canvas, editor, presence and History protocols.
-`/canvas` remains a separate anonymous demo; `/workspaces/$workspaceId` requires
-membership on every backend request. Google login alone grants no workspace access.
+The anonymous shared canvas is available at `/canvas`; its edits are public.
+The signed-out landing page mounts that same Canvas component in one private
+workspace per anonymous Convex Auth user. Normal membership checks isolate its
+documents, Web Page, geometry, History and presence. A seed mutation adds the
+Carol Document and requests the fixed Gatorade Fruit Punch product page through
+the normal Web Page capture job; a local Image example fills the third visual
+slot. Visitors cannot request other page captures or upload images in the demo.
+Opening or reloading the landing page restores the seed text, cards, page
+position and viewport; it reuses the captured Web Page instead of fetching it
+again. Guest workspace records persist with their anonymous identity; they are
+not deleted when a tab closes. `/workspaces/$workspaceId` requires membership on every backend
+request. Google login alone grants no workspace access.
 
 ## Anonymous workspace links
 
-A member can use **Share** in the workspace header to create one active,
-revocable guest link. The secret appears only when created; generating another
-link revokes the previous one. Its hash, not its raw value, is stored in Convex.
+A member opens **Share** in the workspace header to copy the workspace's one
+stable guest link from a small popover. The first open creates it automatically.
+Its high-entropy token is stored alongside a hash so authorized members can
+copy the same URL later. Older hash-only links rotate once when first opened in
+this control, ending access granted by the old link.
 The link uses a URL fragment so the secret is not sent in the frontend HTTP
 request. Opening it starts an anonymous Convex Auth session and redeems the link
 into a workspace membership. Guests then use the normal workspace route, canvas,
@@ -20,9 +32,10 @@ its share-derived membership, so revoking the link does not remove direct access
 
 ## Ownership
 
-- `workspaces` owns membership, explicit verified-email assignments and a main document.
-- `canvasDocuments` owns document lifecycle. Spatial cards have geometry; `main` and
-  `reply` children do not consume spatial-card capacity; the main document is fixed canvas paper and replies remain panel editors.
+- `workspaces` owns membership and explicit verified-email assignments.
+- `canvasDocuments` owns document lifecycle. Spatial cards have geometry;
+  `reply` children use panel editors without consuming spatial-card capacity.
+  Older `main` children remain stored for compatibility but are no longer created.
 - Each inbox thread owns one canonical reply child. Presentations reuse the same editor;
   switching presentation never creates another text copy.
 - ProseMirror Sync owns canonical text. Paragraph IDs are node attributes, authored
@@ -32,9 +45,9 @@ its share-derived membership, so revoking the link does not remove direct access
 
 ## Document presentation
 
-The main document uses one mounted editor on fixed, centered canvas paper; height
-extends with its content. Main document recenters the top without fitting the full
-length. Replies use a formatting toolbar above a scrollable, centered panel page. Controls share the mounted editor: Undo/Redo, paragraph and headings 1–3,
+Replies use one mounted editor in the workspace side panel. Opening a linked
+paragraph reveals it in that editor. It has a formatting toolbar above a
+scrollable, centered page. Controls share the mounted editor: Undo/Redo, paragraph and headings 1–3,
 bullet/numbered lists, bold, italic and strikethrough. Toolbar actions preserve
 text selection; read-only/paused sessions disable commands, and pending authored
 changes disable history. Paragraph tools and reply review remain below the page.
@@ -112,16 +125,15 @@ The stateless `/mcp` HTTP endpoint exposes `read_canvas`, `read_web_page`,
 `read_document`, `read_context`, `edit_document`, `create_card`,
 `set_card_geometry`, `delete_card` and `reverse_card_action`. Clients supply a
 bearer token and protocol `2025-06-18`. `read_canvas` lists active document,
-Web Page and Image cards with geometry and metadata, plus the fixed main paper at x=-400,
-y=0 and width 800. Its height follows content and is not returned. It
-does not include document text; `read_document` retrieves it under the workspace
+Web Page and Image cards with geometry and metadata. It does not include
+document text; `read_document` retrieves it under the workspace
 grant. `read_web_page` returns a card's full saved text capture and extraction
 data. Canvas tools recheck current membership and exclude deleted or
 other-workspace cards. Workspace-wide grants can create document cards and Web
 Pages, move or resize existing document, Web Page and Image cards, delete them,
 and conditionally reverse their own card actions. Web Page creation enqueues
 the existing capture flow; Image creation still requires the browser upload
-flow. The fixed main paper and panel documents cannot be moved or deleted.
+flow. Main and reply documents are outside canvas card actions.
 Card actions use UUID request IDs and grant-bound Element History. Exact retries
 replay their original outcomes. Geometry writes require the card's saved geometry
 from `read_canvas` as an expected value; stale generations, conflicting geometry and

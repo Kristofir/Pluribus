@@ -31,6 +31,9 @@ export async function activeWorkspaceMember(
   workspaceId: Id<"workspaces">,
   userId: Id<"users"> | null,
 ) {
+  const workspace = await ctx.db.get(workspaceId);
+  if (workspace?.demo === "landing" && workspace.demoOwnerId !== userId)
+    return null;
   const member = userId
     ? await ctx.db
         .query("workspaceMembers")

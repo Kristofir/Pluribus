@@ -23,6 +23,8 @@ export async function requireGrant(
       !grant.documentIds.includes(documentId))
   )
     throw new Error("Agent access denied");
+  if ((await ctx.db.get(grant.workspaceId))?.demo === "landing")
+    throw new Error("Agent access denied");
   await requireWorkspaceMember(ctx, grant.workspaceId, grant.userId);
   return grant;
 }

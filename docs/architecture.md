@@ -82,6 +82,13 @@ writes. Any rejection escapes the encompassing mutation, rolling back text and
 receipts together. Proof payloads are generic opaque values, never parsed by core.
 
 Frontend controllers own client interactions, not server business operations.
+The signed-out landing mounts `CanvasPage` against a private workspace created
+for the anonymous guest. It uses the normal Convex document, History, and Presence
+paths; the Image example is a local node excluded from persistence. `/canvas`
+retains the separate public shared document.
+Each landing mount resets the private workspace's seed card and Web Page geometry,
+retiring added cards and replacing edited seed text through ProseMirror Sync.
+The captured page is reused, and the saved viewport is cleared before display.
 `useCanvas` retains subscriptions and gesture lifetimes; `useCanvasCommands` owns
 create/delete/undo/redo commands and pending-edit guards. `canvasNodes` derives the
 React Flow projection from query results plus transient state. `useDocumentEditor`
@@ -518,7 +525,9 @@ Workspace image cards use a separate canvas-owned table and Convex file storage.
 URL imports have a separate authenticated action. It inspects the response rather than the filename: HTML/text uses the existing Web Page History path and Firecrawl capture; supported image bytes are stored and registered as an upload intent for the existing Image History path. The image fetch pins a DNS-checked public IPv4 destination, rejects redirects, and bounds time and bytes. The browser owns only temporary checking/failure drafts. URL imports require a private workspace.
 
 Workspace membership scopes the existing Canvas, text, presence and History
-adapters. Panel-only main/reply children retain document ownership without geometry.
+adapters. Panel-only reply children retain document ownership without geometry.
+Older main children remain stored but are no longer provisioned or presented;
+canvas agent reads do not advertise a main document ID.
 Anonymous share links create Convex Auth guest identities and share-derived
 memberships. The same workspace adapters serve guests and named members;
 membership checks revalidate the originating link on every request. Link rotation

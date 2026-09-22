@@ -32,10 +32,12 @@ test("each caller receives only their own stable ID and display fields", async (
     id: first,
     name: "First user",
     email: "first@example.test",
+    isAnonymous: false,
   });
   await expect(secondCaller.query(api.Users.current, {})).resolves.toEqual({
     id: second,
     name: "Second user",
+    isAnonymous: false,
   });
 });
 

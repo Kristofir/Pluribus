@@ -66,6 +66,26 @@
   margin: 8px 0;
 }
 
+.canvas-document .author-text {
+  color: hsl(var(--author-hue) 68% 27%);
+}
+.dark .canvas-document .author-text {
+  color: hsl(var(--author-hue) 72% 78%);
+}
+.document-author-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: min(220px, calc(100vw - 16px));
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 18%);
+  pointer-events: none;
+}
+
 .document-recovery-container {
   position: fixed;
   z-index: 1000;
@@ -164,6 +184,60 @@
 .document-format-select option {
   background: var(--overlay);
   color: var(--fg);
+}
+.selection-formatting-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--overlay);
+  color: var(--fg);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  z-index: 100;
+}
+.selection-formatting-menu button {
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.selection-formatting-menu button {
+  min-width: 28px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.selection-formatting-menu button svg {
+  width: 16px;
+  height: 16px;
+  margin: auto;
+}
+.selection-formatting-menu button:hover,
+.selection-formatting-menu button[aria-pressed="true"],
+.selection-formatting-menu .selection-text-preset-trigger:hover {
+  background: var(--secondary);
+}
+.selection-formatting-menu button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.selection-formatting-menu .selection-text-preset-trigger {
+  width: auto;
+  gap: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+.selection-formatting-menu .selection-text-preset-trigger svg {
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+.selection-text-presets {
+  min-width: 150px;
+  z-index: 110;
 }
 @media (max-width: 420px) {
   .document-formatting-toolbar {

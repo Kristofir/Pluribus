@@ -1,4 +1,3 @@
-import { CanvasMainDocument } from "./CanvasMainDocument";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useConvex, useConvexAuth } from "convex/react";
@@ -85,11 +84,9 @@ function WorkspaceSession({
     access = useRetainedQuery(api.Workspaces.access, { workspaceId });
   const navigate = useNavigate(),
     client = useConvex();
-  const [paperFocus, setPaperFocus] = useState(0);
   const [panelOpen, setPanelOpen] = useState(false),
-    [surface, setSurface] = useState<"document" | "inbox" | "tools" | "share">(
-      "document",
-    );
+    [surface, setSurface] = useState<"document" | "inbox" | "tools">("inbox"),
+    [shareOpen, setShareOpen] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
   const [replies, setReplies] = useState<PanelDocument[]>([]),
     [activeId, setActiveId] = useState<string>();
@@ -147,19 +144,10 @@ function WorkspaceSession({
     );
   const w = view.data,
     paused = view.failed || accountPaused;
-  const main: PanelDocument = {
-    documentId: w.mainDocumentId,
-    generation: w.mainGeneration,
-    title: "Main document",
-    kind: "main",
-  };
-  const documents = [
-    main,
-    ...replies.filter((d) => d.documentId !== main.documentId),
-  ];
-  const active = documents.find((d) => d.documentId === activeId) ?? main;
+  const active = replies.find((d) => d.documentId === activeId);
   const show = (next: typeof surface) => {
     openRequest.current++;
+    setShareOpen(false);
     setSurface(next);
     setPanelOpen(true);
   };
@@ -222,6 +210,10 @@ function WorkspaceSession({
         );
         return;
       }
+      if (descriptor.role === "main") {
+        setNotice("This link targets a retired main document.");
+        return;
+      }
       if (
         descriptor.role === "reply" &&
         !replies.some((d) => d.documentId === documentId)
@@ -248,7 +240,7 @@ function WorkspaceSession({
       }
       setActiveId(documentId);
       setSurface("document");
-      setPanelOpen(descriptor.role !== "main");
+      setPanelOpen(true);
       setReveal({ ...reference, nonce: request });
       setNotice(undefined);
     } catch {
@@ -264,47 +256,22 @@ function WorkspaceSession({
     <WorkspaceLayout
       name={w.name}
       canvas={
-        <CanvasPage
-          workspaceId={workspaceId}
-          onSelectionChange={onSelection}
-          paperFocus={paperFocus}
-          mainPaper={
-            <CanvasMainDocument
-              key={`${main.documentId}:${main.generation}`}
-              document={main}
-              workspaceId={workspaceId}
-              active
-              paused={paused}
-              selected={selection}
-              onClose={close}
-              reveal={
-                reveal?.documentId === main.documentId ? reveal : undefined
-              }
-            />
-          }
-        />
+        <CanvasPage workspaceId={workspaceId} onSelectionChange={onSelection} />
       }
       panelOpen={panelOpen}
-      panelFocusKey={surface === "document" ? active.documentId : surface}
-      panelReturnFocus={
-        surface === "share"
-          ? "share"
-          : surface === "tools"
-            ? "tools"
-            : surface === "inbox" || active.kind === "reply"
-              ? "inbox"
-              : "mainDocument"
-      }
+      panelFocusKey={surface === "document" ? active?.documentId : surface}
+      panelReturnFocus={surface === "tools" ? "tools" : "inbox"}
       onDashboard={back}
-      onMainDocument={() => {
-        setActiveId(main.documentId);
-        setReveal(undefined);
-        close();
-        setPaperFocus((value) => value + 1);
-      }}
       onInbox={() => show("inbox")}
       onTools={() => show("tools")}
-      onShare={() => show("share")}
+      shareOpen={shareOpen}
+      onShare={() => setShareOpen((open) => !open)}
+      onCloseShare={() => setShareOpen(false)}
+      share={
+        shareOpen && (
+          <WorkspaceShare workspaceId={workspaceId} paused={paused} />
+        )
+      }
       notice={
         paused || notice || selectedLinks.length > 0 || links.failed ? (
           <div className="space-y-1">
@@ -331,26 +298,24 @@ function WorkspaceSession({
       }
       panel={
         <>
-          {documents
-            .filter((doc) => doc.kind === "reply")
-            .map((doc) => (
-              <DocumentPanelSession
-                key={`${doc.documentId}:${doc.generation}`}
-                document={doc}
-                workspaceId={workspaceId}
-                active={
-                  panelOpen &&
-                  surface === "document" &&
-                  doc.documentId === active.documentId
-                }
-                paused={paused}
-                selected={selection}
-                onClose={close}
-                reveal={
-                  reveal?.documentId === doc.documentId ? reveal : undefined
-                }
-              />
-            ))}
+          {replies.map((doc) => (
+            <DocumentPanelSession
+              key={`${doc.documentId}:${doc.generation}`}
+              document={doc}
+              workspaceId={workspaceId}
+              active={
+                panelOpen &&
+                surface === "document" &&
+                doc.documentId === active?.documentId
+              }
+              paused={paused}
+              selected={selection}
+              onClose={close}
+              reveal={
+                reveal?.documentId === doc.documentId ? reveal : undefined
+              }
+            />
+          ))}
           <div hidden={surface !== "inbox"} className="workspace-panel-session">
             <InboxController
               active={panelOpen && surface === "inbox"}
@@ -362,13 +327,6 @@ function WorkspaceSession({
           </div>
           <div hidden={surface !== "tools"} className="workspace-panel-session">
             <WorkspaceTools
-              workspaceId={workspaceId}
-              onClose={close}
-              paused={paused}
-            />
-          </div>
-          <div hidden={surface !== "share"} className="workspace-panel-session">
-            <WorkspaceShare
               workspaceId={workspaceId}
               onClose={close}
               paused={paused}

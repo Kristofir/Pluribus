@@ -46,6 +46,7 @@ export interface ImageElement extends ElementBase {
   id: ImageElementId;
   kind: "image";
   name: string;
+  aiDescription?: string | null;
   url: string | null;
 }
 /** Narrow by kind before accessing content-specific data; variants are never bags of optional fields. */

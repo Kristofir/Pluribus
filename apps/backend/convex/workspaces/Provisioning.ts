@@ -60,12 +60,6 @@ export const provision = internalMutation({
     const workspaceId =
       existing?._id ??
       (await ctx.db.insert("workspaces", { slug: args.slug, name: args.name }));
-    if (!existing?.mainDocumentId)
-      await ctx.db.patch(workspaceId, {
-        mainDocumentId: await createPanelDocument(ctx, workspaceId, {
-          kind: "main",
-        }),
-      });
     for (const assignment of args.assignments) {
       const email = assignment.email.trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))

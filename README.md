@@ -31,8 +31,15 @@ processes; Ctrl+C stops both. They can also run separately using
 
 TanStack Router defines the typed route tree in `apps/frontend/src/Router.tsx`.
 Its inline style guide covers adding routes, typed navigation, URL validation,
-auth callbacks, and Convex boundaries. The home route renders the workspace dashboard; `/canvas` loads the multiplayer
-canvas. Unknown paths show a recovery link. The deployment host must serve `index.html` for deep links.
+auth callbacks, and Convex boundaries. The signed-out home route mounts the real
+Canvas in a private Convex workspace for each anonymous guest, seeded with a
+Document and Web Page card plus a local Image example. It never reads or writes
+the public canvas. Opening or reloading the landing page resets the guest cards,
+text and view to the starting arrangement while retaining the captured Web Page.
+Google-signed-in visitors see the
+workspace dashboard; `/canvas` remains the multiplayer public canvas. Unknown
+paths show a recovery link.
+The deployment host must serve `index.html` for deep links.
 
 ## Shared canvas
 
@@ -172,8 +179,8 @@ content with a fresh editing session and never replays old pending text.
 
 In a private workspace, **Add web page** captures a URL with an optional extraction
 prompt. Cards support selection, movement, resizing, full read-only capture viewing,
-refresh and inclusion in agent context. Refresh failures retain the previous capture.
+and inclusion in agent context. Failed capture retries retain the previous capture.
 Creation, geometry and deletion participate in Canvas Undo/Redo. Up to 20 Web Pages
 are supported separately from the 100-document limit; captures are not editable text.
-In a private workspace, dropping a web link or choosing **Import URL…** checks
+In a private workspace, dropping a web link checks
 the response: an image becomes an Image card; a page becomes a Web Page card.

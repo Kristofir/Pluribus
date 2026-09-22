@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import "./Workspace.css";
 
@@ -9,13 +9,15 @@ export function WorkspaceLayout({
   canvas,
   panel,
   panelOpen,
-  panelReturnFocus = "mainDocument",
+  panelReturnFocus = "inbox",
   panelFocusKey,
   onDashboard,
-  onMainDocument,
   onInbox,
   onTools,
   onShare,
+  share,
+  shareOpen,
+  onCloseShare,
   notice,
 }: {
   name: string;
@@ -25,32 +27,48 @@ export function WorkspaceLayout({
   panelOpen: boolean;
   panelFocusKey?: string;
   /** Fallback for direct links or an opener removed when switching surfaces. */
-  panelReturnFocus?: "mainDocument" | "inbox" | "tools" | "share";
+  panelReturnFocus?: "inbox" | "tools";
   onDashboard: () => void;
-  onMainDocument: () => void;
   onInbox: () => void;
   onTools?: () => void;
   onShare?: () => void;
+  share?: ReactNode;
+  shareOpen?: boolean;
+  onCloseShare?: () => void;
   notice?: ReactNode;
 }) {
   const panelHost = useRef<HTMLDivElement>(null);
   const previousFocusKey = useRef(panelFocusKey);
   const previousOpen = useRef(false);
   const previousReturnFocus = useRef(panelReturnFocus);
-  const mainTrigger = useRef<HTMLButtonElement>(null);
   const inboxTrigger = useRef<HTMLButtonElement>(null);
   const toolsTrigger = useRef<HTMLButtonElement>(null);
   const shareTrigger = useRef<HTMLButtonElement>(null);
+  const shareHost = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!shareOpen) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!shareHost.current?.contains(event.target as Node)) onCloseShare?.();
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onCloseShare?.();
+        shareTrigger.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", escape);
+    };
+  }, [shareOpen, onCloseShare]);
   useLayoutEffect(() => {
     const fallback =
-      panelReturnFocus === "share"
-        ? shareTrigger.current
-        : panelReturnFocus === "tools"
-          ? toolsTrigger.current
-          : panelReturnFocus === "inbox"
-            ? inboxTrigger.current
-            : mainTrigger.current;
+      panelReturnFocus === "tools"
+        ? toolsTrigger.current
+        : inboxTrigger.current;
     const canReturnTo = (element: HTMLElement | null) =>
       !!element?.isConnected &&
       !panelHost.current?.contains(element) &&
@@ -100,16 +118,6 @@ export function WorkspaceLayout({
         </div>
         <nav aria-label="Workspace surfaces" className="workspace-actions">
           <Button
-            ref={mainTrigger}
-            intent="outline"
-            onPress={() => {
-              opener.current = mainTrigger.current;
-              onMainDocument();
-            }}
-          >
-            Main document
-          </Button>
-          <Button
             ref={inboxTrigger}
             intent="outline"
             onPress={() => {
@@ -132,16 +140,25 @@ export function WorkspaceLayout({
             </Button>
           )}
           {onShare && (
-            <Button
-              ref={shareTrigger}
-              intent="outline"
-              onPress={() => {
-                opener.current = shareTrigger.current;
-                onShare();
-              }}
-            >
-              Share
-            </Button>
+            <div className="workspace-share-host" ref={shareHost}>
+              <Button
+                ref={shareTrigger}
+                intent="outline"
+                aria-expanded={!!shareOpen}
+                aria-controls="workspace-share-popover"
+                onPress={onShare}
+              >
+                Share
+              </Button>
+              {shareOpen && (
+                <div
+                  id="workspace-share-popover"
+                  className="workspace-share-popover"
+                >
+                  {share}
+                </div>
+              )}
+            </div>
           )}
           {account}
         </nav>

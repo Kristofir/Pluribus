@@ -15,6 +15,8 @@ export async function claimAssignments(ctx: MutationCtx) {
     )
     .take(32);
   for (const assignment of assignments) {
+    if ((await ctx.db.get(assignment.workspaceId))?.demo === "landing")
+      continue;
     const existing = await ctx.db
       .query("workspaceMembers")
       .withIndex("by_workspace_user", (q) =>
@@ -53,6 +55,8 @@ export async function listWorkspaces(ctx: QueryCtx) {
     memberships.map(async (membership, index) => {
       const workspace = rows[index];
       if (!workspace) return null;
+      if (workspace.demo === "landing" && workspace.demoOwnerId !== userId)
+        return null;
       if (membership.shareLinkId) {
         const link = await ctx.db.get(membership.shareLinkId);
         if (!link || link.revoked || link.workspaceId !== workspace._id)
@@ -72,24 +76,9 @@ export async function openWorkspace(
   args: { workspaceId: Id<"workspaces"> },
 ) {
   const { workspace } = await requireWorkspace(ctx, args.workspaceId);
-  const document = workspace.mainDocumentId
-    ? await ctx.db.get(workspace.mainDocumentId)
-    : null;
-  const child = document?.element ? await ctx.db.get(document.element) : null;
-  if (
-    !document ||
-    !child ||
-    child.role !== "main" ||
-    child.canvas !== workspace._id ||
-    child.documentId !== document._id ||
-    child.removed
-  )
-    throw new Error("Main document unavailable");
   return {
     workspaceId: workspace._id,
     name: workspace.name,
     canvasId: String(workspace._id),
-    mainDocumentId: document._id,
-    mainGeneration: child.generation,
   };
 }

@@ -17,6 +17,7 @@ export const current = query({
       id: v.id("users"),
       name: v.optional(v.string()),
       email: v.optional(v.string()),
+      isAnonymous: v.boolean(),
     }),
   ),
   handler: async (ctx) => {
@@ -26,6 +27,11 @@ export const current = query({
     const user = await ctx.db.get("users", userId);
     if (user === null) return null;
 
-    return { id: user._id, name: user.name, email: user.email };
+    return {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      isAnonymous: user.isAnonymous === true,
+    };
   },
 });

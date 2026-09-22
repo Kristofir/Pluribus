@@ -17,7 +17,6 @@ export type WebPageNode = Node<
 /** React Flow owns gestures; the source feature owns captured content and controls. */
 export const WebPageNodeCard = memo(function WebPageNodeCard({
   data,
-  selected,
 }: NodeProps<WebPageNode>) {
   const [resizing, setResizing] = useState(false);
   const [minimumHeight, setMinimumHeight] = useState(132);
@@ -34,7 +33,7 @@ export const WebPageNodeCard = memo(function WebPageNodeCard({
       <NodeResizer
         onResizeStart={() => setResizing(true)}
         onResizeEnd={() => setResizing(false)}
-        isVisible={!!selected && data.editable}
+        isVisible={data.editable}
         minWidth={300}
         minHeight={minimumHeight}
         maxWidth={geometryLimits.maxSize}

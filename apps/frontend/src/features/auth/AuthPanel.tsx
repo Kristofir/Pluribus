@@ -92,7 +92,9 @@ export function AuthPanel() {
         <p role="status">
           {exchangingCode ? "Signing you in…" : "Checking your session…"}
         </p>
-      ) : isAuthenticated ? (
+      ) : isAuthenticated && user === undefined ? (
+        <p role="status">Loading your account…</p>
+      ) : isAuthenticated && !user?.isAnonymous ? (
         <>
           <p role="status">
             {user === undefined
@@ -107,7 +109,7 @@ export function AuthPanel() {
         </>
       ) : (
         <Button isPending={pending} onPress={startSignIn}>
-          {pending ? "Opening Google…" : "Sign in with Google"}
+          {pending ? "Opening Google…" : "Log in with Google"}
         </Button>
       )}
       {error && <p role="alert">{error}</p>}

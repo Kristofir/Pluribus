@@ -1,5 +1,6 @@
 import { useCardEntrance } from "../../hooks/UseCardEntrance";
 import { memo, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { geometryLimits } from "@pluribus/core/canvas/domain";
 import { NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import type { Id } from "@pluribus/backend/dataModel";
@@ -23,7 +24,6 @@ export type DocumentNode = Node<
 /** Geometry preserves editor identity; a restored generation always opens a fresh editor. */
 export const DocumentCard = memo(function DocumentCard({
   data,
-  selected,
   height,
 }: NodeProps<DocumentNode>) {
   const entrance = useCardEntrance();
@@ -33,6 +33,12 @@ export const DocumentCard = memo(function DocumentCard({
   const [minimumHeight, setMinimumHeight] = useState(
     geometryLimits.minSize as number,
   );
+  const [authorTooltip, setAuthorTooltip] = useState<{
+    label: string;
+    x: number;
+    y: number;
+    above: boolean;
+  } | null>(null);
   useLayoutEffect(() => {
     const element = body.current;
     const container = card.current;
@@ -59,51 +65,106 @@ export const DocumentCard = memo(function DocumentCard({
     return () => observer.disconnect();
   }, [data.contentHeight, data.editable, height]);
   return (
-    <section
-      style={entrance}
-      ref={card}
-      className={`canvas-card canvas-document document-drag-handle${data.editing ? " is-editing" : ""}`}
-      onPointerDown={interaction.onPointerDown}
-      onClick={interaction.onClick}
-      onKeyDownCapture={(event) => {
-        if (
-          event.key === "Escape" &&
-          data.editing &&
-          !event.nativeEvent.isComposing
-        ) {
-          event.preventDefault();
-          event.stopPropagation();
-          data.activate(false);
-          card.current
-            ?.closest<HTMLElement>(".react-flow__node")
-            ?.focus({ preventScroll: true });
-        }
-      }}
-    >
-      <NodeResizer
-        isVisible={selected && data.editable}
-        minWidth={300}
-        minHeight={minimumHeight}
-        maxWidth={geometryLimits.maxSize}
-      />
-      <div
-        className={`document-card-content${data.editing ? " nodrag nopan" : ""}`}
+    <>
+      <section
+        style={entrance}
+        ref={card}
+        data-document-id={data.documentId}
+        className={`canvas-card canvas-document document-drag-handle${data.editing ? " is-editing" : ""}`}
+        onPointerDown={interaction.onPointerDown}
+        onClick={interaction.onClick}
+        onKeyDownCapture={(event) => {
+          if (
+            event.key === "Escape" &&
+            data.editing &&
+            !(
+              event.target instanceof Element &&
+              event.target.closest(".selection-formatting-menu")
+            ) &&
+            !event.nativeEvent.isComposing
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            data.activate(false);
+            card.current
+              ?.closest<HTMLElement>(".react-flow__node")
+              ?.focus({ preventScroll: true });
+          }
+        }}
       >
-        <div ref={body} className="document-card-body">
-          <CollaborativeEditor
-            key={data.generation}
-            embedded
-            presentation="card"
-            interactionEnabled={data.editing && data.editable}
-            focusPoint={interaction.focusPoint}
-            id={data.documentId}
-            generation={data.generation}
-            participate={data.editing && data.editable}
-            paused={data.readPaused}
-            onPendingChange={data.pending}
-          />
+        <NodeResizer
+          isVisible={data.editable}
+          minWidth={300}
+          minHeight={minimumHeight}
+          maxWidth={geometryLimits.maxSize}
+        />
+        <div
+          className={`document-card-content${data.editing ? " nodrag nopan" : ""}`}
+        >
+          <div
+            ref={body}
+            className="document-card-body"
+            onPointerMove={(event) => {
+              const span =
+                event.target instanceof Element
+                  ? event.target.closest<HTMLElement>(
+                      ".author-text, .author-text-own",
+                    )
+                  : null;
+              const label = span?.dataset.authorLabel;
+              if (!span || !label || !body.current?.contains(span)) {
+                setAuthorTooltip(null);
+                return;
+              }
+              const rect = span.getBoundingClientRect();
+              const above = rect.top >= 40;
+              const next = {
+                label,
+                x: Math.max(8, Math.min(rect.left, window.innerWidth - 228)),
+                y: above ? rect.top - 8 : rect.bottom + 8,
+                above,
+              };
+              setAuthorTooltip((previous) =>
+                previous?.label === next.label &&
+                previous.x === next.x &&
+                previous.y === next.y &&
+                previous.above === next.above
+                  ? previous
+                  : next,
+              );
+            }}
+            onPointerLeave={() => setAuthorTooltip(null)}
+          >
+            <CollaborativeEditor
+              key={data.generation}
+              embedded
+              presentation="card"
+              interactionEnabled={data.editing && data.editable}
+              focusPoint={interaction.focusPoint}
+              id={data.documentId}
+              generation={data.generation}
+              participate={data.editing && data.editable}
+              paused={data.readPaused}
+              onPendingChange={data.pending}
+            />
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+      {authorTooltip &&
+        createPortal(
+          <div
+            role="tooltip"
+            className="document-author-tooltip"
+            style={{
+              left: authorTooltip.x,
+              top: authorTooltip.y,
+              transform: authorTooltip.above ? "translateY(-100%)" : undefined,
+            }}
+          >
+            {authorTooltip.label}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 });

@@ -6,6 +6,7 @@ import { expect, test } from "vitest";
 import schema from "./schema";
 import { documentLimits } from "@pluribus/core/canvas/domain";
 import { api, internal } from "./_generated/api";
+import { createPanelDocument } from "./workspaces/Provisioning";
 const modules = import.meta.glob("./**/*.ts");
 const box = { x: 0, y: 0, width: 430, height: 500 };
 const token = () => crypto.randomUUID();
@@ -44,6 +45,21 @@ async function setup() {
 }
 test("preassignment binds verified accounts only; listing and admin enforce independent authority", async () => {
   const { t, a, b, unverified, w1, w2 } = await setup();
+  expect(await a.query(api.Workspaces.open, { workspaceId: w1 })).toEqual({
+    workspaceId: w1,
+    name: "One",
+    canvasId: String(w1),
+  });
+  expect(
+    await t.run((ctx) =>
+      ctx.db
+        .query("canvasDocuments")
+        .withIndex("by_canvas_role_removed", (q) =>
+          q.eq("canvas", w1).eq("role", "main").eq("removed", false),
+        )
+        .take(1),
+    ),
+  ).toEqual([]);
   expect((await a.query(api.Workspaces.list)).map((w) => w.id)).toEqual([w1]);
   expect((await b.query(api.Workspaces.list)).map((w) => w.id)).toEqual([w2]);
   expect(await t.query(api.Workspaces.list)).toEqual([]);
@@ -60,10 +76,16 @@ test("preassignment binds verified accounts only; listing and admin enforce inde
     "Administrator",
   );
 });
-test("private canonical documents deny every old text/presence read and write surface", async () => {
+test("private workspace documents deny every old text/presence read and write surface", async () => {
   const { t, a, b, w1 } = await setup();
-  const panel = await a.query(api.Workspaces.open, { workspaceId: w1 });
-  const id = `${panel.mainDocumentId}:1`;
+  const card = await a.mutation(api.Canvas.createDocument, {
+    workspaceId: w1,
+    geometry: box,
+  });
+  const documentId = await t.run(
+    async (ctx) => (await ctx.db.get(card))!.documentId!,
+  );
+  const id = `${documentId}:1`;
   for (const client of [t, b]) {
     await expect(
       client.query(api.Documents.getSnapshot, { id }),
@@ -97,7 +119,7 @@ test("private canonical documents deny every old text/presence read and write su
     ).rejects.toThrow("access denied");
     await expect(
       client.query(api.Presence.roster, {
-        context: { kind: "document", id: panel.mainDocumentId },
+        context: { kind: "document", id: documentId },
       }),
     ).rejects.toThrow("access denied");
     await expect(
@@ -109,7 +131,7 @@ test("private canonical documents deny every old text/presence read and write su
   expect(await a.query(api.Documents.latestVersion, { id })).toBe(1);
   expect(
     await a.query(api.Presence.roster, {
-      context: { kind: "document", id: panel.mainDocumentId },
+      context: { kind: "document", id: documentId },
     }),
   ).toEqual([]);
 });
@@ -147,10 +169,10 @@ test("private spatial records stay outside legacy scope and panel children canno
     secret: "11111111-1111-1111-1111-111111111111",
   });
   const auth = { session, secret: "11111111-1111-1111-1111-111111111111" };
-  const main = await a.query(api.Workspaces.open, { workspaceId: w1 });
-  const child = await t.run(
-    async (ctx) => (await ctx.db.get(main.mainDocumentId))!.element!,
-  );
+  const child = await t.run(async (ctx) => {
+    const documentId = await createPanelDocument(ctx, w1, { kind: "main" });
+    return (await ctx.db.get(documentId))!.element!;
+  });
   const result = await a.mutation(api.Canvas.applyHistoryAction, {
     ...auth,
     action: token(),
@@ -298,8 +320,14 @@ test("private presence publishes and is revoked with membership; private History
 });
 test("private document presence joins and publishes but existing capability cannot survive membership revocation", async () => {
   const { t, a, b, w1 } = await setup();
-  const panel = await a.query(api.Workspaces.open, { workspaceId: w1 });
-  const context = { kind: "document" as const, id: panel.mainDocumentId };
+  const card = await a.mutation(api.Canvas.createDocument, {
+    workspaceId: w1,
+    geometry: box,
+  });
+  const documentId = await t.run(
+    async (ctx) => (await ctx.db.get(card))!.documentId!,
+  );
+  const context = { kind: "document" as const, id: documentId };
   const tabId = token();
   const browser = await a.mutation(api.Presence.claimBrowser, {
     secret: "a".repeat(64),

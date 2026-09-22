@@ -82,13 +82,71 @@ export function attributeTransaction(
   tr.doc = transform.doc;
   tr.setSelection(Selection.fromJSON(tr.doc, selection));
 }
+type AuthorDisplay = "off" | "highlight" | "color";
+
+export function authorHue(id: string) {
+  let hash = 0;
+  for (const c of id) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  return hash % 360;
+}
+
+export function authorTextClass(id: string, selfAuthor?: string) {
+  return id === selfAuthor ? "author-text-own" : "author-text";
+}
+
+export function authorDisplayDecorations(
+  doc: Node,
+  display: AuthorDisplay,
+  labels: Map<string, string>,
+  selfAuthor?: string,
+) {
+  if (display === "off") return DecorationSet.empty;
+  const decorations: Decoration[] = [];
+  doc.descendants((node, pos) => {
+    if (!node.isText) return;
+    const id = node.marks.find((mark) => mark.type.name === "authorship")?.attrs
+      .author as string | undefined;
+    if (display === "color" && !id) return;
+    const hue = authorHue(id ?? "unknown");
+    decorations.push(
+      Decoration.inline(pos, pos + node.nodeSize, {
+        class:
+          display === "color"
+            ? authorTextClass(id!, selfAuthor)
+            : "author-span",
+        ...(display === "color"
+          ? {
+              "data-author-label": labels.get(id!) ?? "Author details loading…",
+            }
+          : {
+              title: id
+                ? (labels.get(id) ?? "Author details loading…")
+                : "Unknown author (existing text)",
+            }),
+        ...(display === "color" && id === selfAuthor
+          ? {}
+          : {
+              style:
+                display === "color"
+                  ? `--author-hue: ${hue}`
+                  : `background-color: hsl(${hue} 70% 80% / 0.45)`,
+            }),
+      }),
+    );
+  });
+  return DecorationSet.create(doc, decorations);
+}
 export function createAuthorshipExtension(author: string, paragraphs = false) {
   const key = new PluginKey("authorship-display");
-  let shown = false;
+  let display: AuthorDisplay = "off";
   let labels = new Map<string, string>();
   return {
-    setDisplay(editor: Editor, show: boolean, names: Map<string, string>) {
-      shown = show;
+    setDisplay(
+      editor: Editor,
+      mode: AuthorDisplay,
+      names: Map<string, string>,
+    ) {
+      display = mode;
       labels = names;
       editor.view.dispatch(
         editor.state.tr.setMeta(key, true).setMeta("addToHistory", false),
@@ -112,27 +170,12 @@ export function createAuthorshipExtension(author: string, paragraphs = false) {
                   ? freshParagraphSlice(slice)
                   : slice,
               decorations(state) {
-                if (!shown) return DecorationSet.empty;
-                const decorations: Decoration[] = [];
-                state.doc.descendants((node, pos) => {
-                  if (!node.isText) return;
-                  const id = node.marks.find(
-                    (mark) => mark.type.name === "authorship",
-                  )?.attrs.author as string | undefined;
-                  let hash = 0;
-                  for (const c of id ?? "unknown")
-                    hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
-                  decorations.push(
-                    Decoration.inline(pos, pos + node.nodeSize, {
-                      class: "author-span",
-                      title: id
-                        ? (labels.get(id) ?? "Author details loading…")
-                        : "Unknown author (existing text)",
-                      style: `background-color: hsl(${hash % 360} 70% 80% / 0.45)`,
-                    }),
-                  );
-                });
-                return DecorationSet.create(state.doc, decorations);
+                return authorDisplayDecorations(
+                  state.doc,
+                  display,
+                  labels,
+                  author,
+                );
               },
             },
           }),

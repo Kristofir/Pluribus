@@ -33,28 +33,32 @@ export function WebPageActions({
   const recoverable = !!onRecover && canRecoverWebPage(source, now);
   const busy =
     refreshing || source.status === "queued" || source.status === "fetching";
+  if (source.status !== "failed" && !recoverable && !notice && !error)
+    return null;
   return (
     <div className="web-page-actions nodrag nopan">
-      <Button
-        size="sm"
-        intent="outline"
-        isDisabled={disabled || busy}
-        onPress={async () => {
-          if (disabled || busy) return;
-          setRefreshing(true);
-          setError(undefined);
-          setNotice(undefined);
-          try {
-            await onRefresh();
-          } catch (error) {
-            setError(webPageRequestError(error));
-          } finally {
-            setRefreshing(false);
-          }
-        }}
-      >
-        {busy ? "Fetching…" : source.status === "failed" ? "Retry" : "Refresh"}
-      </Button>
+      {source.status === "failed" && (
+        <Button
+          size="sm"
+          intent="outline"
+          isDisabled={disabled || busy}
+          onPress={async () => {
+            if (disabled || busy) return;
+            setRefreshing(true);
+            setError(undefined);
+            setNotice(undefined);
+            try {
+              await onRefresh();
+            } catch (error) {
+              setError(webPageRequestError(error));
+            } finally {
+              setRefreshing(false);
+            }
+          }}
+        >
+          Retry
+        </Button>
+      )}
       {recoverable && (
         <div className="web-page-recover">
           <p>

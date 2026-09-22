@@ -25,7 +25,13 @@ async function setup() {
   });
   const a = t.withIdentity({ subject: user }),
     b = t.withIdentity({ subject: other });
-  const panel = await a.query(api.Workspaces.open, { workspaceId });
+  const card = await a.mutation(api.Canvas.createDocument, {
+    workspaceId,
+    geometry: { x: 0, y: 0, width: 430, height: 430 },
+  });
+  const documentId = await t.run(
+    async (ctx) => (await ctx.db.get(card))!.documentId!,
+  );
   const grant = await a.mutation(api.AgentAccess.grant, {
     workspaceId,
     label: "Review agent",
@@ -33,9 +39,9 @@ async function setup() {
   const read = () =>
     t.query(internal.agentAccess.Tools.readDocument, {
       token: grant.token,
-      documentId: panel.mainDocumentId,
+      documentId,
     });
-  return { t, a, b, workspaceId, id: panel.mainDocumentId, grant, read };
+  return { t, a, b, workspaceId, id: documentId, grant, read };
 }
 test("agent request replay is immutable, stale version conflicts, revoked grants cannot read", async () => {
   const { t, a, id, grant, read } = await setup(),
@@ -320,7 +326,9 @@ test("accepted agent retry retains its outcome after a card delete/restore gener
     workspaceId,
     geometry: { x: 0, y: 0, width: 430, height: 500 },
   });
-  const card = (await a.query(api.Canvas.documentCards, { workspaceId }))[0],
+  const card = (await a.query(api.Canvas.documentCards, { workspaceId })).find(
+      (row) => row.id === child,
+    )!,
     grant = await a.mutation(api.AgentAccess.grant, {
       workspaceId,
       label: "Agent",

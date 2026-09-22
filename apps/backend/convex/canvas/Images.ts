@@ -18,7 +18,9 @@ export async function prepareImageUpload(
   ctx: MutationCtx,
   args: { workspaceId: Id<"workspaces"> },
 ) {
-  const { userId } = await requireWorkspace(ctx, args.workspaceId);
+  const { userId, workspace } = await requireWorkspace(ctx, args.workspaceId);
+  if (workspace.demo === "landing")
+    throw new Error("Image upload is unavailable in the landing demo");
   const uploadId = await ctx.db.insert("imageUploadIntents", {
     workspaceId: args.workspaceId,
     userId,
@@ -155,11 +157,19 @@ export async function createCanvasImage(
     uploadId: intent._id,
     storageId: intent.storageId,
     name: intent.name ?? "Image",
+    aiDescriptionStatus: "pending",
     geometry: args.geometry,
     generation: 1,
     removed: false,
   });
   await ctx.db.patch(intent._id, { imageId: id });
+  await ctx.scheduler.runAfter(
+    0,
+    internal.canvas.ImageDescriptionJob.generate,
+    {
+      imageId: id,
+    },
+  );
   return id;
 }
 
@@ -179,6 +189,8 @@ export async function imageCards(
       id: row._id,
       uploadId: row.uploadId,
       name: row.name,
+      aiDescription: row.aiDescription ?? null,
+      aiDescriptionStatus: row.aiDescriptionStatus ?? "unavailable",
       url: await ctx.storage.getUrl(row.storageId),
       geometry: row.geometry,
       generation: row.generation,

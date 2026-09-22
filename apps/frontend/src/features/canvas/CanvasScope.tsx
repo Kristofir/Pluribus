@@ -1,9 +1,10 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext } from "react";
 import type { Id } from "@pluribus/backend/dataModel";
 export const CanvasScope = createContext<{
   workspaceId?: Id<"workspaces">;
-  mainPaper?: ReactNode;
-  paperFocus?: number;
+  embedded?: boolean;
+  demo?: boolean;
+  viewportStorageKey?: string;
   onSelectionChange?: (ids: string[]) => void;
 }>({});
 export const useCanvasScope = () => useContext(CanvasScope);

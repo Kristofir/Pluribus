@@ -1,12 +1,17 @@
 /// <reference types="vite/client" />
 import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import schema from "./schema";
 
 const modules = import.meta.glob("./**/*.ts");
 const token = () => crypto.randomUUID();
 const geometry = { x: 90, y: 120, width: 360, height: 276 };
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 
 async function setup() {
   const t = convexTest(schema, modules);
@@ -65,7 +70,39 @@ test("server-imported image can enter the same History path only for a workspace
   expect(created.status).toBe("applied");
   expect(
     await user.query(api.Canvas.imageCards, { workspaceId }),
-  ).toMatchObject([{ uploadId, name: "photo" }]);
+  ).toMatchObject([
+    { uploadId, name: "photo", aiDescriptionStatus: "pending" },
+  ]);
+  vi.stubEnv("OPENAI_API_KEY", "test-key");
+  const fetch = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            role: "assistant",
+            content: [{ type: "output_text", text: "A small animated image." }],
+          },
+        ],
+      }),
+      { headers: { "content-type": "application/json" } },
+    ),
+  );
+  vi.stubGlobal("fetch", fetch);
+  await t.action(internal.canvas.ImageDescriptionJob.generate, {
+    imageId: created.id as Id<"canvasImages">,
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(
+    await user.query(api.Canvas.imageCards, { workspaceId }),
+  ).toMatchObject([
+    {
+      uploadId,
+      aiDescription: "A small animated image.",
+      aiDescriptionStatus: "ready",
+    },
+  ]);
 });
 
 test("image upload is authorized, validated, and survives geometry and lifecycle History", async () => {

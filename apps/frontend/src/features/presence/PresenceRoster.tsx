@@ -2,6 +2,7 @@ import {
   guestProfile,
   presenceParameters,
 } from "@pluribus/core/presence/domain";
+import { Avatar } from "../../components/ui/Avatar";
 import type { PresenceView } from "./UsePresence";
 import "./Presence.css";
 export function PresenceRoster({ presence }: { presence: PresenceView }) {
@@ -17,7 +18,7 @@ export function PresenceRoster({ presence }: { presence: PresenceView }) {
         const profile = guestProfile(id);
         const label = `${profile.name}${id === presence.identity?.guestId ? " (you)" : ""} · ${sessions.every((s) => s.hidden) ? "away" : "active"}${sessions.length > 1 ? ` · ${sessions.length} tabs` : ""}`;
         return (
-          <span
+          <Avatar
             className="presence-avatar"
             key={id}
             role="img"
@@ -25,24 +26,24 @@ export function PresenceRoster({ presence }: { presence: PresenceView }) {
             title={label}
             style={{ background: profile.color }}
             tabIndex={0}
-          >
-            {profile.name.slice(0, 1).toUpperCase()}
-          </span>
+            size="md"
+            initials={profile.name.slice(0, 1)}
+          />
         );
       })}
       {presence.agents.map((agent) => {
         const label = `Agent: ${agent.label} · recently active`;
         return (
-          <span
+          <Avatar
             className="presence-avatar presence-agent"
             key={agent.id}
             role="img"
             aria-label={label}
             title={`${label}. MCP request within the last ${presenceParameters.agentRecentlyActiveMs / 1000} seconds`}
             tabIndex={0}
-          >
-            ✦
-          </span>
+            size="md"
+            initials="✦"
+          />
         );
       })}
       {presence.error && <span role="status">{presence.error}</span>}

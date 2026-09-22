@@ -12,17 +12,20 @@ async function requireShare(ctx: QueryCtx, token: string) {
     .query("workspaceShareLinks")
     .withIndex("by_token", (q) => q.eq("tokenHash", tokenHash))
     .unique();
-  if (!link || link.revoked || !(await ctx.db.get(link.workspaceId)))
+  const workspace = link ? await ctx.db.get(link.workspaceId) : null;
+  if (!link || link.revoked || !workspace || workspace.demo === "landing")
     throw new Error("Share link unavailable");
   return link;
 }
 
-/** Members can rotate the one active workspace link; the secret is shown once. */
+/** Members can rotate the one active workspace link. */
 export const create = mutation({
   args: { workspaceId: v.id("workspaces") },
   returns: v.string(),
   handler: async (ctx, { workspaceId }) => {
-    const { userId } = await requireWorkspace(ctx, workspaceId);
+    const { userId, workspace } = await requireWorkspace(ctx, workspaceId);
+    if (workspace.demo === "landing")
+      throw new Error("Share links are unavailable in the landing demo");
     const active = await ctx.db
       .query("workspaceShareLinks")
       .withIndex("by_workspace_revoked", (q) =>
@@ -35,6 +38,7 @@ export const create = mutation({
       workspaceId,
       createdBy: userId,
       tokenHash: await hashSecret(token),
+      token,
       revoked: false,
     });
     const caller = await ctx.db
@@ -45,6 +49,43 @@ export const create = mutation({
       .unique();
     if (caller?.shareLinkId)
       await ctx.db.patch(caller._id, { shareLinkId: newLinkId });
+    return token;
+  },
+});
+
+/** The share control always has one copyable URL; repeated opens keep its token. */
+export const ensure = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  returns: v.string(),
+  handler: async (ctx, { workspaceId }) => {
+    const { userId, workspace } = await requireWorkspace(ctx, workspaceId);
+    if (workspace.demo === "landing")
+      throw new Error("Share links are unavailable in the landing demo");
+    const active = await ctx.db
+      .query("workspaceShareLinks")
+      .withIndex("by_workspace_revoked", (q) =>
+        q.eq("workspaceId", workspaceId).eq("revoked", false),
+      )
+      .take(32);
+    if (active.length === 1 && active[0].token) return active[0].token;
+    // Legacy links stored only a hash and cannot be displayed again.
+    for (const link of active) await ctx.db.patch(link._id, { revoked: true });
+    const token = crypto.randomUUID() + crypto.randomUUID();
+    const linkId = await ctx.db.insert("workspaceShareLinks", {
+      workspaceId,
+      createdBy: userId,
+      tokenHash: await hashSecret(token),
+      token,
+      revoked: false,
+    });
+    const caller = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", workspaceId).eq("userId", userId),
+      )
+      .unique();
+    if (caller?.shareLinkId)
+      await ctx.db.patch(caller._id, { shareLinkId: linkId });
     return token;
   },
 });

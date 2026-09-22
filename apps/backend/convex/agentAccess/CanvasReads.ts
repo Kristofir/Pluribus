@@ -16,8 +16,8 @@ async function requireCanvasRead(ctx: QueryCtx, token: string) {
 
 export async function readAgentCanvas(ctx: QueryCtx, args: { token: string }) {
   const grant = await requireCanvasRead(ctx, args.token);
-  const workspace = await ctx.db.get(grant.workspaceId);
-  if (!workspace) throw new Error("Workspace unavailable");
+  if (!(await ctx.db.get(grant.workspaceId)))
+    throw new Error("Workspace unavailable");
   const cards = await spatialDocuments(
     ctx,
     String(grant.workspaceId),
@@ -32,22 +32,7 @@ export async function readAgentCanvas(ctx: QueryCtx, args: { token: string }) {
     .take(imageLimits.maxCount);
   return {
     workspaceId: grant.workspaceId,
-    mainDocumentId: workspace.mainDocumentId ?? null,
     elements: [
-      ...(workspace.mainDocumentId
-        ? [
-            {
-              kind: "main_document" as const,
-              documentId: workspace.mainDocumentId,
-              x: -400,
-              y: 0,
-              width: 800,
-              canReadContent:
-                grant.workspaceScope ||
-                grant.documentIds.includes(workspace.mainDocumentId),
-            },
-          ]
-        : []),
       ...cards.flatMap((card) =>
         "x" in card &&
         card.documentId &&

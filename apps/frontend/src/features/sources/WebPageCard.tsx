@@ -105,13 +105,15 @@ export function WebPageCard({
             </div>
           </>
         )}
-        <button
-          type="button"
-          className="web-page-details nodrag nopan"
-          onClick={onOpen}
-        >
-          Details
-        </button>
+        {!fetching && (
+          <button
+            type="button"
+            className="web-page-details nodrag nopan"
+            onClick={onOpen}
+          >
+            Details
+          </button>
+        )}
       </div>
     </section>
   );

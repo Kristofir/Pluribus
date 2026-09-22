@@ -8,6 +8,7 @@ import { geometryLimits } from "@pluribus/core/canvas/domain";
 export type ImageNode = Node<
   {
     name: string;
+    aiDescription?: string | null;
     url: string | null;
     editable: boolean;
   },
@@ -16,7 +17,6 @@ export type ImageNode = Node<
 
 export const ImageCard = memo(function ImageCard({
   data,
-  selected,
 }: NodeProps<ImageNode>) {
   const entrance = useCardEntrance();
   const frame = useRef<HTMLDivElement>(null);
@@ -30,7 +30,7 @@ export const ImageCard = memo(function ImageCard({
       aria-label={`Image: ${data.name}`}
     >
       <NodeResizer
-        isVisible={!!selected && data.editable}
+        isVisible={data.editable}
         minWidth={180}
         minHeight={160}
         maxWidth={geometryLimits.maxSize}
@@ -80,7 +80,11 @@ export const ImageCard = memo(function ImageCard({
         }}
       >
         {data.url ? (
-          <img src={data.url} alt={data.name} draggable={false} />
+          <img
+            src={data.url}
+            alt={data.aiDescription || data.name}
+            draggable={false}
+          />
         ) : (
           <span>Image unavailable</span>
         )}
