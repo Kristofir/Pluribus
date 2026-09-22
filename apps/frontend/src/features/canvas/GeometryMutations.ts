@@ -5,16 +5,20 @@ import type {
   CanvasElement,
   DocumentElement,
   SourceElement,
+  ImageElement,
   Geometry,
 } from "@pluribus/core/canvas/domain";
 
 export type GeometryTarget = Pick<
-  DocumentElement | SourceElement,
+  DocumentElement | SourceElement | ImageElement,
   "kind" | "id" | "generation"
 >;
 type Mutations = {
   source?: (
     args: Omit<FunctionArgs<typeof api.Sources.changeGeometry>, "workspaceId">,
+  ) => Promise<boolean>;
+  image?: (
+    args: Omit<FunctionArgs<typeof api.Canvas.changeImage>, "workspaceId">,
   ) => Promise<boolean>;
   document: (
     args: FunctionArgs<typeof api.Canvas.changeDocument>,
@@ -26,6 +30,7 @@ export function geometryTarget(element: CanvasElement): GeometryTarget {
     case "rectangle":
       throw new Error("Rectangle elements are retired");
     case "source":
+    case "image":
     case "document":
       return {
         kind: element.kind,
@@ -58,6 +63,14 @@ export function sendGeometry(
         generation: target.generation,
         change: { kind: "geometry", geometry },
       });
+    case "image":
+      return (
+        mutations.image?.({
+          id: target.id as string as Id<"canvasImages">,
+          generation: target.generation,
+          geometry,
+        }) ?? Promise.resolve(false)
+      );
     default:
       return Promise.resolve(false);
   }

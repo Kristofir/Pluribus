@@ -70,7 +70,14 @@ test("removal and restoration reject old text, geometry, snapshots and presence 
     steps: [insert],
   });
   const context = { kind: "document", id: a.documentId } as const;
+  const browser = await t.mutation(api.Presence.claimBrowser, {
+    secret: "a".repeat(64),
+    epoch: 1,
+    account: null,
+    tabId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  });
   const lease = await t.mutation(api.Presence.join, {
+    browser: browser!,
     context,
     guestId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
     tabId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",

@@ -16,6 +16,20 @@ const number = (x: unknown) => {
     throw new Error("Expected version");
   return x;
 };
+const finite = (x: unknown) => {
+  if (typeof x !== "number" || !Number.isFinite(x))
+    throw new Error("Expected number");
+  return x;
+};
+const cardGeometry = (value: unknown) => {
+  const g = object(value);
+  return {
+    x: finite(g.x),
+    y: finite(g.y),
+    width: finite(g.width),
+    height: finite(g.height),
+  };
+};
 function edits(value: unknown): AgentParagraphEdit[] {
   if (!Array.isArray(value)) throw new Error("Expected edits");
   return value.map((raw) => {
@@ -42,7 +56,43 @@ function edits(value: unknown): AgentParagraphEdit[] {
   });
 }
 const textField = { type: "string" };
+const requestField = {
+  type: "string",
+  description: "UUID. Reuse only for an exact retry of the same command.",
+};
+const geometryField = {
+  type: "object",
+  properties: {
+    x: { type: "number" },
+    y: { type: "number" },
+    width: { type: "number" },
+    height: { type: "number" },
+  },
+  required: ["x", "y", "width", "height"],
+  additionalProperties: false,
+};
 const tools = [
+  {
+    name: "read_canvas",
+    description:
+      "Read active document, Web Page and Image cards in the granted workspace. Read document text with read_document.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "read_web_page",
+    description:
+      "Read the full saved content of an active Web Page card in the granted canvas.",
+    inputSchema: {
+      type: "object",
+      properties: { sourceId: textField },
+      required: ["sourceId"],
+      additionalProperties: false,
+    },
+  },
   {
     name: "read_document",
     description:
@@ -126,6 +176,97 @@ const tools = [
       additionalProperties: false,
     },
   },
+  {
+    name: "create_card",
+    description:
+      "Create a document card or enqueue a Web Page capture in this workspace. Returns an Element History action; reread the canvas for the new card and document ID. Web Page capture finishes asynchronously.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        requestId: requestField,
+        card: {
+          oneOf: [
+            {
+              type: "object",
+              properties: {
+                kind: { const: "document" },
+                geometry: geometryField,
+              },
+              required: ["kind", "geometry"],
+              additionalProperties: false,
+            },
+            {
+              type: "object",
+              properties: {
+                kind: { const: "web_page" },
+                geometry: geometryField,
+                url: textField,
+                prompt: textField,
+              },
+              required: ["kind", "geometry", "url"],
+              additionalProperties: false,
+            },
+          ],
+        },
+      },
+      required: ["requestId", "card"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "set_card_geometry",
+    description:
+      "Move or resize one active document, Web Page or Image card. Supply its generation and expectedGeometry from read_canvas; a later move or lifecycle change is refused.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        requestId: requestField,
+        id: textField,
+        generation: { type: "integer", minimum: 1 },
+        expectedGeometry: geometryField,
+        geometry: geometryField,
+      },
+      required: [
+        "requestId",
+        "id",
+        "generation",
+        "expectedGeometry",
+        "geometry",
+      ],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "delete_card",
+    description:
+      "Remove one active document, Web Page or Image card from this workspace. Use its current generation from read_canvas; the action can be reversed conditionally.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        requestId: requestField,
+        id: textField,
+        generation: { type: "integer", minimum: 1 },
+      },
+      required: ["requestId", "id", "generation"],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: "reverse_card_action",
+    description:
+      "Conditionally undo or redo this agent's create, geometry or delete action. Use its action ID and latest revision; later conflicting card changes prevent reversal.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        actionId: requestField,
+        requestId: requestField,
+        revision: { type: "integer", minimum: 1 },
+        undo: { type: "boolean" },
+      },
+      required: ["actionId", "requestId", "revision", "undo"],
+      additionalProperties: false,
+    },
+  },
 ];
 /** Stateless Streamable HTTP (2025-06-18); bearer grants are separate from Google browser sessions. */
 export const mcp = httpAction(async (ctx, request) => {
@@ -159,6 +300,11 @@ export const mcp = httpAction(async (ctx, request) => {
   }
   if (body.jsonrpc !== "2.0" || typeof body.method !== "string")
     return new Response("Invalid JSON-RPC", { status: 400 });
+  try {
+    await ctx.runMutation(internal.agentAccess.Tools.touchPresence, { token });
+  } catch {
+    return new Response("Agent access denied", { status: 401 });
+  }
   if (body.id === undefined) return new Response(null, { status: 202 });
   if (typeof body.id !== "string" && typeof body.id !== "number")
     return new Response("Invalid request ID", { status: 400 });
@@ -182,7 +328,16 @@ export const mcp = httpAction(async (ctx, request) => {
     const params = object(body.params),
       args = object(params.arguments ?? {});
     let result: unknown;
-    if (params.name === "read_document")
+    if (params.name === "read_canvas")
+      result = await ctx.runQuery(internal.agentAccess.Tools.readCanvas, {
+        token,
+      });
+    else if (params.name === "read_web_page")
+      result = await ctx.runQuery(internal.agentAccess.Tools.readWebPage, {
+        token,
+        sourceId: string(args.sourceId) as Id<"sources">,
+      });
+    else if (params.name === "read_document")
       result = await ctx.runQuery(internal.agentAccess.Tools.readDocument, {
         token,
         documentId: string(args.documentId) as Id<"documents">,
@@ -212,7 +367,61 @@ export const mcp = httpAction(async (ctx, request) => {
             }
           : {}),
       });
-    else throw new Error("Unknown tool");
+    else if (params.name === "create_card") {
+      const card = object(args.card);
+      const geometry = cardGeometry(card.geometry);
+      if (card.kind === "document")
+        result = await ctx.runMutation(internal.agentAccess.Tools.createCard, {
+          token,
+          requestId: string(args.requestId),
+          card: { kind: "document", geometry },
+        });
+      else if (card.kind === "web_page")
+        result = await ctx.runMutation(internal.agentAccess.Tools.createCard, {
+          token,
+          requestId: string(args.requestId),
+          card: {
+            kind: "web_page",
+            geometry,
+            url: string(card.url),
+            ...(card.prompt === undefined
+              ? {}
+              : { prompt: string(card.prompt) }),
+          },
+        });
+      else throw new Error("Unknown card kind");
+    } else if (params.name === "set_card_geometry")
+      result = await ctx.runMutation(
+        internal.agentAccess.Tools.setCardGeometry,
+        {
+          token,
+          requestId: string(args.requestId),
+          id: string(args.id) as Id<"canvasDocuments">,
+          generation: number(args.generation),
+          expectedGeometry: cardGeometry(args.expectedGeometry),
+          geometry: cardGeometry(args.geometry),
+        },
+      );
+    else if (params.name === "delete_card")
+      result = await ctx.runMutation(internal.agentAccess.Tools.deleteCard, {
+        token,
+        requestId: string(args.requestId),
+        id: string(args.id) as Id<"canvasDocuments">,
+        generation: number(args.generation),
+      });
+    else if (params.name === "reverse_card_action") {
+      if (typeof args.undo !== "boolean") throw new Error("Expected boolean");
+      result = await ctx.runMutation(
+        internal.agentAccess.Tools.reverseCardAction,
+        {
+          token,
+          actionId: string(args.actionId),
+          requestId: string(args.requestId),
+          revision: number(args.revision),
+          undo: args.undo,
+        },
+      );
+    } else throw new Error("Unknown tool");
     return reply({ content: [{ type: "text", text: JSON.stringify(result) }] });
   } catch {
     return reply({
@@ -220,7 +429,7 @@ export const mcp = httpAction(async (ctx, request) => {
       content: [
         {
           type: "text",
-          text: "Request rejected. Check grant scope, paragraph IDs and request identity; reread the canonical document before retrying changed edits.",
+          text: "Request rejected. Check grant scope, card or paragraph IDs, current generation or version, geometry, and request identity. Reread the canvas or document before retrying a changed command with a new request ID.",
         },
       ],
     });

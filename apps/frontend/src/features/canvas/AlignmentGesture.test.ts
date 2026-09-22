@@ -100,3 +100,41 @@ test("group spacing snaps its outer edge and reports the gap without changing me
   expect(gesture.resolve(bypass, 1, true)).toEqual([]);
   expect(bypass.get(a)!.geometry.x).toBe(52);
 });
+
+test("spacing preview precedes snap without changing geometry and respects bypass/range", () => {
+  const viewport = { x: -500, y: -500, width: 2000, height: 2000 };
+  for (const zoom of [0.5, 1, 2]) {
+    const gesture = new AlignmentGesture(
+      new Map([[a, g]]),
+      [{ id: t, geometry: { ...g, x: 300 } }],
+      false,
+    );
+    const changes = updates({ ...g, x: 176 - 16 / zoom });
+    gesture.resolve(changes, zoom, false);
+    expect(changes.get(a)!.geometry.x).toBe(176 - 16 / zoom);
+    expect(gesture.preview(zoom, false, viewport)[0].geometry.x).toBe(176);
+    expect(gesture.preview(zoom, true, viewport)).toEqual([]);
+    gesture.resolve(updates({ ...g, x: 176 - 50 / zoom }), zoom, false);
+    expect(gesture.preview(zoom, false, viewport)).toEqual([]);
+  }
+});
+
+test("release lands on the last visible preview and bypass discards it", () => {
+  const gesture = new AlignmentGesture(
+    new Map([[a, g]]),
+    [{ id: t, geometry: { ...g, x: 300 } }],
+    false,
+  );
+  gesture.resolve(updates({ ...g, x: 160 }), 1, false);
+  const preview = gesture.preview(1, false, {
+    x: -500,
+    y: -500,
+    width: 2000,
+    height: 2000,
+  });
+  expect(preview[0].geometry.x).toBe(176);
+  expect(gesture.releasePreview(false)).toEqual(preview);
+  expect(gesture.releasePreview(false)).toEqual([]);
+  gesture.preview(1, false, { x: -500, y: -500, width: 2000, height: 2000 });
+  expect(gesture.releasePreview(true)).toEqual([]);
+});

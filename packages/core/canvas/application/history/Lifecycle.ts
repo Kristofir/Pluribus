@@ -1,5 +1,6 @@
 import { sourceLimits } from "../../../sources/domain/Source";
 import { documentLimits } from "../../domain/Document";
+import { imageLimits } from "../../domain/Image";
 import type {
   CanvasActionInput,
   HistoryActionRecord,
@@ -15,12 +16,14 @@ import { captureTarget, matchesTarget, saveTarget } from "./Continuity";
 import type { HistoryPorts } from "./Ports";
 import { outcome } from "./Results";
 
-const capacity = (kind: "rectangle" | "document" | "source") =>
+const capacity = (kind: "rectangle" | "document" | "source" | "image") =>
   kind === "rectangle"
     ? rectangleLimits.maxCount
-    : kind === "source"
-      ? sourceLimits.maxCount
-      : documentLimits.maxCount;
+    : kind === "image"
+      ? imageLimits.maxCount
+      : kind === "source"
+        ? sourceLimits.maxCount
+        : documentLimits.maxCount;
 /** Fresh lifecycle actions capture authoritative continuity and retain canonical content. */
 export async function applyLifecycle(
   ports: HistoryPorts,

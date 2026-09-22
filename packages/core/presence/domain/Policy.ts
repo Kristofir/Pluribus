@@ -1,6 +1,7 @@
 import type { Activity, Channel } from "./Activity";
 
 export type Environment = {
+  ownsBrowser: boolean;
   online: boolean;
   visible: boolean;
   focused: boolean;
@@ -45,7 +46,12 @@ export function initialPresenceState(environment: Environment): PresenceState {
 }
 /** Membership intent is separate from focus and the last observed activity. */
 export function membershipIntent(state: PresenceState) {
-  if (!state.environment.online || !state.surfaces.size) return "absent";
+  if (
+    !state.environment.ownsBrowser ||
+    !state.environment.online ||
+    !state.surfaces.size
+  )
+    return "absent";
   return state.environment.visible ? "present" : "away";
 }
 function clearActivity(kind: Channel): Activity {
@@ -98,7 +104,8 @@ export function transitionPresence(
           ),
         };
       }
-      if (membershipIntent(state) !== "present") return state;
+      if (membershipIntent(state) !== "present" || !state.environment.focused)
+        return state;
       let activity: Activity;
       switch (fact.type) {
         case "pointer-moved":

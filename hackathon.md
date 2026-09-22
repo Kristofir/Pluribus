@@ -2,7 +2,7 @@
 
 - **Project:** ConvexHackathon
 - **Event:** Convex All Gas Hackathon
-- **What it does:** React frontend with Google sign-in and local multiplayer canvas and collaborative rich-text features.
+- **What it does:** React workspace with Google sign-in, a collaborative canvas and documents, and revocable guest collaboration links.
 - **Live app:** not deployed
 - **Repo:** https://github.com/Kristofir/Pluribus
 - **Frontend:** Convex static hosting
@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth
 - **AI models:** none
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-22T04:25:55Z
+- **Last updated:** 2026-09-22T09:15:34Z
 
 ## Log
 
@@ -861,3 +861,234 @@ the transition. Full check and build passed.
 Web Page Cards expose one Details button to open the capture sheet in all states.
 Titles and snapshots no longer open it. Browser fixtures and regression tests verify
 the single control; canvas behavior spec updated.
+
+### 2026-09-22T04:52:20Z — working tree
+
+Removed selected-element boundary lines and group boxes while preserving resize
+hit targets. Document cards now start at300px wide and use a300px resize minimum,
+matching Web Page cards. Existing saved widths are preserved.
+
+### 2026-09-22T04:54:24Z — working tree
+
+Hidden all resize-control visuals, including corner handles, and removed the
+document focus border color. Browser fixture confirms zero control opacity and
+identical focused/unfocused border colors; invisible resize targets remain usable.
+
+### 2026-09-22 - working tree - OpenAI text-generation port
+
+Added a dependency-free TextGeneration application port and backend OpenAI Responses
+adapter. Callers choose model, text/instructions and output budget. The adapter reads
+a backend environment secret, bounds time/response size, reports incomplete/refused
+output and usage, and sanitizes provider failures without automatic retries. No
+frontend endpoint, conversation persistence or product usage was enabled.
+
+Mocked provider/regression lane passed 49 tests (one live Firecrawl test skipped).
+Full check passed 333 tests (one skipped), architecture, types and formatting; build
+passed with the existing canvas bundle warning. No live OpenAI request, model access
+verification, deployment or Git action was performed.
+
+### 2026-09-22T05:50:47Z — working tree
+
+Dragged cards show dashed outlines at resolved snap destinations, including groups.
+Outlines clear with gesture cleanup or bypass and ignore pointer input. A local
+React Flow fixture verified rendering and clearing. Full check is blocked by
+concurrent presence API type mismatches; the owner was notified.
+
+### 2026-09-22T05:52:02Z — working tree
+
+Restricted snap destination outlines to spacing matches next to another element.
+Ordinary edge/center alignment no longer shows an outline;7 focused snap tests pass.
+
+### 2026-09-22T05:54:41Z — working tree
+
+Spacing previews now appear as soft destination shadows within24 screen pixels,
+before the actual6px snap threshold. Preview resolution does not alter geometry;
+8 focused tests cover zoom, approach, bypass and leaving range.
+
+### 2026-09-22T05:56:30Z — working tree
+
+Moved the snap destination shadow beneath the canvas card layer.
+
+### 2026-09-22T05:57:49Z — working tree
+
+Expanded the application MCP with read-only canvas layout and saved Web Page
+content tools. New grants explicitly allow workspace-wide canvas reads; older
+document-only grants keep their scope, and document text edits remain limited to
+granted IDs. HTTP tests cover cross-workspace, removed-source and grant denial.
+Full check passed 347 tests (one skipped), and the frontend build passed. No
+deployment or Git action was performed.
+
+### 2026-09-22T05:59:00Z — working tree — Browser Presence ownership
+
+Presence follows the newest focused eligible tab in a browser profile. Web Locks
+serialize claims; Convex account-bound epochs fence previous owners and retire old
+context activity. Followers only read; legacy clients must reload. Failed activity
+retries its sequence with capped backoff, and newer state supersedes it.
+
+Focused Presence/access tests passed40; full tests passed347 with one live-provider
+skip. Architecture/types and build passed; changed Presence files pass formatting.
+Full formatting was blocked by concurrent MCP edits. The disposable browser focus/handoff fixture timed out; real-browser behavior
+remains unverified. No deployment, provider call or Git action.
+
+### 2026-09-22T06:01:06Z — working tree
+
+Selected-element context menus offer Delete, or Delete All and an Arrange submenu.
+Grid/horizontal/vertical placement preserves card sizes with24px spacing and uses
+one History geometry gesture. Added arrangement regressions and keyboard menu access.
+Full check350tests passed/one skipped; build passed.
+
+### 2026-09-22T06:29:55Z — working tree — Canvas image uploads
+
+Workspace members can drop PNG, JPEG, GIF or WebP files onto the canvas or choose them from its creation menu. Local preview cards show upload progress and Retry/Remove on failure. Upload intents validate size/type before personal Element History creates a shared image card; move, resize, delete and Undo retain its storage file. Expired unclaimed registered files are cleaned up (`canvas/Images.ts`, `CanvasPage.tsx`, `UseImageUploads.ts`).
+
+Image backend/projection tests passed. Full check passed: 356 tests with one live-provider test skipped, architecture/types/formatting clean; root build passed. The browser displayed the Image card creation choice, but file upload through the automated browser was not verified.
+
+### 2026-09-22T06:33:38Z — working tree
+
+Added Arrange → Masonry: shortest-column placement preserves card sizes and24px
+gaps, with column widths derived from assigned cards. Regression covers unequal
+heights/widths and deterministic placement; browser menu dispatch, check and build pass.
+
+### 2026-09-22T06:33:50Z — working tree — Agent identity and Presence
+
+New external MCP grants cover one workspace; existing narrow grants stay narrow.
+Each grant now keeps one agent author for accepted edits. Authenticated MCP
+requests renew a 30-second activity lease shown as recently active; expiry and
+revocation remove it. Context snapshots remain optional starting material.
+
+Focused backend/frontend tests passed for identity, scope, expiry and roster text.
+Full check passed 358 tests (one live-provider test skipped), including architecture,
+types and formatting; frontend build passed. No live agent connection or deployment
+was used.
+
+### 2026-09-22T06:47:39Z — working tree — Canvas URL imports
+
+Private workspace members can drop a browser image/link or choose Import URL from the canvas menu. A checked image is stored as an Image card; an HTML/text page enters the existing Firecrawl Web Page path. Temporary drafts show checking, creation, retry and removal. The image fetch pins a public IPv4 address, rejects redirects and limits size (`CanvasUrlImport.ts`, `UseUrlImports.ts`).
+
+Focused import policy, image History and drag-payload tests passed. Full check passed 363 tests with one live-provider test skipped; build passed. A live import was not verified: local Convex codegen could not configure Node actions because the current Node runtime is unsupported. No provider request, Git action or deployment completed.
+
+### 2026-09-22T07:03:49Z — working tree — MCP URL in workspace header
+
+The Workspace header has a Copy MCP URL button before grant creation. Local
+loopback URLs are labeled local-only, and the agent controls explain that remote
+agents need an HTTPS deployment. The bearer token selects the workspace; the URL
+alone does not authorize access. Full check passed 363 tests with one live-provider
+test skipped, and the frontend build passed. No deployment or Git action occurred.
+
+### 2026-09-22T07:15:14Z — working tree
+
+Unified document, web page and image card shells in shared CanvasCard styles:
+16px padding/corners, neutral border, theme surface, body/metadata typography and
+hover/drag lift. Screenshot auto-height includes borders. Browser computed-style
+comparison matches all three shells; full check363tests/one skip and build passed.
+
+### 2026-09-22T07:18:12Z — working tree — Agent connection entry point
+
+The Workspace action now opens the agent setup controls instead of copying the
+MCP URL alone. The controls explain the bearer requirement, show connection
+details beside grant and revocation, offer a copy action, and suggest a
+`read_canvas` check. Full check passed 363 tests with one skipped; build passed.
+The authenticated MCP read still awaits a temporary workspace grant.
+
+### 2026-09-22T07:18:58Z — working tree
+
+Collaborator activity stays visible; removed the display toggle. Presence uses
+32px colored initials with8px overlap, accessible identity/status labels and hover
+titles; agents remain labeled recently active. Browser fixture, check and build pass.
+
+### 2026-09-22T07:22:02Z — working tree
+
+Moved presence avatars into a top-left canvas overlay outside viewport transforms.
+The roster no longer consumes a layout row; only avatar/status content captures pointers.
+
+### 2026-09-22T07:26:04Z — working tree — Image URL import repair
+
+Corrected the public IPv4 check so a valid image host in `192.0.77.*` is allowed while reserved `192.0.0.*` and documentation `192.0.2.*` ranges remain blocked. The local Convex backend now runs with Node 24 and exposes the URL import action. An image URL imported through the canvas menu produced a visible Image Card that survived reload (`UrlImportPolicy.ts`, `CanvasUrlImport.ts`, `UseUrlImports.ts`). Full check and build passed.
+
+### 2026-09-22T07:27:02Z — working tree
+
+Image cards now show edge-to-edge images with no filename caption, padding or border.
+Cover sizing preserves image proportions; accessible names and draft recovery overlays remain.
+
+### 2026-09-22T07:30:17Z — working tree — Temporary image loading delay
+
+For demo testing, successful local-file and URL image imports keep their loading draft visible for at least three seconds before creating the shared Image Card. Transfers still run normally and failures appear immediately (`ImageLoadingDelay.ts`, `UseImageUploads.ts`, `UseUrlImports.ts`). Full check and frontend build passed.
+
+### 2026-09-22T07:33:13Z — working tree
+
+Image click opens a native modal lightbox with a240ms card-to-viewport animation
+and reverse close. Drag/Shift-click do not open it; Escape/backdrop/close dismiss,
+focus returns to the card, and reduced motion bypasses animation. Check/build passed.
+
+### 2026-09-22T07:35:52Z — working tree — Image drop transition
+
+Removed the full-canvas dashed drop overlay that appeared before an image or link draft. Drag-over still sets the copy cursor; dropping creates the local loading draft directly (`CanvasPage.tsx`, `Canvas.css`). Full check and frontend build passed.
+
+### 2026-09-22T07:47:42Z — working tree — Image card proportions
+
+New file-upload and image-URL cards use decoded source dimensions for their initial canvas size instead of a fixed rectangle. Extreme ratios remain within canvas geometry limits, and existing cards retain saved dimensions (`ImageCardSize.ts`, `UseImageUploads.ts`, `UseUrlImports.ts`, `UseCanvasCommands.ts`). Size tests and full check passed (365 tests, one skipped); frontend build passed. No new workspace image was created for visual verification.
+
+### 2026-09-22T08:48:29Z — working tree — MCP card actions
+
+Workspace agents can create Document and Web Page cards, set geometry and delete
+Document, Web Page and Image cards, and conditionally reverse their actions.
+Grant-bound Element History preserves retry, capacity and lifecycle rules; a
+geometry change also checks the card position last read by the agent. Canvas
+reads now list Images (`agentAccess/CanvasActions.ts`, `Mcp.ts`). Architecture,
+type checks and 366 tests passed with one skipped; build and changed-file format
+checks passed. The full formatting gate currently flags two concurrently edited
+workspace layout files outside this change. The running local MCP exposed the
+final geometry schema with `expectedGeometry`; live card writes were not attempted.
+
+### 2026-09-22T08:50:27Z — working tree
+
+Cards fade/rise in on mount. Workspace-local viewport center/zoom restores across
+reload and window sizes, with default framing on missing/invalid storage. Browser
+fixture restored pan/zoom;2 persistence tests passed. Full tests366 passed/one skip;
+validation blocked by concurrent workspace formatting and missing SharedWorkspace.css.
+
+### 2026-09-22T08:53:59Z — working tree — Revocable guest workspace links
+
+Members can create, rotate and revoke one link per workspace. The raw secret
+appears only on creation; Convex stores its hash. Opening the link starts an
+anonymous Auth session, redeems a share-derived membership, and opens the normal
+workspace with canvas, document, inbox and agent controls. Every workspace
+request checks that the underlying link remains active; the workspace route
+also hides retained content when access ends. Guests do not acquire admin rights.
+Focused tests cover admission, normal canvas/document/inbox/agent access,
+rotation, revocation and admin denial (`ShareLinks.ts`, `ShareJoinRoute.tsx`).
+Claiming a verified direct assignment upgrades a share-derived membership so
+link revocation cannot remove independently assigned access.
+Full check passed (370 tests, one skipped), build passed, and functions were
+pushed to the local Convex backend. The live guest-link journey was not checked
+in a browser; no active share link was created for that check.
+
+### 2026-09-22T08:55:08Z — working tree
+
+Changed card entrance to a280ms scale pop:88% to102.5%, settling at100%.
+Reduced motion skips the animation; hover transforms remain independent.
+
+### 2026-09-22T08:57:05Z — working tree
+
+Card pop-in animations use a random0–180ms delay, sampled once per mount through
+a shared hook. Position/content rerenders keep their delay; reduced motion skips animation.
+
+### 2026-09-22T09:01:12Z — working tree
+
+Slowed the card entrance pop from280ms to450ms, retaining random delays and reduced-motion support.
+
+### 2026-09-22T09:06:27Z — working tree
+
+Drag release commits the last visible snap-shadow destination through the existing
+History gesture and snap animation. Bypass discards the target; regression covers
+exact preview landing, one-time consumption and bypass.
+
+### 2026-09-22T09:10:25Z — working tree
+
+Snap shadows now fade/scale in and out over140ms with retained exit visuals.
+Reduced motion skips the transition. Full check and build passed.
+
+### 2026-09-22T09:15:34Z — working tree
+
+Removed the image lightbox close button. Escape and backdrop click still close it;
+local browser checks passed, with 370 tests passed/one skipped and build passing.

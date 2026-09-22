@@ -16,6 +16,7 @@ export type Channel = Activity["kind"];
 export const presenceParameters = {
   heartbeatMs: 10_000,
   activityMs: 80,
+  agentRecentlyActiveMs: 30_000,
   maxSessions: 64,
   maxElements: 200,
 } as const;

@@ -21,6 +21,7 @@ import {
   type ElementId,
 } from "@pluribus/core/canvas/domain";
 import type { CanvasState } from "./CanvasStore";
+import type { ImageCardSize } from "./ImageCardSize";
 
 /** Coordinate user commands and pending-edit guards against the current scene. */
 export function useCanvasCommands({
@@ -28,6 +29,7 @@ export function useCanvasCommands({
   records,
   documentCount,
   sourceCount,
+  imageCount,
   store,
   pendingEditors,
   surface,
@@ -36,6 +38,7 @@ export function useCanvasCommands({
   records: CanvasElement[] | undefined;
   documentCount: number;
   sourceCount: number;
+  imageCount: number;
   store: StoreApi<CanvasState<ElementId>>;
   pendingEditors: RefObject<Map<ElementId, boolean>>;
   surface: RefObject<HTMLDivElement | null>;
@@ -108,7 +111,7 @@ export function useCanvasCommands({
                 (hasMainPaper
                   ? besideMainPaper({ x: 80 + documentCount * 460, y: 80 }, 430)
                   : { x: 80 + documentCount * 460, y: 80 })),
-              width: 430,
+              width: 300,
               height: 500,
             },
           },
@@ -190,6 +193,44 @@ export function useCanvasCommands({
       hasMainPaper,
     ],
   );
+  const addImage = useCallback(
+    async (
+      uploadId: Id<"imageUploadIntents">,
+      position: { x: number; y: number },
+      size: ImageCardSize,
+    ) => {
+      if (
+        !workspaceId ||
+        imageCount >= 100 ||
+        !connected ||
+        store.getState().historyPending ||
+        store.getState().gestures.size ||
+        history.store.getState().busy ||
+        history.store.getState().retry ||
+        !store.getState().beginCreate()
+      )
+        throw new Error("Canvas is busy or at its image limit");
+      try {
+        const accepted = await history.perform({
+          kind: "create",
+          element: {
+            kind: "image",
+            uploadId,
+            geometry: { ...position, ...size },
+          },
+        });
+        if (!accepted)
+          throw new Error("Image could not be added. Check History.");
+        const entry = history.store.getState().undo.at(-1);
+        if (entry?.kind === "create" && entry.id)
+          store.getState().selectOnly(entry.id as string as ElementId);
+        return entry?.kind === "create" ? entry.id : undefined;
+      } finally {
+        store.getState().finishCreate();
+      }
+    },
+    [workspaceId, imageCount, connected, store, history],
+  );
   const deleteSelection = useCallback(async () => {
     const records = recordsRef.current;
     const { selected, removing, setEditing } = store.getState();
@@ -222,7 +263,8 @@ export function useCanvasCommands({
           record &&
           !(await history.perform({
             kind: "delete",
-            id: record.id as string as Id<"canvasDocuments"> | Id<"sources">,
+            id: record.id as string as
+              Id<"canvasDocuments"> | Id<"sources"> | Id<"canvasImages">,
             generation: record.generation,
           }))
         ) {
@@ -299,6 +341,7 @@ export function useCanvasCommands({
   return {
     addDocument,
     addWebPage,
+    addImage,
     deleteSelection,
     history,
     undoElement,

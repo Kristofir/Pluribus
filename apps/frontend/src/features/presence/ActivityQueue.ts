@@ -4,7 +4,7 @@ import {
   type Activity,
   type Channel,
 } from "@pluribus/core/presence/domain";
-/** One in-flight and one replaceable pending message per independently ordered channel. */
+/** Retain the latest channel state until acknowledged; retries reuse its sequence. */
 export function createActivityQueue(
   send: (activity: Activity, sequence: number) => Promise<unknown>,
   failed: () => void,
@@ -16,6 +16,8 @@ export function createActivityQueue(
       busy: boolean;
       lastSentAt: number;
       pending: Activity | null;
+      retry: { activity: Activity; sequence: number } | null;
+      retryDelay: number;
       timer: ReturnType<typeof setTimeout> | null;
     }
   >();
@@ -23,14 +25,25 @@ export function createActivityQueue(
   function flush(kind: Channel) {
     const channel = channels.get(kind)!;
     channel.timer = null;
-    if (!live || channel.busy || !channel.pending) return;
-    const value = channel.pending;
+    if (!live || channel.busy || (!channel.pending && !channel.retry)) return;
+    const message = channel.pending
+      ? { activity: channel.pending, sequence: ++channel.sequence }
+      : channel.retry!;
     channel.pending = null;
+    channel.retry = null;
     channel.busy = true;
     channel.lastSentAt = performance.now();
-    void send(value, ++channel.sequence)
+    void Promise.resolve()
+      .then(() => {
+        if (live) return send(message.activity, message.sequence);
+      })
+      .then(() => {
+        channel.retryDelay = 100;
+      })
       .catch(() => {
-        if (live) failed();
+        if (!live) return;
+        if (!channel.pending) channel.retry = message;
+        failed();
       })
       .finally(() => {
         channel.busy = false;
@@ -41,6 +54,10 @@ export function createActivityQueue(
               ? 0
               : remainingDelay(kind, channel.lastSentAt),
           );
+        else if (live && channel.retry) {
+          schedule(kind, channel.retryDelay);
+          channel.retryDelay = Math.min(channel.retryDelay * 2, 2000);
+        }
       });
   }
   function remainingDelay(kind: Channel, lastSentAt: number) {
@@ -65,11 +82,19 @@ export function createActivityQueue(
           busy: false,
           lastSentAt: performance.now(),
           pending: null,
+          retry: null,
+          retryDelay: 100,
           timer: null,
         };
         channels.set(activity.kind, channel);
       }
       channel.pending = activity;
+      if (channel.retry) {
+        channel.retry = null;
+        channel.retryDelay = 100;
+        if (channel.timer !== null) clearTimeout(channel.timer);
+        channel.timer = null;
+      }
       if (isClear(activity)) schedule(activity.kind, 0);
       else if (channel.timer === null && !channel.busy)
         schedule(
@@ -82,6 +107,7 @@ export function createActivityQueue(
       for (const c of channels.values()) {
         if (c.timer !== null) clearTimeout(c.timer);
         c.pending = null;
+        c.retry = null;
       }
     },
   };

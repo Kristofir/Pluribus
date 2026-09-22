@@ -19,6 +19,18 @@ export async function requireWorkspaceMember(
   workspaceId: Id<"workspaces">,
   userId: Id<"users"> | null,
 ) {
+  const member = await activeWorkspaceMember(ctx, workspaceId, userId);
+  assertWorkspaceMembership(userId, member, workspaceId);
+  const workspace = await ctx.db.get(workspaceId);
+  if (!workspace) throw new Error("Workspace unavailable");
+  return { workspace, userId: userId! };
+}
+
+export async function activeWorkspaceMember(
+  ctx: QueryCtx,
+  workspaceId: Id<"workspaces">,
+  userId: Id<"users"> | null,
+) {
   const member = userId
     ? await ctx.db
         .query("workspaceMembers")
@@ -27,10 +39,11 @@ export async function requireWorkspaceMember(
         )
         .unique()
     : null;
-  assertWorkspaceMembership(userId, member, workspaceId);
-  const workspace = await ctx.db.get(workspaceId);
-  if (!workspace) throw new Error("Workspace unavailable");
-  return { workspace, userId: userId! };
+  if (member?.shareLinkId) {
+    const link = await ctx.db.get(member.shareLinkId);
+    if (!link || link.revoked || link.workspaceId !== workspaceId) return null;
+  }
+  return member;
 }
 export async function requireAdmin(ctx: QueryCtx) {
   const userId = await getAuthUserId(ctx);

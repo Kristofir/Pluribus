@@ -1,12 +1,63 @@
 import * as history from "./canvas/History";
 import * as historyModel from "./canvas/HistoryModel";
 import * as creations from "./canvas/Creations";
+import * as images from "./canvas/Images";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import * as handlers from "./canvas/Handlers";
 import * as geometryHistory from "./canvas/GeometryHistory";
 import * as deletions from "./canvas/Deletions";
 import { color, geometry, rectangleView } from "./canvas/Model";
+
+/** Browser uploads enter through a scoped intent; History claims its validated file. */
+export const prepareImageUpload = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  returns: v.object({ uploadId: v.id("imageUploadIntents"), url: v.string() }),
+  handler: images.prepareImageUpload,
+});
+export const registerImageUpload = mutation({
+  args: {
+    uploadId: v.id("imageUploadIntents"),
+    storageId: v.id("_storage"),
+    name: v.string(),
+  },
+  returns: v.boolean(),
+  handler: images.registerImageUpload,
+});
+export const discardImageUpload = mutation({
+  args: { uploadId: v.id("imageUploadIntents") },
+  returns: v.boolean(),
+  handler: images.discardImageUpload,
+});
+export const cleanupImageUpload = internalMutation({
+  args: { uploadId: v.id("imageUploadIntents") },
+  returns: v.null(),
+  handler: images.cleanupImageUpload,
+});
+export const imageCards = query({
+  args: { workspaceId: v.id("workspaces") },
+  returns: v.array(
+    v.object({
+      id: v.id("canvasImages"),
+      uploadId: v.id("imageUploadIntents"),
+      name: v.string(),
+      url: v.union(v.string(), v.null()),
+      geometry,
+      generation: v.number(),
+    }),
+  ),
+  handler: images.imageCards,
+});
+export const changeImage = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    id: v.id("canvasImages"),
+    generation: v.number(),
+    geometry,
+  },
+  returns: v.boolean(),
+  handler: images.changeImage,
+});
 
 /**
  * Public canvas API: keep every client-callable canvas declaration here.

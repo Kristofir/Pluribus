@@ -5,6 +5,7 @@ export const elementId = v.union(
   v.id("rectangles"),
   v.id("canvasDocuments"),
   v.id("sources"),
+  v.id("canvasImages"),
 );
 const target = { id: elementId, lineage: v.string() };
 const lifecycle = {
@@ -66,6 +67,11 @@ export const actionInput = v.union(
     element: v.union(
       v.object({ kind: v.literal("rectangle"), geometry, color }),
       v.object({ kind: v.literal("document"), geometry }),
+      v.object({
+        kind: v.literal("image"),
+        geometry,
+        uploadId: v.id("imageUploadIntents"),
+      }),
       v.object({
         kind: v.literal("source"),
         geometry,

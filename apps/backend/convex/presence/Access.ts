@@ -10,6 +10,24 @@ import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { Presence } from "@convex-dev/presence";
 import { components } from "../_generated/api";
+import type { Infer } from "convex/values";
+import type { browserCredential } from "./Model";
+/** The private capability fences a claim; every operation rechecks its current account. */
+export async function requireBrowserOwner(
+  ctx: QueryCtx,
+  credential: Infer<typeof browserCredential>,
+) {
+  const row = await ctx.db.get("presenceBrowsers", credential.id);
+  if (
+    !row ||
+    !row.active ||
+    row.epoch !== credential.epoch ||
+    row.capability !== credential.capability ||
+    row.userId !== (await getAuthUserId(ctx))
+  )
+    throw new Error("Browser presence ownership changed");
+  return row;
+}
 export const membership = new Presence(components.presence);
 export async function authorizeContext(
   ctx: QueryCtx,
@@ -52,6 +70,15 @@ export async function owned(
     record.capability !== args.capability
   )
     throw new Error("Invalid participation capability");
+  if (!record.browserId) throw new Error("Presence session needs to rejoin");
+  const browser = await ctx.db.get("presenceBrowsers", record.browserId);
+  if (
+    !browser ||
+    !browser.active ||
+    browser.epoch !== record.browserEpoch ||
+    browser.userId !== (await getAuthUserId(ctx))
+  )
+    throw new Error("Browser presence ownership changed");
   return record;
 }
 export async function isMember(ctx: QueryCtx, id: string, room: string) {

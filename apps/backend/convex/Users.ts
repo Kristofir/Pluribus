@@ -5,7 +5,8 @@ import { query } from "./_generated/server";
 /**
  * Return the signed-in account identity and display fields. The stable ID also
  * scopes transient recovery so it cannot carry over to another account.
- * Anonymous sessions and missing user records return null. This is an authorized
+ * Missing sessions and user records return null; guest sessions have a user ID.
+ * This is an authorized
  * read projection, not a workspace-membership or product-access decision.
  */
 export const current = query({

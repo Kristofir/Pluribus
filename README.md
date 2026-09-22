@@ -175,3 +175,5 @@ prompt. Cards support selection, movement, resizing, full read-only capture view
 refresh and inclusion in agent context. Refresh failures retain the previous capture.
 Creation, geometry and deletion participate in Canvas Undo/Redo. Up to 20 Web Pages
 are supported separately from the 100-document limit; captures are not editable text.
+In a private workspace, dropping a web link or choosing **Import URL…** checks
+the response: an image becomes an Image card; a page becomes a Web Page card.

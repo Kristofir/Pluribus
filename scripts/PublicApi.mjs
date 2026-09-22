@@ -4,11 +4,13 @@ import ts from "typescript";
 export const publicApiFiles = new Set([
   "apps/backend/convex/auth.ts",
   "apps/backend/convex/Canvas.ts",
+  "apps/backend/convex/CanvasUrlImport.ts",
   "apps/backend/convex/Presence.ts",
   "apps/backend/convex/Documents.ts",
   "apps/backend/convex/Health.ts",
   "apps/backend/convex/Users.ts",
   "apps/backend/convex/Workspaces.ts",
+  "apps/backend/convex/ShareLinks.ts",
   "apps/backend/convex/AgentAccess.ts",
   "apps/backend/convex/Sources.ts",
   "apps/backend/convex/Inbox.ts",

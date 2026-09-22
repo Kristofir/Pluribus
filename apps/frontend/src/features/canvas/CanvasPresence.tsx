@@ -10,11 +10,11 @@ export function CanvasPresence({
   presence: PresenceView;
   nodes: Node[];
 }) {
-  if (!presence.show || !presence.id) return null;
+  if (!presence.show || !presence.identity) return null;
   return (
     <ViewportPortal>
       {presence.members
-        .filter((m) => m.id !== presence.id)
+        .filter((m) => m.guestId !== presence.identity?.guestId)
         .map((member) => {
           const profile = guestProfile(member.guestId),
             label = `${profile.name} · ${member.tabId.slice(0, 4)}`;

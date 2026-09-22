@@ -5,3 +5,4 @@ export * from "./Geometry";
 export * from "./Alignment";
 
 export * from "./Document";
+export * from "./Image";

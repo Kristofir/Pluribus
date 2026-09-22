@@ -4,7 +4,7 @@ import type { Geometry } from "./Geometry";
 
 /** Protocol bounds; storage retention is deliberately a separate decision. */
 export const historyLimits = {
-  targets: 202,
+  targets: 302,
   bytes: 128 * 1024,
   idleMs: 30_000,
   heartbeatMs: 10_000,
@@ -12,6 +12,7 @@ export const historyLimits = {
 export type ElementCreationInput =
   | { kind: "rectangle"; geometry: Geometry; color: RectangleColor }
   | { kind: "document"; geometry: Geometry }
+  | { kind: "image"; geometry: Geometry; uploadId: string }
   | {
       kind: "source";
       geometry: Geometry;

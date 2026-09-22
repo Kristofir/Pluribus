@@ -1,40 +1,43 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { requireWorkspace } from "./workspaces/Access";
-import { requireDocument } from "./documents/Access";
 import { hashSecret } from "./documents/Authors";
 import { prepareContext } from "./agentAccess/Context";
 import { undoAgentChange } from "./agentAccess/Undo";
 export const grant = mutation({
   args: {
     workspaceId: v.id("workspaces"),
-    documentIds: v.array(v.id("documents")),
     label: v.string(),
   },
   returns: v.object({ grantId: v.id("agentGrants"), token: v.string() }),
   handler: async (ctx, args) => {
     const { userId } = await requireWorkspace(ctx, args.workspaceId);
-    if (
-      !args.documentIds.length ||
-      args.documentIds.length > 20 ||
-      !args.label.trim() ||
-      args.label.length > 80
-    )
+    if (!args.label.trim() || args.label.length > 80)
       throw new Error("Invalid agent grant");
-    for (const id of args.documentIds) {
-      const doc = await requireDocument(ctx, id);
-      if (doc.workspaceId !== args.workspaceId)
-        throw new Error("Document outside workspace");
-    }
+    const active = await ctx.db
+      .query("agentGrants")
+      .withIndex("by_workspace_revoked", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("revoked", false),
+      )
+      .take(32);
+    if (active.length >= 32)
+      throw new Error("Agent connection capacity reached");
     const token = crypto.randomUUID() + crypto.randomUUID();
     const grantId = await ctx.db.insert("agentGrants", {
       workspaceId: args.workspaceId,
       userId,
-      documentIds: [...new Set(args.documentIds)],
+      documentIds: [],
+      workspaceScope: true,
       label: args.label,
       tokenHash: await hashSecret(token),
       revoked: false,
     });
+    const authorId = await ctx.db.insert("documentAuthors", {
+      kind: "agent",
+      grantId,
+      label: args.label,
+    });
+    await ctx.db.patch(grantId, { authorId });
     return { grantId, token };
   },
 });
@@ -47,7 +50,10 @@ export const revoke = mutation({
     const { userId } = await requireWorkspace(ctx, grant.workspaceId);
     if (userId !== grant.userId)
       throw new Error("Grant belongs to another user");
-    await ctx.db.patch(grant._id, { revoked: true });
+    await ctx.db.patch(grant._id, {
+      revoked: true,
+      presenceDeadlineAt: undefined,
+    });
     return null;
   },
 });
@@ -71,6 +77,7 @@ export const changes = query({
   returns: v.array(
     v.object({
       id: v.id("agentChanges"),
+      author: v.string(),
       documentId: v.id("documents"),
       version: v.number(),
       undone: v.boolean(),
@@ -84,13 +91,16 @@ export const changes = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
       .take(50);
-    return rows.map((r) => ({
-      id: r._id,
-      documentId: r.documentId,
-      version: r.version,
-      undone: r.undone,
-      canUndo: !r.undone && r.userId === userId,
-    }));
+    return Promise.all(
+      rows.map(async (r) => ({
+        id: r._id,
+        author: (await ctx.db.get(r.author))?.label ?? "External agent",
+        documentId: r.documentId,
+        version: r.version,
+        undone: r.undone,
+        canUndo: !r.undone && r.userId === userId,
+      })),
+    );
   },
 });
 export const undo = mutation({

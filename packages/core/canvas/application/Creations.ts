@@ -1,5 +1,6 @@
 import { sourceLimits } from "../../sources/domain/Source";
 import { documentLimits } from "../domain/Document";
+import { imageLimits } from "../domain/Image";
 import { assertCanvasAccess, type CanvasActor } from "../domain/Access";
 import { rectangleLimits } from "../domain/Rectangle";
 import type { CanvasElement, ElementId } from "../domain/Element";
@@ -46,9 +47,11 @@ export async function createRecordedElement(
   const capacity =
     dependencies.kind === "rectangle"
       ? rectangleLimits.maxCount
-      : dependencies.kind === "source"
-        ? sourceLimits.maxCount
-        : documentLimits.maxCount;
+      : dependencies.kind === "image"
+        ? imageLimits.maxCount
+        : dependencies.kind === "source"
+          ? sourceLimits.maxCount
+          : documentLimits.maxCount;
   if ((await dependencies.elements.count(dependencies.kind)) >= capacity)
     return { status: "full" as const, id: null, generation: 0 };
   const element = await dependencies.create();

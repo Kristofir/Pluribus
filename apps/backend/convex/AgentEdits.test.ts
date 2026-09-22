@@ -28,7 +28,6 @@ async function setup() {
   const panel = await a.query(api.Workspaces.open, { workspaceId });
   const grant = await a.mutation(api.AgentAccess.grant, {
     workspaceId,
-    documentIds: [panel.mainDocumentId],
     label: "Review agent",
   });
   const read = () =>
@@ -324,7 +323,6 @@ test("accepted agent retry retains its outcome after a card delete/restore gener
   const card = (await a.query(api.Canvas.documentCards, { workspaceId }))[0],
     grant = await a.mutation(api.AgentAccess.grant, {
       workspaceId,
-      documentIds: [card.documentId],
       label: "Agent",
     });
   const initial = await t.query(internal.agentAccess.Tools.readDocument, {
@@ -504,4 +502,46 @@ test("stored rectangle paragraph links are omitted without deleting their eviden
   });
   expect(await a.query(api.Documents.links, { workspaceId })).toEqual([]);
   expect(await t.run((ctx) => ctx.db.get(link))).not.toBeNull();
+});
+
+test("one agent author identity persists across accepted requests on a workspace grant", async () => {
+  const { t, a, workspaceId, id, grant, read } = await setup();
+  const first = await read();
+  const edit = async (version: number, text: string) =>
+    t.mutation(internal.agentAccess.Tools.applyEdit, {
+      token: grant.token,
+      requestId: uuid(),
+      documentId: id,
+      generation: 1,
+      baseVersion: version,
+      edits: [
+        { kind: "replace", paragraphId: first.paragraphs[0].paragraphId, text },
+      ],
+    });
+  const a1 = await edit(first.version, "First agent edit");
+  const a2 = await edit(
+    a1.status === "applied" ? a1.version : 0,
+    "Second agent edit",
+  );
+  expect(a1.status).toBe("applied");
+  expect(a2.status).toBe("applied");
+  if (a1.status !== "applied" || a2.status !== "applied") return;
+  const [grantRow, firstChange, secondChange, authors] = await t.run(
+    async (ctx) => [
+      await ctx.db.get(grant.grantId),
+      await ctx.db.get(a1.operationGroupId),
+      await ctx.db.get(a2.operationGroupId),
+      await ctx.db
+        .query("documentAuthors")
+        .withIndex("by_grant", (q) => q.eq("grantId", grant.grantId))
+        .take(5),
+    ],
+  );
+  expect(grantRow?.workspaceId).toBe(workspaceId);
+  expect(authors).toHaveLength(1);
+  expect(firstChange?.author).toBe(grantRow?.authorId);
+  expect(secondChange?.author).toBe(grantRow?.authorId);
+  expect(firstChange?.session).not.toBe(secondChange?.session);
+  await a.mutation(api.AgentAccess.revoke, { grantId: grant.grantId });
+  await expect(read()).rejects.toThrow("Agent access denied");
 });

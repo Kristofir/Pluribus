@@ -216,10 +216,18 @@ test("explicit card roles count toward visible capacity, panel children do not",
 test("private presence publishes and is revoked with membership; private History completes lifecycle", async () => {
   const { t, a, w1 } = await setup();
   const context = { kind: "canvas" as const, id: String(w1) };
+  const tabId = token();
+  const browser = await a.mutation(api.Presence.claimBrowser, {
+    secret: "a".repeat(64),
+    epoch: 1,
+    tabId,
+    account: (await a.query(api.Users.current, {}))!.id,
+  });
   const presence = await a.mutation(api.Presence.join, {
+    browser: browser!,
     context,
     guestId: token(),
-    tabId: token(),
+    tabId,
   });
   expect(
     await a.mutation(api.Presence.publish, {
@@ -292,10 +300,18 @@ test("private document presence joins and publishes but existing capability cann
   const { t, a, b, w1 } = await setup();
   const panel = await a.query(api.Workspaces.open, { workspaceId: w1 });
   const context = { kind: "document" as const, id: panel.mainDocumentId };
+  const tabId = token();
+  const browser = await a.mutation(api.Presence.claimBrowser, {
+    secret: "a".repeat(64),
+    epoch: 1,
+    tabId,
+    account: (await a.query(api.Users.current, {}))!.id,
+  });
   const participation = await a.mutation(api.Presence.join, {
+    browser: browser!,
     context,
     guestId: token(),
-    tabId: token(),
+    tabId,
   });
   expect(
     await a.mutation(api.Presence.publish, {

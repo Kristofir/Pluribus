@@ -9,7 +9,11 @@ import {
 import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { participation, storedActivity } from "./presence/Model";
+import {
+  participation,
+  storedActivity,
+  browserOwnership,
+} from "./presence/Model";
 import { rectangle, geometry } from "./canvas/Model";
 
 /**
@@ -98,16 +102,42 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_removed", ["workspaceId", "removed"]),
+  imageUploadIntents: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    storageId: v.optional(v.id("_storage")),
+    name: v.optional(v.string()),
+    importedType: v.optional(v.string()),
+    imageId: v.optional(v.id("canvasImages")),
+  }).index("by_storage", ["storageId"]),
+  canvasImages: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    uploadId: v.id("imageUploadIntents"),
+    storageId: v.id("_storage"),
+    name: v.string(),
+    geometry,
+    generation: v.number(),
+    removed: v.boolean(),
+    activeDeletion: v.optional(v.string()),
+  })
+    .index("by_workspace_removed", ["workspaceId", "removed"])
+    .index("by_storage", ["storageId"]),
   agentGrants: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.id("users"),
     documentIds: v.array(v.id("documents")),
+    canvasRead: v.optional(v.boolean()),
+    workspaceScope: v.optional(v.literal(true)),
+    authorId: v.optional(v.id("documentAuthors")),
+    presenceDeadlineAt: v.optional(v.number()),
     tokenHash: v.string(),
     revoked: v.boolean(),
     label: v.string(),
   })
     .index("by_token", ["tokenHash"])
-    .index("by_workspace_user", ["workspaceId", "userId"]),
+    .index("by_workspace_user", ["workspaceId", "userId"])
+    .index("by_workspace_revoked", ["workspaceId", "revoked"]),
   agentContexts: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.id("users"),
@@ -170,9 +200,18 @@ export default defineSchema({
     slug: v.string(),
     mainDocumentId: v.optional(v.id("documents")),
   }).index("by_slug", ["slug"]),
+  workspaceShareLinks: defineTable({
+    workspaceId: v.id("workspaces"),
+    createdBy: v.id("users"),
+    tokenHash: v.string(),
+    revoked: v.boolean(),
+  })
+    .index("by_workspace_revoked", ["workspaceId", "revoked"])
+    .index("by_token", ["tokenHash"]),
   workspaceMembers: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.id("users"),
+    shareLinkId: v.optional(v.id("workspaceShareLinks")),
   })
     .index("by_workspace_user", ["workspaceId", "userId"])
     .index("by_user", ["userId"]),
@@ -192,7 +231,9 @@ export default defineSchema({
     grantId: v.optional(v.id("agentGrants")),
     secretHash: v.optional(v.string()),
     label: v.string(),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_grant", ["grantId"]),
   documentAuthorSessions: defineTable({
     author: v.id("documentAuthors"),
     scope: v.string(),
@@ -213,9 +254,12 @@ export default defineSchema({
   })
     .index("by_document_operation", ["document", "operation"])
     .index("by_document_author", ["document", "author"]),
-  presenceParticipations: defineTable(participation).index("by_contextKey", [
-    "contextKey",
+  presenceBrowsers: defineTable(browserOwnership).index("by_secretHash", [
+    "secretHash",
   ]),
+  presenceParticipations: defineTable(participation)
+    .index("by_contextKey", ["contextKey"])
+    .index("by_browser", ["browserId"]),
   presenceActivity: defineTable(storedActivity).index(
     "by_participationId_and_channel",
     ["participationId", "channel"],

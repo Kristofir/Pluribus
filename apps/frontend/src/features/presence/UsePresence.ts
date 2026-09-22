@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useConvex, type ConvexReactClient } from "convex/react";
 import { api } from "@pluribus/backend/api";
 import {
@@ -6,6 +6,12 @@ import {
   type InteractionEvent,
 } from "@pluribus/core/presence/domain";
 import { browserIdentity } from "./Identity";
+import {
+  createBrowserOwnership,
+  type BrowserCredential,
+  type BrowserEnvironment,
+} from "./BrowserOwnership";
+import { createBrowserCoordination } from "./BrowserCoordination";
 import {
   createPresenceRegistry,
   emptySnapshot,
@@ -20,26 +26,22 @@ const registries = new WeakMap<
 function registry(convex: ConvexReactClient) {
   let value = registries.get(convex);
   if (value) return value;
+  let owner: BrowserCredential | null = null;
+  let participating = false;
+  let account: BrowserEnvironment["account"];
+  let ownership: ReturnType<typeof createBrowserOwnership>;
   const transport: Transport = {
-    join: (context, identity) =>
-      convex.mutation(api.Presence.join, {
+    join: (context, identity) => {
+      if (!owner)
+        return Promise.reject(
+          new Error("Browser presence is following another tab"),
+        );
+      return convex.mutation(api.Presence.join, {
         context,
         guestId: identity.guestId,
         tabId: identity.tabId,
-      }),
-    unload: (context, credentials) => {
-      navigator.sendBeacon(
-        `${convex.url}/api/mutation`,
-        new Blob(
-          [
-            JSON.stringify({
-              path: "Presence:leave",
-              args: { context, ...credentials },
-            }),
-          ],
-          { type: "application/json" },
-        ),
-      );
+        browser: owner,
+      });
     },
     leave: (context, credentials) =>
       convex.mutation(api.Presence.leave, { context, ...credentials }),
@@ -64,27 +66,81 @@ function registry(convex: ConvexReactClient) {
       const watch =
         kind === "roster"
           ? convex.watchQuery(api.Presence.roster, { context })
-          : convex.watchQuery(api.Presence.activities, { context });
+          : kind === "agents"
+            ? convex.watchQuery(api.Presence.agents, { context })
+            : convex.watchQuery(api.Presence.activities, { context });
       const dispose = watch.onUpdate(changed);
       return { read: () => watch.localQueryResult(), dispose };
     },
   };
-  const created = createPresenceRegistry(transport, browserIdentity());
+  const created = createPresenceRegistry(
+    transport,
+    browserIdentity(),
+    (active) => {
+      participating = active;
+      update();
+    },
+  );
   registries.set(convex, created);
-  const update = () =>
-    created.emit({
-      type: "environment-changed",
-      environment: {
-        online:
-          navigator.onLine && convex.connectionState().isWebSocketConnected,
-        visible: document.visibilityState !== "hidden",
-        focused: document.hasFocus(),
-      },
-    });
+  const environment = () => ({
+    online: navigator.onLine && convex.connectionState().isWebSocketConnected,
+    visible: document.visibilityState !== "hidden",
+    focused: document.hasFocus(),
+    ownsBrowser: owner !== null,
+  });
+  const applyEnvironment = () =>
+    created.emit({ type: "environment-changed", environment: environment() });
+  const coordination = createBrowserCoordination(convex.url, () =>
+    ownership.observe(),
+  );
+  ownership = createBrowserOwnership(
+    {
+      ...coordination,
+      claim: (claim) => convex.mutation(api.Presence.claimBrowser, claim),
+      release: (browser) =>
+        convex.mutation(api.Presence.releaseBrowser, { browser }),
+    },
+    (next) => {
+      // Drop old queues before a successor's credential can be used by a join.
+      if (owner !== next) {
+        owner = null;
+        applyEnvironment();
+        owner = next;
+        applyEnvironment();
+      }
+    },
+    (error) => created.reportError(error),
+  );
+  function update() {
+    ownership.update({ ...environment(), participating, account });
+    applyEnvironment();
+  }
+  const user = convex.watchQuery(api.Users.current, {});
+  user.onUpdate(() => {
+    try {
+      const value = user.localQueryResult();
+      account = value === undefined ? undefined : (value?.id ?? null);
+    } catch {
+      account = undefined;
+    }
+    update();
+  });
+  try {
+    const value = user.localQueryResult();
+    account = value === undefined ? undefined : (value?.id ?? null);
+  } catch {
+    account = undefined;
+  }
   for (const event of ["online", "offline", "focus", "blur", "pageshow"])
     window.addEventListener(event, update);
   document.addEventListener("visibilitychange", update);
   window.addEventListener("pagehide", () => {
+    ownership.update({
+      ...environment(),
+      participating: false,
+      online: false,
+      account,
+    });
     created.emit({ type: "page-exited" });
   });
   convex.subscribeToConnectionState(update);
@@ -101,9 +157,17 @@ export function usePresence(context: Context, active: boolean) {
   > | null>(null);
   useEffect(() => {
     let active = true;
-    void browserIdentity().then((value) => {
-      if (active) setIdentity(value);
-    });
+    void browserIdentity()
+      .then((value) => {
+        if (active) setIdentity(value);
+      })
+      .catch(() => {
+        if (active)
+          setSnapshot({
+            ...emptySnapshot,
+            error: "Presence requires browser storage and Web Locks",
+          });
+      });
     return () => {
       active = false;
     };
@@ -125,11 +189,21 @@ export function usePresence(context: Context, active: boolean) {
       acquired.release();
     };
   }, [convex, key, active]);
+  const activities = useMemo(() => {
+    const self = new Set(
+      snapshot.members
+        .filter((member) => member.guestId === identity?.guestId)
+        .map((member) => member.id),
+    );
+    return snapshot.activities.filter(
+      (activity) => !self.has(activity.participationId),
+    );
+  }, [snapshot.members, snapshot.activities, identity]);
   return {
     ...snapshot,
+    activities,
     identity,
     emit: useCallback((event: InteractionEvent) => lease?.emit(event), [lease]),
-    toggle: useCallback(() => lease?.toggle(), [lease]),
   };
 }
 export type PresenceView = ReturnType<typeof usePresence>;

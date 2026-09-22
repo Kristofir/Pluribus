@@ -18,7 +18,9 @@ export async function requireGrant(
   if (
     !grant ||
     grant.revoked ||
-    (documentId && !grant.documentIds.includes(documentId))
+    (documentId &&
+      !grant.workspaceScope &&
+      !grant.documentIds.includes(documentId))
   )
     throw new Error("Agent access denied");
   await requireWorkspaceMember(ctx, grant.workspaceId, grant.userId);

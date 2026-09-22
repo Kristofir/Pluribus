@@ -42,6 +42,15 @@ export async function requestSource(
   },
 ) {
   const { userId } = await requireWorkspace(ctx, args.workspaceId);
+  return requestSourceForMember(ctx, args, userId);
+}
+
+/** Caller must have already checked this member's current workspace access. */
+export async function requestSourceForMember(
+  ctx: MutationCtx,
+  args: Parameters<typeof requestSource>[1],
+  userId: Id<"users">,
+) {
   let url: string;
   try {
     url = publicSourceUrl(args.url);

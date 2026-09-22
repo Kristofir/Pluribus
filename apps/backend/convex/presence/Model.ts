@@ -28,6 +28,20 @@ export const channel = v.union(
   v.literal("manipulation"),
   v.literal("text"),
 );
+export const browserCredential = v.object({
+  id: v.id("presenceBrowsers"),
+  epoch: v.number(),
+  capability: v.string(),
+});
+/** One fenced publisher per browser profile, independent of display guest identity. */
+export const browserOwnership = v.object({
+  secretHash: v.string(),
+  epoch: v.number(),
+  tabId: v.string(),
+  userId: v.union(v.id("users"), v.null()),
+  capability: v.string(),
+  active: v.boolean(),
+});
 export const participation = v.object({
   context,
   contextKey: v.string(),
@@ -39,6 +53,8 @@ export const participation = v.object({
   hidden: v.boolean(),
   focused: v.boolean(),
   lifecycleSequence: v.number(),
+  browserId: v.optional(v.id("presenceBrowsers")),
+  browserEpoch: v.optional(v.number()),
 });
 export const storedActivity = v.object({
   participationId: v.id("presenceParticipations"),

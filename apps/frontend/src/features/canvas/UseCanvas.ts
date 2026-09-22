@@ -1,3 +1,4 @@
+import { arrangeElements, type Arrangement } from "./ArrangeElements";
 import { useCanvasScope } from "./CanvasScope";
 import {
   useCallback,
@@ -14,12 +15,13 @@ import { useConvexConnectionState, useMutation } from "convex/react";
 import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
 import { api } from "@pluribus/backend/api";
 import { useReactFlow, type NodeChange } from "@xyflow/react";
-import { AlignmentGesture, type AlignmentGuide } from "./AlignmentGesture";
+import { AlignmentGesture } from "./AlignmentGesture";
 import {
   geometryLimits,
   type Geometry,
   type CanvasElement,
   type ElementId,
+  type ImageElementId,
 } from "@pluribus/core/canvas/domain";
 import { createCanvasStore } from "./CanvasStore";
 import { createCanvasNodeProjector, type CanvasNode } from "./CanvasNodes";
@@ -54,7 +56,9 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const altPressed = useRef(false);
   const reapplyAlignment = useRef<() => void>(() => {});
   const finishAlignment = useRef<() => void>(() => {});
-  const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuide[]>([]);
+  const [snapPreviews, setSnapPreviews] = useState<
+    { id: string; geometry: Geometry }[]
+  >([]);
   useEffect(() => {
     const modifiers = (event: KeyboardEvent | MouseEvent | PointerEvent) => {
       const changed = altPressed.current !== event.altKey;
@@ -65,7 +69,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       finishAlignment.current();
       alignment.current = null;
       altPressed.current = false;
-      setAlignmentGuides([]);
+      setSnapPreviews([]);
     };
     window.addEventListener("keydown", modifiers, true);
     window.addEventListener("keyup", modifiers, true);
@@ -90,19 +94,35 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     workspaceId ? { workspaceId } : "skip",
   );
   const sourceRows = sourceQuery.data;
+  const imageQuery = useRetainedQuery(
+    api.Canvas.imageCards,
+    workspaceId ? { workspaceId } : "skip",
+  );
+  const imageRows = imageQuery.data;
   const [openSourceId, setOpenSourceId] = useState<Id<"sources"> | null>(null);
-  const queryFailed = cardQuery.failed || sourceQuery.failed;
+  const queryFailed =
+    cardQuery.failed || sourceQuery.failed || imageQuery.failed;
   const records = useMemo<CanvasElement[] | undefined>(
     () =>
-      cards && (!workspaceId || sourceRows)
+      cards && (!workspaceId || (sourceRows && imageRows))
         ? [
             ...cards
               .map(documentElement)
               .map((r) => ({ ...r, canvasId: workspaceId ?? "shared" })),
             ...(sourceRows ?? []).map(sourceElement),
+            ...(imageRows ?? []).map((row) => ({
+              id: row.id as string as ImageElementId,
+              kind: "image" as const,
+              canvasId: String(workspaceId),
+              geometry: row.geometry,
+              generation: row.generation,
+              removed: false,
+              name: row.name,
+              url: row.url,
+            })),
           ]
         : undefined,
-    [cards, sourceRows, workspaceId],
+    [cards, sourceRows, imageRows, workspaceId],
   );
   const recordsRef = useRef(records);
   useLayoutEffect(() => {
@@ -115,6 +135,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const pendingEditors = useRef(new Map<ElementId, boolean>());
   const changeDocument = useMutation(api.Canvas.changeDocument);
   const changeSource = useMutation(api.Sources.changeGeometry);
+  const changeImage = useMutation(api.Canvas.changeImage);
   const connection = useConvexConnectionState();
   const online = useSyncExternalStore(subscribeOnline, getOnline);
   const connected =
@@ -129,6 +150,10 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         source: (args) =>
           workspaceId
             ? changeSource({ ...args, workspaceId })
+            : Promise.resolve(false),
+        image: (args) =>
+          workspaceId
+            ? changeImage({ ...args, workspaceId })
             : Promise.resolve(false),
       }),
     ),
@@ -165,7 +190,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       geometryGesture.interrupt();
       manipulation.current.clear();
       alignment.current = null;
-      setAlignmentGuides([]);
+      setSnapPreviews([]);
     }
     return () => store.getState().setEnabled(false);
   }, [connected, store]);
@@ -178,7 +203,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       [...alignment.current.initial.keys()].some((id) => !ids.has(id))
     ) {
       alignment.current = null;
-      setAlignmentGuides([]);
+      setSnapPreviews([]);
     }
     for (const id of contentHeights.current.keys())
       if (!ids.has(id)) contentHeights.current.delete(id);
@@ -199,7 +224,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         store.getState().cancel(id);
         if (alignment.current?.initial.has(id)) {
           alignment.current = null;
-          setAlignmentGuides([]);
+          setSnapPreviews([]);
         }
         geometryTargets.current.delete(id);
       }
@@ -209,6 +234,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const {
     addDocument,
     addWebPage,
+    addImage,
     deleteSelection,
     history,
     undoElement,
@@ -218,6 +244,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     records,
     documentCount: cards?.length ?? 0,
     sourceCount: sourceRows?.length ?? 0,
+    imageCount: imageRows?.length ?? 0,
     store,
     pendingEditors,
     surface,
@@ -241,6 +268,40 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const reportPending = useCallback((id: ElementId, value: boolean) => {
     pendingEditors.current.set(id, value);
   }, []);
+  const arrangeSelection = useCallback(
+    (mode: Arrangement) => {
+      const current = store.getState();
+      if (!interactionEnabled || geometryGesture.busy || current.gestures.size)
+        return;
+      const items = (recordsRef.current ?? [])
+        .filter(
+          (r) =>
+            current.selected.has(r.id) &&
+            !r.removed &&
+            !current.removing.has(r.id),
+        )
+        .map((r) => ({
+          id: r.id as string as
+            Id<"canvasDocuments"> | Id<"sources"> | Id<"canvasImages">,
+          generation: r.generation,
+          geometry: r.geometry,
+        }));
+      if (items.length < 2) return;
+      const arranged = arrangeElements(items, mode);
+      if (
+        arranged.every((item) => {
+          const before = items.find((i) => i.id === item.id)!;
+          return (
+            before.geometry.x === item.geometry.x &&
+            before.geometry.y === item.geometry.y
+          );
+        })
+      )
+        return;
+      if (geometryGesture.start(items)) geometryGesture.stage(arranged, false);
+    },
+    [store, interactionEnabled, geometryGesture],
+  );
   const reportContentHeight = useCallback(
     (id: ElementId, generation: number, height: number) => {
       if (!Number.isFinite(height)) return;
@@ -276,12 +337,6 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     for (const [id, minimum] of contentHeights.current)
       reportContentHeight(id, minimum.generation, minimum.height);
   }, [records, gestures, geometryGesture, reportContentHeight]);
-  const includeSource = useCallback(
-    (id: string, included: boolean) => {
-      store.getState().select([{ id: id as ElementId, selected: included }]);
-    },
-    [store],
-  );
   const sourceViews = useMemo(
     () =>
       new Map(
@@ -301,7 +356,6 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
             workspaceId,
             views: sourceViews,
             open: setOpenSourceId,
-            include: includeSource,
           }
         : undefined,
     },
@@ -348,7 +402,8 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
           const updates = (records ?? [])
             .filter((r) => initial.has(r.id))
             .map((r) => ({
-              id: r.id as string as Id<"canvasDocuments"> | Id<"sources">,
+              id: r.id as string as
+                Id<"canvasDocuments"> | Id<"sources"> | Id<"canvasImages">,
               generation: r.generation,
               geometry: initial.get(r.id)!,
             }));
@@ -422,7 +477,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
           width: (surface.current?.clientWidth ?? 0) / view.zoom,
           height: (surface.current?.clientHeight ?? 0) / view.zoom,
         };
-        const guides = gesture.resolve(
+        gesture.resolve(
           updates,
           flow.getZoom(),
           altPressed.current,
@@ -431,12 +486,18 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
               ? first?.kind === "source"
                 ? 300
                 : first?.kind === "document"
-                  ? 360
-                  : geometryLimits.minSize
+                  ? 300
+                  : first?.kind === "image"
+                    ? 180
+                    : geometryLimits.minSize
               : 0,
             minHeight: resizing
               ? Math.max(
-                  first?.kind === "source" ? 132 : geometryLimits.minSize,
+                  first?.kind === "source"
+                    ? 132
+                    : first?.kind === "image"
+                      ? 160
+                      : geometryLimits.minSize,
                   first && minimum?.generation === first.generation
                     ? minimum.height
                     : 0,
@@ -444,7 +505,9 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
               : 0,
             maxWidth: resizing ? geometryLimits.maxSize : Infinity,
             maxHeight:
-              first?.kind === "source" ? geometryLimits.maxSize : Infinity,
+              first?.kind === "source" || first?.kind === "image"
+                ? geometryLimits.maxSize
+                : Infinity,
             minX: -geometryLimits.maxCoordinate,
             maxX: geometryLimits.maxCoordinate,
             minY: -geometryLimits.maxCoordinate,
@@ -459,7 +522,24 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
               delta: gesture.motion,
               geometry: value.geometry,
             });
-        setAlignmentGuides(active ? guides : []);
+        if (!active) {
+          for (const { id, geometry } of gesture.releasePreview(
+            altPressed.current,
+          )) {
+            const before =
+              updates.get(id)?.geometry ?? gesture.candidates.get(id)!;
+            updates.set(id, { geometry, active: false });
+            snapAnimation.current.set(id, {
+              delta: { x: before.x - geometry.x, y: before.y - geometry.y },
+              geometry,
+            });
+          }
+        }
+        setSnapPreviews(
+          active
+            ? gesture.preview(flow.getZoom(), altPressed.current, viewport)
+            : [],
+        );
         if (!active) alignment.current = null;
       }
       for (const [id, value] of updates) {
@@ -475,7 +555,8 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       if (updates.size && geometryGesture.busy) {
         geometryGesture.stage(
           [...updates].map(([id, value]) => ({
-            id: id as string as Id<"canvasDocuments"> | Id<"sources">,
+            id: id as string as
+              Id<"canvasDocuments"> | Id<"sources"> | Id<"canvasImages">,
             generation: geometryTargets.current.get(id)!.generation,
             geometry: value.geometry,
           })),
@@ -536,16 +617,21 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   }, [onNodesChange, store, emit, geometryGesture]);
 
   return {
-    alignmentGuides,
+    arrangeSelection,
+    snapPreviews,
     store,
     queryFailed,
     nodes,
     addDocument,
     addWebPage,
+    addImage,
     sourceCount: sourceRows?.length ?? 0,
+    imageCount: imageRows?.length ?? 0,
+    imageUploadIds: new Set(
+      (imageRows ?? []).map((row) => String(row.uploadId)),
+    ),
     openSourceId,
     setOpenSourceId,
-    includeSource,
     interactionEnabled,
     documentCount: cards?.length ?? 0,
     stopEditing,

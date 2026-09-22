@@ -90,7 +90,8 @@ export async function applyAgentEdit(
       !context ||
       context.workspaceId !== grant.workspaceId ||
       context.userId !== grant.userId ||
-      context.documentIds.some((id) => !grant.documentIds.includes(id))
+      (!grant.workspaceScope &&
+        context.documentIds.some((id) => !grant.documentIds.includes(id)))
     )
       throw new Error("Context outside grant");
     assertActiveContext(context.content);
@@ -111,11 +112,16 @@ export async function applyAgentEdit(
     return result;
   }
   const scope = `${document._id}:${args.generation}`;
-  const author = await ctx.db.insert("documentAuthors", {
-    kind: "agent",
-    grantId: grant._id,
-    label: grant.label,
-  });
+  // Existing scoped grants receive a stable author on their next accepted edit.
+  let author = grant.authorId;
+  if (!author) {
+    author = await ctx.db.insert("documentAuthors", {
+      kind: "agent",
+      grantId: grant._id,
+      label: grant.label,
+    });
+    await ctx.db.patch(grant._id, { authorId: author });
+  }
   const session = await ctx.db.insert("documentAuthorSessions", {
     author,
     scope,

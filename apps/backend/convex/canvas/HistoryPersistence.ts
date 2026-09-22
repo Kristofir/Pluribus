@@ -1,4 +1,8 @@
-import { activeSources, requestSource } from "../sources/Persistence";
+import {
+  activeSources,
+  requestSource,
+  requestSourceForMember,
+} from "../sources/Persistence";
 import { defaultSourceGeometry } from "../sources/Model";
 import { createCanvasDocument } from "@pluribus/core/canvas/documents";
 import type { HistoryPorts } from "@pluribus/core/canvas/history/ports";
@@ -11,6 +15,8 @@ import type { Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { canvasDocuments } from "./Documents";
 import { childText } from "../documents/ChildText";
+import { createCanvasImage } from "./Images";
+import { imageLimits } from "@pluribus/core/canvas/domain";
 import { toElementId } from "./ElementLifecycles";
 import type { CanvasActor } from "@pluribus/core/canvas/access";
 import {
@@ -22,7 +28,8 @@ export function storedElement(ctx: QueryCtx, id: string) {
   const value =
     ctx.db.normalizeId("rectangles", id) ??
     ctx.db.normalizeId("canvasDocuments", id) ??
-    ctx.db.normalizeId("sources", id);
+    ctx.db.normalizeId("sources", id) ??
+    ctx.db.normalizeId("canvasImages", id);
   if (!value) throw new Error("Invalid Element identity");
   return value;
 }
@@ -80,6 +87,20 @@ export async function readHistoryElement(
       : (ctx.db.normalizeId("workspaces", scope) ?? undefined);
 
   if (ctx.db.normalizeId("rectangles", id)) return null;
+  const imageId = ctx.db.normalizeId("canvasImages", id);
+  if (imageId) {
+    const image = await ctx.db.get(imageId);
+    return image && image.workspaceId === workspaceId
+      ? {
+          id,
+          kind: "image" as const,
+          generation: image.generation,
+          removed: image.removed,
+          activeDeletion: image.activeDeletion ?? null,
+          geometry: image.geometry,
+        }
+      : null;
+  }
   const sourceId = ctx.db.normalizeId("sources", id);
   if (sourceId) {
     const source = await ctx.db.get(sourceId);
@@ -123,6 +144,7 @@ export function historyPorts(
   session: Id<"canvasHistorySessions">,
   actor: CanvasActor,
   scope = "shared",
+  sourceMember?: Id<"users">,
 ): HistoryPorts {
   const workspaceId =
     scope === "shared"
@@ -145,14 +167,31 @@ export function historyPorts(
       create: (input) => {
         if (input.kind === "rectangle")
           throw new HistoryProtocolError("Rectangle elements are retired");
+        if (input.kind === "image") {
+          if (!workspaceId)
+            throw new HistoryProtocolError("Images require a workspace");
+          const uploadId = ctx.db.normalizeId(
+            "imageUploadIntents",
+            input.uploadId,
+          );
+          if (!uploadId) throw new HistoryProtocolError("Invalid image upload");
+          return createCanvasImage(ctx, {
+            workspaceId,
+            uploadId,
+            geometry: input.geometry,
+          }).then(toElementId);
+        }
         if (input.kind === "source") {
           if (!workspaceId)
             throw new HistoryProtocolError(
               "Web Pages require a private workspace",
             );
-          return requestSource(ctx, { workspaceId, ...input }).then(
-            toElementId,
-          );
+          const args = { workspaceId, ...input };
+          return (
+            sourceMember
+              ? requestSourceForMember(ctx, args, sourceMember)
+              : requestSource(ctx, args)
+          ).then(toElementId);
         }
         return createCanvasDocument(
           { cards: documents, text: childText(ctx, workspaceId) },
@@ -163,18 +202,40 @@ export function historyPorts(
       count: (kind) =>
         kind === "rectangle"
           ? Promise.resolve(0)
-          : kind === "source"
+          : kind === "image"
             ? workspaceId
-              ? activeSources(ctx, workspaceId).then((rows) => rows.length)
+              ? ctx.db
+                  .query("canvasImages")
+                  .withIndex("by_workspace_removed", (q) =>
+                    q.eq("workspaceId", workspaceId).eq("removed", false),
+                  )
+                  .take(imageLimits.maxCount)
+                  .then((rows) => rows.length)
               : Promise.resolve(0)
-            : documents.count(),
+            : kind === "source"
+              ? workspaceId
+                ? activeSources(ctx, workspaceId).then((rows) => rows.length)
+                : Promise.resolve(0)
+              : documents.count(),
       geometry: (id, geometry) => {
         const source = ctx.db.normalizeId("sources", id);
-        return source
-          ? ctx.db.patch(source, { geometry })
-          : ctx.db.patch(storedElement(ctx, id), geometry);
+        const image = ctx.db.normalizeId("canvasImages", id);
+        return image
+          ? ctx.db.patch(image, { geometry })
+          : source
+            ? ctx.db.patch(source, { geometry })
+            : ctx.db.patch(storedElement(ctx, id), geometry);
       },
       async lifecycle(id, removed, generation, deletion) {
+        const imageId = ctx.db.normalizeId("canvasImages", id);
+        if (imageId) {
+          await ctx.db.patch(imageId, {
+            removed,
+            generation,
+            activeDeletion: deletion ?? undefined,
+          });
+          return;
+        }
         const sourceId = ctx.db.normalizeId("sources", id);
         if (sourceId) {
           const row = await ctx.db.get(sourceId);

@@ -24,7 +24,8 @@
     "./documents/agentEdits": "./documents/domain/AgentEdits.ts",
     "./sources/domain": "./sources/domain/Source.ts",
     "./inbox/domain": "./inbox/domain/Send.ts",
-    "./inbox/delivery": "./inbox/application/Delivery.ts"
+    "./inbox/delivery": "./inbox/application/Delivery.ts",
+    "./ai/textGeneration": "./ai/application/TextGeneration.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ../../tsconfig.core.json"

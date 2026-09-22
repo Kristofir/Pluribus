@@ -16,6 +16,9 @@ import { createActivityQueue } from "./ActivityQueue";
 export type Context = FunctionArgs<typeof api.Presence.join>["context"];
 export type Credentials = FunctionReturnType<typeof api.Presence.join>;
 export type Member = FunctionReturnType<typeof api.Presence.roster>[number];
+export type AgentMember = FunctionReturnType<
+  typeof api.Presence.agents
+>[number];
 export type RemoteActivity = FunctionReturnType<
   typeof api.Presence.activities
 >[number];
@@ -45,15 +48,16 @@ export interface Transport {
   ): Promise<unknown>;
   watch(
     context: Context,
-    kind: "roster" | "activities",
+    kind: "roster" | "activities" | "agents",
     changed: () => void,
   ): {
-    read: () => Member[] | RemoteActivity[] | undefined;
+    read: () => Member[] | RemoteActivity[] | AgentMember[] | undefined;
     dispose: () => void;
   };
 }
 export const emptySnapshot = {
   members: [] as Member[],
+  agents: [] as AgentMember[],
   activities: [] as RemoteActivity[],
   id: null as Credentials["id"] | null,
   error: null as string | null,
@@ -62,19 +66,22 @@ export const emptySnapshot = {
 export function createPresenceRegistry(
   transport: Transport,
   identity: Promise<Identity>,
+  participationChanged: (active: boolean) => void = () => {},
 ) {
   let environment: Environment = {
     online: false,
+    ownsBrowser: false,
     visible: true,
     focused: true,
   };
   const entries = new Map<string, ReturnType<typeof entry>>();
+  let availabilityError: string | null = null;
   function entry(context: Context) {
     let state = initialPresenceState(environment);
     const present = () => membershipIntent(state) === "present";
     const ui = createStore(() => ({
       id: null as Credentials["id"] | null,
-      error: null as string | null,
+      error: availabilityError,
       show: true,
     }));
     const listeners = new Set<() => void>();
@@ -91,6 +98,7 @@ export function createPresenceRegistry(
         snapshot = {
           ...ui.getState(),
           members: (roster.read() ?? []) as Member[],
+          agents: (agents.read() ?? []) as AgentMember[],
           activities: (activities.read() ?? []) as RemoteActivity[],
         };
       } catch {
@@ -100,6 +108,7 @@ export function createPresenceRegistry(
     }
     const roster = transport.watch(context, "roster", () => changed());
     const activities = transport.watch(context, "activities", () => changed());
+    const agents = transport.watch(context, "agents", () => changed());
     const unsubscribe = ui.subscribe(changed);
     function fail() {
       ui.setState({ error: "Presence unavailable — retrying" });
@@ -264,8 +273,10 @@ export function createPresenceRegistry(
                 clearInterval(timer);
                 roster.dispose();
                 activities.dispose();
+                agents.dispose();
                 unsubscribe();
                 entries.delete(contextKey(context));
+                participationChanged(entries.size > 0);
               }, 150);
           },
         };
@@ -277,8 +288,8 @@ export function createPresenceRegistry(
         };
       },
       getSnapshot: () => snapshot,
-      toggle: () => ui.setState({ show: !ui.getState().show }),
       updateEnvironment,
+      reportError: (error: string | null) => ui.setState({ error }),
       unload() {
         if (credentials) transport.unload?.(context, credentials);
         discard();
@@ -294,12 +305,16 @@ export function createPresenceRegistry(
         entries.set(key, resource);
       }
       const lease = resource.acquire();
+      participationChanged(true);
       return {
         ...lease,
         subscribe: resource.subscribe,
         getSnapshot: resource.getSnapshot,
-        toggle: resource.toggle,
       };
+    },
+    reportError(error: string | null) {
+      availabilityError = error;
+      for (const resource of entries.values()) resource.reportError(error);
     },
     emit(
       event:
@@ -308,11 +323,17 @@ export function createPresenceRegistry(
     ) {
       if (event.type === "page-exited") {
         for (const resource of entries.values()) resource.unload();
-        environment = { online: false, visible: false, focused: false };
+        environment = {
+          online: false,
+          visible: false,
+          focused: false,
+          ownsBrowser: false,
+        };
       } else {
         const next = event.environment;
         if (
           environment.online === next.online &&
+          environment.ownsBrowser === next.ownsBrowser &&
           environment.visible === next.visible &&
           environment.focused === next.focused
         )

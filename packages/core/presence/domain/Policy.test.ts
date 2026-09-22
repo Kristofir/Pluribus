@@ -5,7 +5,12 @@ import {
   transitionPresence,
   type InteractionEvent,
 } from "./Policy";
-const environment = { online: true, visible: true, focused: true };
+const environment = {
+  online: true,
+  ownsBrowser: true,
+  visible: true,
+  focused: true,
+};
 function setup() {
   const owner = {};
   let state = transitionPresence(initialPresenceState(environment), {
@@ -105,4 +110,31 @@ test("releasing a surface clears only channels it still owns; ended participatio
     type: "participation-ended",
   });
   expect(model.state.activities.size).toBe(0);
+});
+
+test("unfocused owners and followers retain prior activity without accepting new interactions", () => {
+  const model = setup();
+  model.emit({ type: "pointer-moved", point: { x: 1, y: 2 } });
+  for (const next of [
+    { ...environment, focused: false },
+    { ...environment, ownsBrowser: false },
+  ]) {
+    model.state = transitionPresence(model.state, {
+      type: "environment-changed",
+      environment: next,
+    });
+    model.emit({ type: "pointer-moved", point: { x: 99, y: 99 } });
+    model.emit({
+      type: "manipulation-changed",
+      elements: ["a"],
+      operation: "drag",
+    });
+    model.emit({ type: "text-selection-changed", range: null, focused: true });
+    expect(model.state.activities.size).toBe(1);
+    expect(model.state.activities.get("pointer")).toEqual({
+      kind: "pointer",
+      point: { x: 1, y: 2 },
+    });
+  }
+  expect(membershipIntent(model.state)).toBe("absent");
 });

@@ -29,7 +29,12 @@ function setup() {
   const registry = createPresenceRegistry(transport, Promise.resolve(identity));
   registry.emit({
     type: "environment-changed",
-    environment: { online: true, visible: true, focused: true },
+    environment: {
+      online: true,
+      ownsBrowser: true,
+      visible: true,
+      focused: true,
+    },
   });
   return { registry, transport };
 }
@@ -40,7 +45,7 @@ test("duplicate surfaces share membership/subscriptions; one release leaves the 
     b = registry.acquire(context);
   await vi.advanceTimersByTimeAsync(1);
   expect(transport.join).toHaveBeenCalledTimes(1);
-  expect(transport.watch).toHaveBeenCalledTimes(2);
+  expect(transport.watch).toHaveBeenCalledTimes(3);
   a.release();
   await vi.advanceTimersByTimeAsync(200);
   expect(transport.leave).not.toHaveBeenCalled();
@@ -78,14 +83,24 @@ test("hidden tabs stop heartbeat and return with a fresh incarnation, dropping q
   a.emit({ type: "pointer-moved", point: { x: 1, y: 2 } });
   registry.emit({
     type: "environment-changed",
-    environment: { online: true, visible: false, focused: false },
+    environment: {
+      online: true,
+      ownsBrowser: true,
+      visible: false,
+      focused: false,
+    },
   });
   await vi.advanceTimersByTimeAsync(30_000);
   expect(transport.heartbeat).not.toHaveBeenCalled();
   expect(transport.publish).not.toHaveBeenCalled();
   registry.emit({
     type: "environment-changed",
-    environment: { online: true, visible: true, focused: true },
+    environment: {
+      online: true,
+      ownsBrowser: true,
+      visible: true,
+      focused: true,
+    },
   });
   await vi.advanceTimersByTimeAsync(1);
   expect(transport.join).toHaveBeenCalledTimes(2);
@@ -107,7 +122,12 @@ test("late join responses are released instead of reviving a disconnected partic
   await vi.advanceTimersByTimeAsync(1);
   registry.emit({
     type: "environment-changed",
-    environment: { online: false, visible: true, focused: true },
+    environment: {
+      online: false,
+      ownsBrowser: true,
+      visible: true,
+      focused: true,
+    },
   });
   resolve({
     id: "late" as Credentials["id"],
@@ -134,7 +154,12 @@ test("window and editor blur retain activity and heartbeat; surface release clea
   a.emit({ type: "editor-blurred" });
   registry.emit({
     type: "environment-changed",
-    environment: { online: true, visible: true, focused: false },
+    environment: {
+      online: true,
+      ownsBrowser: true,
+      visible: true,
+      focused: false,
+    },
   });
   a.emit({ type: "text-selection-changed", range: null, focused: false });
   await vi.advanceTimersByTimeAsync(10_000);
@@ -170,12 +195,65 @@ test("a late publish rejection after hiding does not remove retained activity", 
   await vi.advanceTimersByTimeAsync(80);
   registry.emit({
     type: "environment-changed",
-    environment: { online: true, visible: false, focused: false },
+    environment: {
+      online: true,
+      ownsBrowser: true,
+      visible: false,
+      focused: false,
+    },
   });
   resolve(false);
   await vi.advanceTimersByTimeAsync(1);
   expect(transport.leave).not.toHaveBeenCalled();
   expect(lease.getSnapshot().id).not.toBeNull();
+  lease.release();
+  await vi.advanceTimersByTimeAsync(200);
+});
+
+test("ownership handoff cancels failed updates and heartbeats; a successor gets fresh sequences", async () => {
+  vi.useFakeTimers();
+  const { registry, transport } = setup();
+  const lease = registry.acquire(context);
+  await vi.advanceTimersByTimeAsync(1);
+  transport.publish = vi.fn().mockRejectedValue(new Error("offline"));
+  lease.emit({ type: "pointer-moved", point: { x: 1, y: 2 } });
+  await vi.advanceTimersByTimeAsync(80);
+  registry.emit({
+    type: "environment-changed",
+    environment: {
+      online: true,
+      visible: true,
+      focused: false,
+      ownsBrowser: false,
+    },
+  });
+  const sent = vi.mocked(transport.publish).mock.calls.length;
+  lease.emit({ type: "pointer-moved", point: { x: 99, y: 99 } });
+  await vi.advanceTimersByTimeAsync(30000);
+  expect(transport.publish).toHaveBeenCalledTimes(sent);
+  expect(transport.heartbeat).not.toHaveBeenCalled();
+  expect(lease.getSnapshot().id).toBeNull();
+  transport.publish = vi.fn().mockResolvedValue(true);
+  registry.emit({
+    type: "environment-changed",
+    environment: {
+      online: true,
+      visible: true,
+      focused: true,
+      ownsBrowser: true,
+    },
+  });
+  await vi.advanceTimersByTimeAsync(1);
+  expect(transport.join).toHaveBeenCalledTimes(2);
+  expect(transport.publish).not.toHaveBeenCalled();
+  lease.emit({ type: "pointer-moved", point: { x: 5, y: 6 } });
+  await vi.advanceTimersByTimeAsync(80);
+  expect(transport.publish).toHaveBeenLastCalledWith(
+    context,
+    expect.objectContaining({ id: "session-2" }),
+    { kind: "pointer", point: { x: 5, y: 6 } },
+    1,
+  );
   lease.release();
   await vi.advanceTimersByTimeAsync(200);
 });

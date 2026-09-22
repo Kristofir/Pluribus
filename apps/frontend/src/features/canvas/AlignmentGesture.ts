@@ -31,6 +31,32 @@ export class AlignmentGesture {
     this.candidates = new Map(initial);
     this.operation = resizing ? { kind: "resize" } : { kind: "move" };
   }
+  private landing: { id: ElementId; geometry: Geometry }[] = [];
+  releasePreview(bypass: boolean) {
+    const target = bypass ? [] : this.landing;
+    this.landing = [];
+    return target;
+  }
+  preview(zoom: number, bypass: boolean, viewport: Geometry) {
+    this.landing = [];
+    if (bypass || this.resizing) return [];
+    const raw = geometryBounds([...this.candidates.values()]);
+    const result = resolveAlignment(
+      raw,
+      targetsInView(this.targets, viewport, zoom),
+      { kind: "move" },
+      { spacing: 24, acquire: 24 / zoom, release: 24 / zoom },
+    );
+    if (!result.matches.some((match) => match.offset)) return [];
+    return (this.landing = [...this.candidates].map(([id, geometry]) => ({
+      id,
+      geometry: {
+        ...geometry,
+        x: geometry.x + result.geometry.x - raw.x,
+        y: geometry.y + result.geometry.y - raw.y,
+      },
+    })));
+  }
   resolve(
     updates: Map<ElementId, { geometry: Geometry; active: boolean }>,
     zoom: number,

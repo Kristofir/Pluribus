@@ -26,7 +26,8 @@ import { parseAuthSearch } from "./features/auth/ParseAuthSearch";
  * - Validate untrusted search values at their owning route with validateSearch.
  *   Return an explicit shape and sensible defaults; never cast raw URL input.
  *   Path params identify resources; search holds shareable view state. Ephemeral
- *   interaction state stays in React/Zustand. Never put secrets in URLs.
+ *   interaction state stays in React/Zustand. Anonymous share capabilities use
+ *   only the URL fragment; never put secrets in path or search parameters.
  * - Change URLs through the router, not window.history. Use replace for cleanup
  *   (especially one-time OAuth codes), and push for user navigation. Preserve
  *   unrelated validated search state and hashes when updating part of a URL.
@@ -87,6 +88,14 @@ const workspaceRoute = createRoute({
   ),
 });
 
+const shareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/share",
+  component: lazyRouteComponent(
+    () => import("./features/workspaces/ShareJoinRoute"),
+  ),
+});
+
 const documentRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/document",
@@ -114,6 +123,7 @@ export const router = createRouter({
   routeTree: rootRoute.addChildren([
     homeRoute,
     workspaceRoute,
+    shareRoute,
     adminRoute,
     canvasRoute,
     documentRoute,

@@ -10,11 +10,12 @@ export async function providerJson(
   url: string,
   init: RequestInit,
   maxBytes = 500000,
+  timeoutMs = 30000,
 ) {
   const response = await fetch(url, {
     ...init,
     redirect: "error",
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok) throw new ProviderHttpError(response.status);
   const reader = response.body?.getReader();

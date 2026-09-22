@@ -26,6 +26,8 @@ export async function claimAssignments(ctx: MutationCtx) {
         workspaceId: assignment.workspaceId,
         userId,
       });
+    else if (existing.shareLinkId)
+      await ctx.db.patch(existing._id, { shareLinkId: undefined });
     if (
       assignment.admin &&
       !(await ctx.db
@@ -47,9 +49,23 @@ export async function listWorkspaces(ctx: QueryCtx) {
   const rows = await Promise.all(
     memberships.map((m) => ctx.db.get(m.workspaceId)),
   );
-  return rows.flatMap((w) =>
-    w ? [{ id: w._id, name: w.name, canvasId: String(w._id) }] : [],
+  const visible = await Promise.all(
+    memberships.map(async (membership, index) => {
+      const workspace = rows[index];
+      if (!workspace) return null;
+      if (membership.shareLinkId) {
+        const link = await ctx.db.get(membership.shareLinkId);
+        if (!link || link.revoked || link.workspaceId !== workspace._id)
+          return null;
+      }
+      return {
+        id: workspace._id,
+        name: workspace.name,
+        canvasId: String(workspace._id),
+      };
+    }),
   );
+  return visible.filter((row): row is NonNullable<typeof row> => !!row);
 }
 export async function openWorkspace(
   ctx: QueryCtx,

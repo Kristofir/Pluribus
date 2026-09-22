@@ -384,10 +384,17 @@ belong in the [prototype register](research/prototypes.md#current-text-authorshi
 ## Presence
 
 One shared presence subsystem serves independent canvas and document contexts.
-A browser guest is display identity, a tab is a session, and participation joins
-that session to a stable content context. Explicit, reference-counted leases own
+A browser guest is display identity. One browser-profile publisher follows the
+newest focused eligible tab; participation joins that owner to a content context. Explicit, reference-counted leases own
 participation; duplicate surfaces share subscriptions and membership. Rendering a
-document requires an explicit participation choice. A tab can join several contexts.
+document requires an explicit participation choice. The owning tab can join several contexts; followers retain read subscriptions.
+A private profile secret and Web-Lock-serialized counter coordinate same-origin tabs.
+Storage/BroadcastChannel notifications stop old publishers; backend claim epochs and
+account-bound capabilities fence late writes across all contexts. Claims atomically
+retire prior participation. A display guest ID never authorizes a takeover.
+Profile identity persists across reloads; participation expires independently. There
+is no claim that localStorage tracks exact browser-process lifetime. Missing Web Locks
+or unavailable storage disables publishing with an availability message.
 
 The official presence component owns membership and expiry. App records hold
 participation metadata and the latest activity per channel; core validates activity
@@ -396,11 +403,15 @@ a participation capability for writes. Guest IDs do not grant permission.
 Cleanup follows expired component membership rather than deciding online status.
 
 Roster and activity use separate queries. Each channel has one request in flight
-and one replaceable pending value; clears take priority. Hidden tabs become away
+and one replaceable pending value; clears take priority. Failed publications retain
+their sequence and retry after 100 ms, backing off to a 2 s cap. Newer state supersedes
+failed state; duplicate/older valid updates acknowledge without overwriting newer data.
+Disposal cancels retries. Hidden owner tabs become away
 and stop heartbeats; their last accepted activity remains visible until authoritative
 membership expiry. Window/editor blur preserves activity. Visible idle tabs remain
-present; focus is
-separate from visibility. Reconnect or return creates fresh participation and drops
+present. Ordinary blur retains activity, but unfocused pages cannot publish new
+interaction observations. A new focused tab takes ownership; followers cannot steal
+it on heartbeats. Account changes retire local ownership and require a fresh claim. Reconnect or return creates fresh participation and drops
 queued activity. Releasing one surface cannot disconnect another active lease.
 
 Canvas/editor/browser handlers emit typed facts. The pure presence policy in
@@ -421,9 +432,20 @@ up to 256 steps; passive viewers do not write merely because text changed.
 
 Current prototype bounds are 64 participations per context, 80 ms activity
 coalescing, and 10 s heartbeats (component expiry after 25 s without renewal).
-These are defaults, not measured scale guarantees. Activity queries read active
+Each browser is bounded to 32 context participations. These are defaults, not measured scale guarantees.
+Browser fencing records retain their epoch after participation expiry; no automatic
+profile-record purge is implemented. Legacy clients must reload: join now requires
+browser ownership, and legacy participations cannot renew or publish. Activity queries read active
 members' channel records, so fan-out cost grows with context size. Presence adds
 no durable offline recovery, text anchors, or editing locks.
+
+External MCP agents are separate from browser participation. A grant is one durable
+agent identity for accepted text attribution; each accepted edit still has its own
+evidence session. Authenticated MCP requests renew a 30-second workspace activity
+lease on the grant. A scheduled checker clears expired activity, and revocation
+removes it immediately. The UI labels the agent “recently active”; it never infers
+a persistent connection or heartbeat. Roster reads check current workspace access
+and the grant issuer's membership. Agents do not publish cursors or selections.
 
 ## Embedded document experiment
 
@@ -491,8 +513,16 @@ copies and editor instances survive these query failures, but remain memory-only
 
 ## Private workspace extension
 
+Workspace image cards use a separate canvas-owned table and Convex file storage. An authenticated upload intent authorizes a direct browser upload; registration checks the stored file type and size before Element History can claim it. The canvas query derives a file URL for each active card. Upload progress and failed drafts remain local until creation commits; retained files support Undo after deletion. Image cards share the existing canvas geometry and History paths.
+
+URL imports have a separate authenticated action. It inspects the response rather than the filename: HTML/text uses the existing Web Page History path and Firecrawl capture; supported image bytes are stored and registered as an upload intent for the existing Image History path. The image fetch pins a DNS-checked public IPv4 destination, rejects redirects, and bounds time and bytes. The browser owns only temporary checking/failure drafts. URL imports require a private workspace.
+
 Workspace membership scopes the existing Canvas, text, presence and History
 adapters. Panel-only main/reply children retain document ownership without geometry.
+Anonymous share links create Convex Auth guest identities and share-derived
+memberships. The same workspace adapters serve guests and named members;
+membership checks revalidate the originating link on every request. Link rotation
+or revocation removes guest access. Administrator authority stays separate.
 Core owns membership decisions, agent command limits and send-review policy;
 Convex adapters resolve identity, atomic evidence and provider transport. This
 extension adds no parallel text store, realtime backend or model orchestration.
@@ -500,8 +530,19 @@ extension adds no parallel text store, realtime backend or model orchestration.
 Sources and inbox projections are bounded provider reads. Source revisions reject
 stale captures; immutable send intents separate human review from a single external
 attempt. Positive provider evidence can settle uncertainty; absence cannot authorize
-resend. External MCP grants delegate document scope, with exact-version edits and
-verified group Undo. See [Workspace prototype](workspaces.md) for contracts and limits.
+resend. New external MCP grants delegate one workspace, with exact-version
+document edits and verified group Undo. Stored older grants retain their document
+and optional canvas scopes; they do not gain workspace access. Context snapshots
+select material without changing permission. See
+[Workspace prototype](workspaces.md) for contracts and limits.
+
+MCP card writes require a workspace-wide grant and run through a private
+grant-bound Element History session. The adapter supplies the grant issuer's
+current membership, while core History keeps geometry, capacity, lifecycle,
+retry and conditional reversal policy. Geometry writes compare the saved value
+the agent read before applying a new one. Web Page creation reuses the source
+capture request with that member identity; Image creation stays in the upload
+flow. Agents cannot target fixed main or panel documents as spatial cards.
 
 ## Web Page Elements
 
@@ -517,3 +558,21 @@ rewrite restored content. Refresh retains the previous capture and its provenanc
 only the latest successful fetch replaces it. Source capacity stays at 20 per workspace,
 independent of the 100-document cap. Old rows receive read-time default geometry;
 no migration or content purge is required.
+
+## Text generation boundary
+
+`packages/core/ai/application/TextGeneration.ts` defines the outbound text-generation
+port. `apps/backend/convex/ai/OpenAi.ts` implements it using the
+[OpenAI Responses API](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
+Backend actions can construct `createOpenAiTextGeneration()` and supply it to a
+use case. Construction is inert; `generate({ model, input, instructions?,
+maxOutputTokens })` makes one request using backend `OPENAI_API_KEY`.
+
+V1 accepts up to 100,000 input/instruction characters, 16–8,192 output tokens,
+a 60-second timeout and a 2 MiB response cap. Output-token budgets include reasoning
+as well as visible output. Completed, incomplete and refused output are distinct;
+transport/provider failures use safe typed errors. Usage is returned when supplied.
+`store: false` disables Responses storage; this is not a blanket zero-retention claim.
+Timeout is not proof the provider stopped generation or billing, so no automatic
+retry is performed. There is no public AI endpoint or live usage yet; the future
+calling action/use case must enforce authorization and spending policy.

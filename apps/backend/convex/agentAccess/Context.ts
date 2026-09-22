@@ -97,7 +97,8 @@ export async function readContext(
     !context ||
     context.workspaceId !== grant.workspaceId ||
     context.userId !== grant.userId ||
-    context.documentIds.some((id) => !grant.documentIds.includes(id))
+    (!grant.workspaceScope &&
+      context.documentIds.some((id) => !grant.documentIds.includes(id)))
   )
     throw new Error("Context outside grant");
   assertActiveContext(context.content);

@@ -5,7 +5,11 @@ import type { MutationCtx } from "../_generated/server";
 import { canvasDocuments, toDocumentElementId } from "./Documents";
 
 export function toElementId(
-  id: Id<"rectangles"> | Id<"canvasDocuments"> | Id<"sources">,
+  id:
+    | Id<"rectangles">
+    | Id<"canvasDocuments">
+    | Id<"sources">
+    | Id<"canvasImages">,
 ): ElementId {
   return id as string as ElementId;
 }
@@ -15,6 +19,7 @@ export function elementLifecycles(ctx: MutationCtx): ElementLifecycles {
   const documents = canvasDocuments(ctx);
   const counts = {
     source: () => Promise.resolve(0),
+    image: () => Promise.resolve(0),
     rectangle: () => Promise.resolve(0),
     document: () => documents.count(),
   };

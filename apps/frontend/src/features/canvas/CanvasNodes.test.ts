@@ -141,7 +141,7 @@ test("retired rectangles are excluded even when an old projection contains one",
   expect(render([retired, document]).map((n) => n.id)).toEqual([document.id]);
 });
 
-test("Web Page nodes retain identity during unrelated document movement and expose context inclusion", () => {
+test("Web Page nodes retain identity during unrelated document movement and expose capture actions", () => {
   const store = createCanvasStore<ElementId>(() => Promise.resolve(true));
   const project = createCanvasNodeProjector();
   const source = {
@@ -152,8 +152,7 @@ test("Web Page nodes retain identity during unrelated document movement and expo
     generation: 1,
     removed: false,
   } as CanvasElement;
-  const include = vi.fn(),
-    open = vi.fn();
+  const open = vi.fn();
   const actions = {
     pending: vi.fn(),
     contentHeight: vi.fn(),
@@ -173,7 +172,6 @@ test("Web Page nodes retain identity during unrelated document movement and expo
         ],
       ]),
       open,
-      include,
     },
   };
   const render = (doc = document) =>
@@ -191,11 +189,9 @@ test("Web Page nodes retain identity during unrelated document movement and expo
   expect(second[0]).toBe(first[0]);
   expect(second[0].type).toBe("source");
   if (second[0].type !== "source") throw new Error("Expected source");
-  second[0].data.include(true);
   second[0].data.open();
   second[0].data.contentHeight(420);
   expect(actions.contentHeight).toHaveBeenCalledWith("source", 1, 420);
-  expect(include).toHaveBeenCalledWith("source", true);
   expect(open).toHaveBeenCalledWith("source");
   expect(
     project(
@@ -205,4 +201,35 @@ test("Web Page nodes retain identity during unrelated document movement and expo
       actions,
     ),
   ).toEqual([]);
+});
+
+test("Image cards participate in mixed canvas projection without remounting on unrelated movement", () => {
+  const { render } = setup();
+  const image = {
+    id: "image-1",
+    canvasId: "workspace",
+    kind: "image",
+    generation: 1,
+    removed: false,
+    geometry: { x: 40, y: 50, width: 360, height: 276 },
+    name: "sample.png",
+    url: "https://example.com/image.png",
+  } as CanvasElement;
+  const first = render([image, document]);
+  expect(first[0]).toMatchObject({
+    type: "image",
+    selected: false,
+    draggable: true,
+  });
+  if (first[0].type !== "image") throw new Error("Expected image");
+  expect(first[0].data.name).toBe("sample.png");
+  expect(first[0].data.url).toBe("https://example.com/image.png");
+  const moved = render([
+    image,
+    { ...document, geometry: { ...document.geometry, x: 420 } },
+  ]);
+  expect(moved[0]).toBe(first[0]);
+  expect(
+    render([{ ...image, removed: true }, document]).map((n) => n.id),
+  ).toEqual([document.id]);
 });

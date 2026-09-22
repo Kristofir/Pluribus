@@ -1,4 +1,7 @@
-import { guestProfile } from "@pluribus/core/presence/domain";
+import {
+  guestProfile,
+  presenceParameters,
+} from "@pluribus/core/presence/domain";
 import type { PresenceView } from "./UsePresence";
 import "./Presence.css";
 export function PresenceRoster({ presence }: { presence: PresenceView }) {
@@ -12,34 +15,36 @@ export function PresenceRoster({ presence }: { presence: PresenceView }) {
     <div className="presence-bar" aria-label="Participants">
       {[...grouped].map(([id, sessions]) => {
         const profile = guestProfile(id);
+        const label = `${profile.name}${id === presence.identity?.guestId ? " (you)" : ""} · ${sessions.every((s) => s.hidden) ? "away" : "active"}${sessions.length > 1 ? ` · ${sessions.length} tabs` : ""}`;
         return (
           <span
-            className="presence-person"
+            className="presence-avatar"
             key={id}
-            style={{ borderColor: profile.color }}
-            title={sessions
-              .map(
-                (s) =>
-                  `Tab ${s.tabId.slice(0, 4)}: ${s.hidden ? "away" : s.focused ? "focused" : "unfocused"}`,
-              )
-              .join("; ")}
+            role="img"
+            aria-label={label}
+            title={label}
+            style={{ background: profile.color }}
+            tabIndex={0}
           >
-            <i style={{ background: profile.color }} />
-            {profile.name}
-            {id === presence.identity?.guestId ? " (you)" : ""} ·{" "}
-            {sessions.every((s) => s.hidden) ? "away" : "active"}
-            {sessions.length > 1 ? ` · ${sessions.length} tabs` : ""}
+            {profile.name.slice(0, 1).toUpperCase()}
           </span>
         );
       })}
-      <label>
-        <input
-          type="checkbox"
-          checked={presence.show}
-          onChange={presence.toggle}
-        />{" "}
-        Show collaborator activity
-      </label>
+      {presence.agents.map((agent) => {
+        const label = `Agent: ${agent.label} · recently active`;
+        return (
+          <span
+            className="presence-avatar presence-agent"
+            key={agent.id}
+            role="img"
+            aria-label={label}
+            title={`${label}. MCP request within the last ${presenceParameters.agentRecentlyActiveMs / 1000} seconds`}
+            tabIndex={0}
+          >
+            ✦
+          </span>
+        );
+      })}
       {presence.error && <span role="status">{presence.error}</span>}
     </div>
   );

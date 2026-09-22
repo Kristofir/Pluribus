@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { query, mutation } from "./_generated/server";
 import {
@@ -6,7 +7,7 @@ import {
   openWorkspace,
   claimAssignments,
 } from "./workspaces/Handlers";
-import { requireAdmin } from "./workspaces/Access";
+import { activeWorkspaceMember, requireAdmin } from "./workspaces/Access";
 export const list = query({
   args: {},
   returns: v.array(
@@ -33,6 +34,13 @@ export const open = query({
     mainGeneration: v.number(),
   }),
   handler: openWorkspace,
+});
+export const access = query({
+  args: { workspaceId: v.id("workspaces") },
+  returns: v.boolean(),
+  handler: async (ctx, { workspaceId }) =>
+    !!(await ctx.db.get(workspaceId)) &&
+    !!(await activeWorkspaceMember(ctx, workspaceId, await getAuthUserId(ctx))),
 });
 const adminRow = v.object({
   id: v.string(),

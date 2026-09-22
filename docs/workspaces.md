@@ -4,6 +4,20 @@ Private workspaces share the existing Canvas, editor, presence and History proto
 `/canvas` remains a separate anonymous demo; `/workspaces/$workspaceId` requires
 membership on every backend request. Google login alone grants no workspace access.
 
+## Anonymous workspace links
+
+A member can use **Share** in the workspace header to create one active,
+revocable guest link. The secret appears only when created; generating another
+link revokes the previous one. Its hash, not its raw value, is stored in Convex.
+The link uses a URL fragment so the secret is not sent in the frontend HTTP
+request. Opening it starts an anonymous Convex Auth session and redeems the link
+into a workspace membership. Guests then use the normal workspace route, canvas,
+documents, inbox and agent controls. Admin access remains independent. Each
+server request checks whether a share-derived membership's link is still active;
+rotation or revocation removes prior guest access, including on existing tabs.
+If a verified account later claims a direct assignment, that assignment replaces
+its share-derived membership, so revoking the link does not remove direct access.
+
 ## Ownership
 
 - `workspaces` owns membership, explicit verified-email assignments and a main document.
@@ -77,15 +91,50 @@ versioned claim lets a lost reconciliation worker be retried without resending.
 
 ## External agents
 
-`AgentAccess.grant` issues a revocable bearer capability for explicitly selected
-documents, tied to its initiating member. Context snapshots are bounded, versioned
-selections, not authorization. `AgentAccess.connectionInfo` returns the MCP URL.
+`AgentAccess.grant` issues a revocable bearer capability for one workspace, tied
+to its initiating member. It covers current and future workspace documents,
+canvas layout and saved Web Pages. Existing narrow grants retain their original
+document and optional canvas scope. Context snapshots are bounded, versioned
+selections, not authorization. Each new grant has one durable agent author ID;
+old grants acquire one for future accepted edits without changing prior evidence.
+`AgentAccess.connectionInfo` returns the MCP URL.
+The Workspace header opens agent connection and change-review controls. Web Pages
+stay on the canvas; this sheet has no source list or context picker. After a member creates
+a grant, the controls show the URL and bearer token together with MCP setup
+steps and a copy action. The URL is shared across workspaces; the bearer token
+selects the workspace and supplies access, so the URL alone cannot read
+workspace data.
+The local backend reports a loopback HTTP URL usable only by agents on the same
+computer. A remote agent needs an HTTPS deployment URL and a connection token;
+never send the bearer token over public HTTP.
 
-The stateless `/mcp` HTTP endpoint exposes `read_document`, `read_context` and
-`edit_document`. Clients supply a bearer token and protocol `2025-06-18`.
+The stateless `/mcp` HTTP endpoint exposes `read_canvas`, `read_web_page`,
+`read_document`, `read_context`, `edit_document`, `create_card`,
+`set_card_geometry`, `delete_card` and `reverse_card_action`. Clients supply a
+bearer token and protocol `2025-06-18`. `read_canvas` lists active document,
+Web Page and Image cards with geometry and metadata, plus the fixed main paper at x=-400,
+y=0 and width 800. Its height follows content and is not returned. It
+does not include document text; `read_document` retrieves it under the workspace
+grant. `read_web_page` returns a card's full saved text capture and extraction
+data. Canvas tools recheck current membership and exclude deleted or
+other-workspace cards. Workspace-wide grants can create document cards and Web
+Pages, move or resize existing document, Web Page and Image cards, delete them,
+and conditionally reverse their own card actions. Web Page creation enqueues
+the existing capture flow; Image creation still requires the browser upload
+flow. The fixed main paper and panel documents cannot be moved or deleted.
+Card actions use UUID request IDs and grant-bound Element History. Exact retries
+replay their original outcomes. Geometry writes require the card's saved geometry
+from `read_canvas` as an expected value; stale generations, conflicting geometry and
+reversals after incompatible changes are refused. Web Page capture may fail
+after the card is created.
 Edits specify document generation, exact base version, a request ID and up to 20
 paragraph insert/replace/delete commands. Exact retries return their original
 outcome; stale versions conflict. No model or provider is chosen by the app.
+
+Successful MCP authentication renews a 30-second agent activity lease. Workspace
+Presence displays its grant label as “recently active”; there is no heartbeat or
+persistent MCP connection. Scheduled expiry clears the label, and revocation hides
+it immediately. Agents never join browser Presence or publish cursor activity.
 
 Accepted text, attribution and operation-group evidence commit together. Human
 Undo of an agent group is restricted to its initiator and current membership.

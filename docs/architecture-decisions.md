@@ -371,6 +371,37 @@ intents. Unknown delivery blocks resending until positive evidence resolves it.
 These remain bounded experiments; pagination expansion, evidence retention and
 broader structural Undo need separate decisions. [Details](workspaces.md).
 
+Canvas and Web Page MCP reads use an explicit optional workspace-wide read scope.
+Older document-only grants do not inherit it. Document text access and edits stay
+limited to each grant's document IDs; the new tools do not mutate the canvas.
+
+Later demo decision: new MCP grants cover one workspace, including its future
+documents and saved Web Pages. Existing narrow grants remain narrow. Each grant
+owns one lasting agent author ID; historical operation evidence is preserved.
+Authenticated MCP requests renew a 30-second activity lease, shown as “recently
+active,” with no browser session or implied persistent connection. Revocation
+ends access and Presence together.
+
+## 2026-09-22 — Agent card operations through Element History
+
+Workspace-wide MCP grants may create document and Web Page cards and change or
+delete spatial document, Web Page and Image cards. A grant gets a private History
+session, so exact retries and conditional inverses use the same core rules as
+browser card actions. The adapter rechecks the grant and issuer membership on
+each write; old narrow grants do not acquire canvas writes. Web Page creation
+uses the existing capture request with the grant issuer as the member. Image
+creation remains with the upload flow; the main paper is not a spatial target.
+
+## 2026-09-22 — Revocable anonymous workspace membership
+
+Accepted for the demo: one active guest link per workspace. A member creates or
+rotates it; Convex stores only its hash. Opening the link creates an anonymous
+Convex Auth session and attaches a share-derived workspace membership. Guests
+use the canonical workspace UI and member APIs, including editing and inbox work.
+Every member authorization rechecks the link behind a share-derived membership,
+so rotation and revocation end access without a separate read-only data path.
+Administrator authority remains independent of workspace membership.
+
 ## Retire Rectangle capability
 
 Document cards are the only active spatial elements. Remove rectangle UI and
@@ -393,3 +424,23 @@ Extend typed creation/lifecycle/geometry adapters rather than adding a second
 History or text model. Keep old captures during refresh, bound canvas previews,
 and load full captures only in the read-only panel. Keep separate source/document
 capacity and preserve rows on deletion. Rectangle retirement remains unchanged.
+
+## Text generation port (September 22, 2026)
+
+Use a core-owned `TextGeneration` interface with a backend OpenAI Responses adapter.
+V1 accepts text, optional instructions, an explicit model and output budget, and
+returns completed/incomplete/refused output plus available usage. The adapter has
+bounded requests and safe errors, with no automatic retries or provider response
+storage. This is an outbound interface only: no frontend endpoint, conversation
+store, agent framework or application feature is introduced. Future use cases own
+workspace authorization, context selection and spending/retry policy.
+
+## Browser-profile Presence ownership
+
+One logical browser presence follows the focused eligible tab. A private profile
+capability plus monotonically increasing claim epoch coordinates tabs under Web
+Locks; notifications stop followers promptly, while Convex fences stale writes.
+Claims retire old context activity atomically and bind ownership to current auth.
+This keeps the existing context registry, pure activity policy and component expiry.
+Failed channel writes retry the same sequence; newer state supersedes them. No
+browser-process lifetime inference, idle timeout or leader-election framework.

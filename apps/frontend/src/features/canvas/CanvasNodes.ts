@@ -2,14 +2,16 @@ import type {
   CanvasElement,
   DocumentElement,
   SourceElement,
+  ImageElement,
   ElementId,
 } from "@pluribus/core/canvas/domain";
 import type { Id } from "@pluribus/backend/dataModel";
 import type { CanvasState } from "./CanvasStore";
 import type { DocumentNode } from "./DocumentNode";
 import type { WebPageNode } from "./WebPageNode";
+import type { ImageNode } from "./ImageNode";
 import type { WebPageView } from "../sources/WebPageView";
-export type CanvasNode = DocumentNode | WebPageNode;
+export type CanvasNode = DocumentNode | WebPageNode | ImageNode;
 
 /** Derive React Flow nodes without owning a second scene or editor instances. */
 export function canvasNodes(
@@ -39,17 +41,35 @@ export function canvasNodes(
       workspaceId: Id<"workspaces">;
       views: Map<string, WebPageView>;
       open: (id: Id<"sources">) => void;
-      include: (id: string, included: boolean) => void;
     };
   },
 ): CanvasNode[] {
   return (records ?? [])
     .filter(
-      (r): r is DocumentElement | SourceElement =>
+      (r): r is DocumentElement | SourceElement | ImageElement =>
         r.kind !== "rectangle" && !r.removed,
     )
     .flatMap((r): CanvasNode[] => {
       const geometry = gestures.get(r.id)?.geometry ?? r.geometry;
+      if (r.kind === "image")
+        return [
+          {
+            id: r.id,
+            type: "image",
+            position: { x: geometry.x, y: geometry.y },
+            width: geometry.width,
+            height: geometry.height,
+            measured: { width: geometry.width, height: geometry.height },
+            selected: selected.has(r.id),
+            draggable: interactionEnabled && !removing.has(r.id),
+            data: {
+              name: r.name,
+              url: r.url,
+              editable: interactionEnabled && !removing.has(r.id),
+            },
+            ariaLabel: `Image: ${r.name}`,
+          },
+        ];
       if (r.kind === "source") {
         const source = sources?.views.get(r.id);
         if (!source || !sources) return [];
@@ -69,8 +89,6 @@ export function canvasNodes(
                 contentHeight(r.id, r.generation, height),
               workspaceId: sources.workspaceId,
               editable: interactionEnabled && !removing.has(r.id),
-              included: selected.has(r.id),
-              include: (value) => sources.include(r.id, value),
               open: () => sources.open(r.id as string as Id<"sources">),
             },
             ariaLabel: "Web page card",
@@ -140,12 +158,18 @@ export function createCanvasNodeProjector() {
           node.data = old.data;
       }
       if (
+        node.type === "image" &&
+        old.type === "image" &&
+        node.data.name === old.data.name &&
+        node.data.url === old.data.url &&
+        node.data.editable === old.data.editable
+      )
+        node.data = old.data;
+      if (
         node.type === "source" &&
         old.type === "source" &&
         previousActions?.sources?.open === actions.sources?.open &&
-        previousActions?.sources?.include === actions.sources?.include &&
         node.data.editable === old.data.editable &&
-        node.data.included === old.data.included &&
         JSON.stringify(node.data.source) === JSON.stringify(old.data.source)
       )
         node.data = old.data;
