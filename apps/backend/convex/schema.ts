@@ -144,10 +144,29 @@ export default defineSchema({
     tokenHash: v.string(),
     revoked: v.boolean(),
     label: v.string(),
+    purpose: v.optional(v.literal("chat")),
   })
     .index("by_token", ["tokenHash"])
     .index("by_workspace_user", ["workspaceId", "userId"])
     .index("by_workspace_revoked", ["workspaceId", "revoked"]),
+  assistantThreads: defineTable({
+    workspaceId: v.id("workspaces"),
+    authorId: v.id("documentAuthors"),
+    updatedAt: v.number(),
+    generation: v.optional(v.number()),
+    clearedAt: v.optional(v.number()),
+  }).index("by_workspace", ["workspaceId"]),
+  assistantMessages: defineTable({
+    threadId: v.id("assistantThreads"),
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    role: v.union(v.literal("user"), v.literal("assistant")),
+    text: v.string(),
+    status: v.union(v.literal("complete"), v.literal("failed")),
+    tools: v.array(v.string()),
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_workspace", ["workspaceId"]),
   agentContexts: defineTable({
     workspaceId: v.id("workspaces"),
     userId: v.id("users"),

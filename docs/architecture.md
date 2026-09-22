@@ -553,6 +553,15 @@ the agent read before applying a new one. Web Page creation reuses the source
 capture request with that member identity; Image creation stays in the upload
 flow. Agents cannot target fixed main or panel documents as spatial cards.
 
+The in-app workspace chat reuses that same tool protocol rather than exposing a
+second canvas write path. Each turn derives the initiating member from Convex
+Auth, creates a short-lived workspace grant for the shared chat author, and
+revokes it after the model response. Messages persist in one workspace thread;
+recent messages are the bounded model context. OpenAI can call canvas reads,
+Note reads/edits, card creation, geometry, deletion and conditional reversal.
+The existing grant, version, generation, idempotency and Element History checks
+remain authoritative for every model-requested operation.
+
 ## Web Page Elements
 
 A source row also owns its spatial geometry and lifecycle; no duplicate document
@@ -583,5 +592,13 @@ as well as visible output. Completed, incomplete and refused output are distinct
 transport/provider failures use safe typed errors. Usage is returned when supplied.
 `store: false` disables Responses storage; this is not a blanket zero-retention claim.
 Timeout is not proof the provider stopped generation or billing, so no automatic
-retry is performed. There is no public AI endpoint or live usage yet; the future
-calling action/use case must enforce authorization and spending policy.
+retry is performed. The public workspace chat action is the first live model
+caller. It authorizes each turn through workspace membership and uses a bounded
+tool loop; it does not retry provider calls automatically. Rate and spending
+limits remain future work.
+
+## Inbox retirement
+
+Inbox navigation, thread viewing and reply editing have been removed. Workspace
+creation no longer provisions AgentMail mailboxes. Former Inbox endpoints are
+internal-only; historical tables and recovery operations remain stored.

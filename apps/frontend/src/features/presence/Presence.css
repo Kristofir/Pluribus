@@ -48,11 +48,23 @@
   white-space: nowrap;
   top: 0;
   left: 0;
+  display: flex;
+  align-items: flex-start;
   /* RemoteCursor owns buffered animation; do not double-interpolate in CSS. */
+}
+.remote-pointer-icon {
+  width: 14px;
+  height: 17px;
+  flex: 0 0 auto;
+  fill: currentColor;
+  stroke: white;
+  stroke-width: 1.4px;
+  stroke-linejoin: round;
 }
 .remote-pointer span {
   color: white;
   border-radius: 3px;
+  margin: 9px 0 0 1px;
   padding: 2px 5px;
 }
 .remote-element {

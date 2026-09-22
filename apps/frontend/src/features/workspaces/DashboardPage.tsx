@@ -66,7 +66,7 @@ export function DashboardPage({
                 <h2>{workspace.name}</h2>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-fg mb-6">Canvas · Documents · Inbox</p>
+                <p className="text-muted-fg mb-6">Canvas · Notes · Web</p>
                 <Button
                   onPress={() => onOpen(workspace)}
                   aria-label={`Open ${workspace.name}`}

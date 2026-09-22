@@ -74,4 +74,12 @@ export const member = v.object({
   tabId: v.string(),
   hidden: v.boolean(),
   focused: v.boolean(),
+  profile: v.union(
+    v.object({ kind: v.literal("anonymous") }),
+    v.object({
+      kind: v.literal("user"),
+      label: v.string(),
+      avatarUrl: v.optional(v.string()),
+    }),
+  ),
 });

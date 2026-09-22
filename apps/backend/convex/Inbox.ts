@@ -1,5 +1,9 @@
+/** Retired inbox operations: internal only, retained for historical data and recovery. */
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import {
+  internalQuery as query,
+  internalMutation as mutation,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireWorkspace } from "./workspaces/Access";
 import { requireThread, openDraft, savedDraft } from "./inbox/Drafts";

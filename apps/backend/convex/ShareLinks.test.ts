@@ -62,9 +62,9 @@ test("a share link admits anonymous collaborators to the normal workspace and re
   const opened = await guest.query(api.Workspaces.open, { workspaceId });
   expect(opened.name).toBe("Guest collaboration");
   expect(await guest.query(api.Workspaces.access, { workspaceId })).toBe(true);
-  expect((await guest.query(api.Inbox.list, { workspaceId })).threads).toEqual(
-    [],
-  );
+  expect(
+    (await guest.query(internal.Inbox.list, { workspaceId })).threads,
+  ).toEqual([]);
   const grant = await guest.mutation(api.AgentAccess.grant, {
     workspaceId,
     label: "Guest agent",

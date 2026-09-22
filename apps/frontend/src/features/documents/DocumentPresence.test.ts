@@ -49,6 +49,7 @@ test("passive rendering stays attached to the live editor after stale editor cal
     tabId: "tab",
     hidden: true,
     focused: false,
+    profile: { kind: "anonymous" as const },
   };
   const receive = (sequence: number, head: number) =>
     presence.receive(
@@ -68,6 +69,7 @@ test("passive rendering stays attached to the live editor after stale editor cal
   expect(plugins[0].getState(live.state).get("peer")).toMatchObject({
     anchor: 1,
     head: 2,
+    label: "Anonymous",
   });
   presence.extension.config.onFocus!.call(
     { editor: old } as never,

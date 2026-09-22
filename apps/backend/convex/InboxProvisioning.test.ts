@@ -10,7 +10,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
-test("workspace creation queues one inbox; timeout retry retains provider identity and stale attempts cannot bind", async () => {
+test("workspace creation skips inbox provisioning; explicit legacy recovery retains provider identity", async () => {
   vi.useFakeTimers();
   const t = convexTest(schema, modules);
   register(t);
@@ -30,9 +30,11 @@ test("workspace creation queues one inbox; timeout retry retains provider identi
         .withIndex("by_workspace", (q) => q.eq("workspaceId", workspaceId))
         .unique(),
     );
+  expect(await state()).toBeNull();
+  await t.mutation(internal.inbox.Provisioning.ensure, { workspaceId });
   const first = (await state())!;
   expect(first.status).toBe("pending");
-  await a.mutation(api.Inbox.retryProvisioning, { workspaceId });
+  await a.mutation(internal.Inbox.retryProvisioning, { workspaceId });
   expect(await state()).toEqual(first);
   expect(
     await t.mutation(internal.inbox.Provisioning.begin, {
@@ -45,12 +47,12 @@ test("workspace creation queues one inbox; timeout retry retains provider identi
     revision: 1,
   });
   expect(
-    (await a.query(api.Inbox.list, { workspaceId })).provisioning?.status,
+    (await a.query(internal.Inbox.list, { workspaceId })).provisioning?.status,
   ).toBe("failed");
   await expect(
-    t.mutation(api.Inbox.retryProvisioning, { workspaceId }),
+    t.mutation(internal.Inbox.retryProvisioning, { workspaceId }),
   ).rejects.toThrow("access denied");
-  await a.mutation(api.Inbox.retryProvisioning, { workspaceId });
+  await a.mutation(internal.Inbox.retryProvisioning, { workspaceId });
   const retry = (await state())!;
   expect(retry.clientId).toBe(first.clientId);
   expect(retry.revision).toBe(2);
@@ -75,10 +77,10 @@ test("workspace creation queues one inbox; timeout retry retains provider identi
     revision: 2,
     providerInboxId: "same-provider",
   });
-  await a.mutation(api.Inbox.retryProvisioning, { workspaceId });
+  await a.mutation(internal.Inbox.retryProvisioning, { workspaceId });
   expect((await state())?.status).toBe("ready");
   expect(
-    (await a.query(api.Inbox.list, { workspaceId })).provisioning?.status,
+    (await a.query(internal.Inbox.list, { workspaceId })).provisioning?.status,
   ).toBe("ready");
   expect(
     await t.run((ctx) =>
@@ -88,7 +90,9 @@ test("workspace creation queues one inbox; timeout retry retains provider identi
         .take(2),
     ),
   ).toHaveLength(1);
-  expect((await a.query(api.Inbox.list, { workspaceId })).address).toBeNull();
+  expect(
+    (await a.query(internal.Inbox.list, { workspaceId })).address,
+  ).toBeNull();
   await t.run(async (ctx) => {
     const bound = await ctx.db
       .query("workspaceInboxes")
@@ -96,10 +100,10 @@ test("workspace creation queues one inbox; timeout retry retains provider identi
       .unique();
     await ctx.db.patch(bound!._id, { providerInboxId: "demo@example.test" });
   });
-  expect((await a.query(api.Inbox.list, { workspaceId })).address).toBe(
+  expect((await a.query(internal.Inbox.list, { workspaceId })).address).toBe(
     "demo@example.test",
   );
-  await expect(t.query(api.Inbox.list, { workspaceId })).rejects.toThrow(
+  await expect(t.query(internal.Inbox.list, { workspaceId })).rejects.toThrow(
     "access denied",
   );
 });
@@ -112,6 +116,7 @@ test("lost provider response retries the same client_id and never requests email
     internal.workspaces.Provisioning.provision,
     { slug: "lost", name: "Lost response", assignments: [] },
   );
+  await t.mutation(internal.inbox.Provisioning.ensure, { workspaceId });
   const row = (await t.run((ctx) =>
     ctx.db
       .query("workspaceInboxProvisioning")

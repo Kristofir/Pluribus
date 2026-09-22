@@ -4,10 +4,17 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@pluribus/backend/api";
 import { Button } from "@/components/ui/Button";
+import { forgetOAuthAttempt, rememberOAuthAttempt } from "./OAuthAttempt";
 
 const homeRoute = getRouteApi("/");
 
-export function AuthPanel() {
+export function AuthPanel({
+  onOAuthCallbackFailure,
+  onSignOut,
+}: {
+  onOAuthCallbackFailure?: () => void;
+  onSignOut?: () => void;
+} = {}) {
   const search = homeRoute.useSearch();
   const navigate = homeRoute.useNavigate();
   const router = useRouter();
@@ -47,27 +54,38 @@ export function AuthPanel() {
     if (callback.code) {
       void signIn("google", { code: callback.code })
         .then(({ signingIn }) => {
-          if (!signingIn)
+          if (!signingIn) {
             setError("Sign-in wasn’t completed. Please try again.");
+            forgetOAuthAttempt();
+            onOAuthCallbackFailure?.();
+          }
         })
-        .catch(() => setError("Couldn’t complete sign-in. Please try again."))
+        .catch(() => {
+          setError("Couldn’t complete sign-in. Please try again.");
+          forgetOAuthAttempt();
+          onOAuthCallbackFailure?.();
+        })
         .finally(() => setExchangingCode(false));
     }
-  }, [callback, navigate, signIn]);
+  }, [callback, navigate, onOAuthCallbackFailure, signIn]);
 
   async function startSignIn() {
     setError(null);
     setPending(true);
+    rememberOAuthAttempt();
     try {
+      if (isAuthenticated && user?.isAnonymous) await signOut();
       const redirectTo = router.buildLocation({
         to: "/",
         search: { authReturn: true },
       }).href;
       const result = await signIn("google", { redirectTo });
       if (!result.redirect && !result.signingIn) {
+        forgetOAuthAttempt();
         setError("Couldn’t start Google sign-in. Please try again.");
       }
     } catch {
+      forgetOAuthAttempt();
       setError("Couldn’t start Google sign-in. Please try again.");
     } finally {
       setPending(false);
@@ -79,6 +97,8 @@ export function AuthPanel() {
     setPending(true);
     try {
       await signOut();
+      forgetOAuthAttempt();
+      onSignOut?.();
     } catch {
       setError("Couldn’t finish signing out. Please try again.");
     } finally {

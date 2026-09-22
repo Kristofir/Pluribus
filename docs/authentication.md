@@ -79,10 +79,9 @@ callback URI, which remains unchanged on port 3211.
 The cloud development backend and static frontend share
 `https://courteous-horse-546.convex.site`. Its `SITE_URL`, signing keys, and Google
 client credentials are configured on the Convex deployment. A hosted sign-in
-attempt reaches Google but fails with `redirect_uri_mismatch`. Add the exact
-redirect URI
-`https://courteous-horse-546.convex.site/api/auth/callback/google` and JavaScript
-origin `https://courteous-horse-546.convex.site` to the existing Google web OAuth
-client in project `pluribus-508119`, then start a fresh sign-in. Google Cloud
-Console required account passkey confirmation, so this edit and the resulting
-authenticated browser check remain pending.
+attempt now completes with the existing Google web OAuth client in project
+`pluribus-508119`. Its authorized JavaScript origins include
+`https://courteous-horse-546.convex.site`, and its redirect URIs include
+`https://courteous-horse-546.convex.site/api/auth/callback/google`. The local
+entries remain in place. On 2026-09-22, a fresh browser sign-in reached the Demo
+workspace dashboard, opened the read-only admin directory, and survived a reload.

@@ -105,6 +105,7 @@ export const readCanvas = internalQuery({
           geometry,
           generation: v.number(),
           name: v.string(),
+          aiDescription: v.optional(v.string()),
         }),
       ),
     ),

@@ -35,6 +35,46 @@ async function join(
   return t.mutation(api.Presence.join, { ...args, browser: browser! });
 }
 afterEach(() => vi.useRealTimers());
+test("anonymous auth users are registered with anonymous presence and visible activity", async () => {
+  const t = setup();
+  const userId = await t.run((ctx) =>
+    ctx.db.insert("users", {
+      isAnonymous: true,
+      name: "Guest fixture",
+    }),
+  );
+  const anonymous = t.withIdentity({ subject: userId });
+  const browser = await anonymous.mutation(api.Presence.claimBrowser, {
+    secret: "a".repeat(64),
+    epoch: 1,
+    tabId,
+    account: userId,
+  });
+  const session = await anonymous.mutation(api.Presence.join, {
+    context: canvas,
+    guestId,
+    tabId,
+    browser: browser!,
+  });
+  await anonymous.mutation(api.Presence.publish, {
+    context: canvas,
+    ...session,
+    sequence: 1,
+    activity: { kind: "pointer", point: { x: 12, y: 34 } },
+  });
+
+  expect(
+    await anonymous.query(api.Presence.roster, { context: canvas }),
+  ).toMatchObject([{ id: session.id, profile: { kind: "anonymous" } }]);
+  expect(
+    await anonymous.query(api.Presence.activities, { context: canvas }),
+  ).toMatchObject([
+    {
+      participationId: session.id,
+      activity: { kind: "pointer", point: { x: 12, y: 34 } },
+    },
+  ]);
+});
 test("capabilities reject wrong context/session and activity channels order independently", async () => {
   const t = setup();
   const session = await join(t, {

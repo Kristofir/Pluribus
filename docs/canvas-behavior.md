@@ -6,6 +6,8 @@ rewriting the spec to match them. Unspecified behavior remains undecided.
 
 **C1 — Navigation:** Two-finger trackpad movement pans and pinch zooms over the
 background or any element, including document text, whether selected or editing.
+The landing demo is an exception: its viewport cannot pan by scroll, drag,
+edge auto-pan, or minimap drag. The main canvas keeps normal navigation.
 
 ## Canvas background
 
@@ -67,6 +69,16 @@ not apply. Agent geometry commands compare the card's current saved geometry
 with the value the agent read before changing it. Image creation still requires
 an upload, and reply documents are not spatial card targets.
 
+The workspace agent opens from a floating composer in the lower-left corner and
+shares one durable chat thread per workspace. It uses the same MCP tool
+implementation and restrictions for reads and writes. Closing the overlay does
+not clear its messages. Clear resets the shared visible conversation and revokes
+an active turn so its late response cannot restore the cleared chat. While a
+turn is running, the composer is disabled; the canvas stays interactive.
+Submitting opens the conversation above the composer; focusing it reopens
+existing messages. Closing the conversation keeps the composer and draft. Enter
+sends; Shift+Enter adds a line. The minimap remains in the lower-right corner.
+
 In a private workspace, a dropped browser image/link checks the remote response. A supported image becomes an Image card; an HTML or text page becomes a Web Page card and follows its normal capture flow. A checking draft appears at the drop point; failed checks can be retried or removed. Direct URL imports reject private destinations, redirects, unsupported formats and images over 10 MB.
 
 Rectangles are retired: no
@@ -98,7 +110,7 @@ Undecided: double-click and keyboard movement.
 
 ## Reply document panel
 
-Reply drafts open their collaborative editor from an inbox thread. Closing or switching panels keeps a draft editor mounted so pending text survives. Retired main documents remain stored for older workspaces but have no navigation or editor surface.
+Inbox and reply editing are retired from the product. Historical reply and main documents remain stored, with no navigation or editor surface.
 
 All rich-text editors show a compact floating menu for a non-empty text selection while editing. It offers bold, italic and a dropdown of Text and Heading 1–3 presets; it closes when the selection collapses. Formatting uses the existing editor session and is unavailable when editing is paused.
 
@@ -137,6 +149,8 @@ All rich-text editors show a compact floating menu for a non-empty text selectio
 | Undo / Redo                        | Editor focused                                                        | Use editor history; do not invoke card-deletion history.                                  |
 
 When disconnected, pause shared edits, movement, resizing and deletion; retain pending local text.
+The landing demo resets on reload and leaves without a pending-text confirmation;
+regular document editors keep their leave warning and recovery copy.
 Reconnection preserves the editor selection; only a new click-to-edit request places the caret from pointer coordinates.
 Confirmed text synchronization clears prior sync errors. Snapshot maintenance failures do not imply saved text is pending.
 Temporary canvas interaction locks must not show document-sync warnings or shift card content.
@@ -373,3 +387,8 @@ Snap shadows fade/scale in and out over140ms. Exit retains only a noninteractive
 visual ghost; it is no longer a snap target. Reduced motion skips the transition.
 
 Editable cards expose resize grips near each edge or corner, without requiring selection. Only the nearby side bar or corner dot appears; it fades and scales in and out over 180ms as the pointer enters or leaves. Reduced motion removes the animation. Existing size constraints and resize History still apply.
+
+Workspace composer verification (2026-09-22): **pass (browser)** for bottom-center
+placement, draft input, reopening existing history and retaining the draft when
+collapsed. Sending a new agent turn and minimap visibility were **not checked**
+in this run; the current live canvas hides its minimap.

@@ -114,9 +114,12 @@ test("inbox projection preserves one canonical draft and stale reads cannot over
     userId,
     threads,
   });
-  const thread = (await a.query(api.Inbox.list, { workspaceId })).threads[0];
-  const doc = await a.mutation(api.Inbox.draft, { threadId: thread.id });
-  expect(await a.mutation(api.Inbox.draft, { threadId: thread.id })).toBe(doc);
+  const thread = (await a.query(internal.Inbox.list, { workspaceId }))
+    .threads[0];
+  const doc = await a.mutation(internal.Inbox.draft, { threadId: thread.id });
+  expect(await a.mutation(internal.Inbox.draft, { threadId: thread.id })).toBe(
+    doc,
+  );
   await t.mutation(internal.inbox.Jobs.complete, {
     inboxId,
     revision: 1,
@@ -124,7 +127,7 @@ test("inbox projection preserves one canonical draft and stale reads cannot over
     threads: [{ ...threads[0], subject: "Stale" }],
   });
   expect(
-    (await a.query(api.Inbox.list, { workspaceId })).threads[0].subject,
+    (await a.query(internal.Inbox.list, { workspaceId })).threads[0].subject,
   ).toBe("Subject");
   await t.run((ctx) =>
     ctx.db.patch(thread.id, {
@@ -144,7 +147,7 @@ test("inbox projection preserves one canonical draft and stale reads cannot over
     }),
   );
   expect(
-    await a.query(api.Inbox.review, { threadId: thread.id }),
+    await a.query(internal.Inbox.review, { threadId: thread.id }),
   ).toMatchObject({
     reviewedMessageId: "message",
     recipients: ["reply@example.test"],
@@ -154,7 +157,7 @@ test("inbox projection preserves one canonical draft and stale reads cannot over
   ).toBe("reply");
   expect(await a.query(api.Canvas.documentCards, { workspaceId })).toEqual([]);
   await expect(
-    t.query(api.Inbox.review, { threadId: thread.id }),
+    t.query(internal.Inbox.review, { threadId: thread.id }),
   ).rejects.toThrow("access denied");
 });
 test("send freezes reviewed version and recipients, dispatch claims once, timeout cannot resend", async () => {
@@ -185,7 +188,7 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
       truncated: false,
     }),
   );
-  const documentId = await a.mutation(api.Inbox.draft, { threadId });
+  const documentId = await a.mutation(internal.Inbox.draft, { threadId });
   await a.mutation(api.Documents.submitSteps, {
     id: `${documentId}:1`,
     version: 1,
@@ -199,7 +202,7 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
       }),
     ],
   });
-  const review = await a.query(api.Inbox.review, { threadId });
+  const review = await a.query(internal.Inbox.review, { threadId });
   const request = {
     threadId,
     requestId: crypto.randomUUID(),
@@ -209,7 +212,7 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
     recipients: review.recipients,
   };
   await expect(
-    a.mutation(api.Inbox.send, { ...request, text: "Unreviewed text" }),
+    a.mutation(internal.Inbox.send, { ...request, text: "Unreviewed text" }),
   ).rejects.toThrow("Draft changed");
   await t.run(async (ctx) => {
     const thread = await ctx.db.get(threadId);
@@ -226,29 +229,32 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
       ],
     });
   });
-  await expect(a.mutation(api.Inbox.send, request)).rejects.toThrow(
+  await expect(a.mutation(internal.Inbox.send, request)).rejects.toThrow(
     "Reply target changed",
   );
   await t.run(async (ctx) => {
     const thread = await ctx.db.get(threadId);
     await ctx.db.patch(threadId, { messages: thread!.messages.slice(0, -1) });
   });
-  const intentId = await a.mutation(api.Inbox.send, request);
-  expect(await a.mutation(api.Inbox.send, request)).toBe(intentId);
+  const intentId = await a.mutation(internal.Inbox.send, request);
+  expect(await a.mutation(internal.Inbox.send, request)).toBe(intentId);
   expect(
-    await a.query(api.Inbox.submission, {
+    await a.query(internal.Inbox.submission, {
       threadId,
       requestId: request.requestId,
     }),
   ).toMatchObject({ intentId, status: "pending" });
   expect(
-    await a.query(api.Inbox.submission, {
+    await a.query(internal.Inbox.submission, {
       threadId,
       requestId: "not-submitted",
     }),
   ).toBeNull();
   await expect(
-    t.query(api.Inbox.submission, { threadId, requestId: request.requestId }),
+    t.query(internal.Inbox.submission, {
+      threadId,
+      requestId: request.requestId,
+    }),
   ).rejects.toThrow("access denied");
 
   vi.stubEnv("AGENTMAIL_API_KEY", "test-only-not-a-live-key");
@@ -257,13 +263,16 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
   expect(claimed?.recipients).toEqual(["sender@example.test"]);
   expect(await t.mutation(internal.inbox.Sends.claim, { intentId })).toBeNull();
   await t.mutation(internal.inbox.Sends.expire, { intentId });
-  expect((await a.query(api.Inbox.delivery, { threadId }))?.status).toBe(
+  expect((await a.query(internal.Inbox.delivery, { threadId }))?.status).toBe(
     "unknown",
   );
   await expect(
-    a.mutation(api.Inbox.send, { ...request, requestId: crypto.randomUUID() }),
+    a.mutation(internal.Inbox.send, {
+      ...request,
+      requestId: crypto.randomUUID(),
+    }),
   ).rejects.toThrow("existing delivery");
-  await a.mutation(api.Inbox.reconcile, { threadId });
+  await a.mutation(internal.Inbox.reconcile, { threadId });
   expect(
     await t.query(internal.inbox.Reconciliation.request, {
       intentId,
@@ -277,19 +286,22 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
     messageId: null,
     failed: false,
   });
-  expect((await a.query(api.Inbox.delivery, { threadId }))?.status).toBe(
+  expect((await a.query(internal.Inbox.delivery, { threadId }))?.status).toBe(
     "unknown",
   );
   await expect(
-    a.mutation(api.Inbox.send, { ...request, requestId: crypto.randomUUID() }),
+    a.mutation(internal.Inbox.send, {
+      ...request,
+      requestId: crypto.randomUUID(),
+    }),
   ).rejects.toThrow("existing delivery");
-  await a.mutation(api.Inbox.reconcile, { threadId });
+  await a.mutation(internal.Inbox.reconcile, { threadId });
   await t.mutation(internal.inbox.Reconciliation.expire, {
     intentId,
     revision: 2,
   });
   expect((await t.run((ctx) => ctx.db.get(intentId)))?.reconciling).toBe(false);
-  await a.mutation(api.Inbox.reconcile, { threadId });
+  await a.mutation(internal.Inbox.reconcile, { threadId });
   await t.mutation(internal.inbox.Reconciliation.expire, {
     intentId,
     revision: 2,
@@ -307,10 +319,10 @@ test("send freezes reviewed version and recipients, dispatch claims once, timeou
     messageId: "provider-ack",
     failed: false,
   });
-  expect((await a.query(api.Inbox.delivery, { threadId }))?.status).toBe(
+  expect((await a.query(internal.Inbox.delivery, { threadId }))?.status).toBe(
     "sent",
   );
-  const second = await a.mutation(api.Inbox.send, {
+  const second = await a.mutation(internal.Inbox.send, {
     ...request,
     requestId: crypto.randomUUID(),
   });

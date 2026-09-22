@@ -10,7 +10,8 @@ the normal Web Page capture job; a local Image example fills the third visual
 slot. Visitors cannot request other page captures or upload images in the demo.
 Opening or reloading the landing page restores the seed text, cards, page
 position and viewport; it reuses the captured Web Page instead of fetching it
-again. Guest workspace records persist with their anonymous identity; they are
+again. Leaving the demo does not ask to preserve pending text. Guest workspace
+records persist with their anonymous identity; they are
 not deleted when a tab closes. `/workspaces/$workspaceId` requires membership on every backend
 request. Google login alone grants no workspace access.
 

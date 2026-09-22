@@ -25,3 +25,32 @@ test("agent activity is visibly labeled as recent without implying a live connec
   expect(html).toContain("presence-avatar presence-agent");
   expect(html).not.toContain('type="checkbox"');
 });
+
+test("anonymous participants have a visible anonymous avatar and activity state", () => {
+  const presence = {
+    members: [
+      {
+        id: "presence-id",
+        guestId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        tabId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        hidden: false,
+        focused: true,
+        profile: { kind: "anonymous" },
+      },
+    ],
+    agents: [],
+    activities: [],
+    id: "presence-id",
+    error: null,
+    show: true,
+    identity: { guestId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa" },
+    emit: () => {},
+  } as unknown as PresenceView;
+  const html = renderToStaticMarkup(
+    createElement(PresenceRoster, { presence }),
+  );
+  expect(html).toContain("Anonymous ·");
+  expect(html).toContain("(you) · active");
+  expect(html).toContain('data-slot="avatar"');
+  expect(html).toContain(">A</text>");
+});

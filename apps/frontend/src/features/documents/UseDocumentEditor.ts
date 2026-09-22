@@ -1,4 +1,11 @@
-import { useLayoutEffect, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useContext,
+  useLayoutEffect,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useBlocker } from "@tanstack/react-router";
 import {
   useEditor,
@@ -21,6 +28,7 @@ import {
 import { useAuthorProfiles, type AuthorSession } from "./UseAuthorship";
 import { useDocumentConnection } from "./UseDocument";
 import { useDocumentRecovery } from "./DocumentRecoveryProvider";
+import { DocumentLeaveGuard } from "./DocumentLeaveGuard";
 /** Own the mounted editor, subscriptions, pending edits and recovery together. */
 export function useDocumentEditor({
   id,
@@ -54,6 +62,7 @@ export function useDocumentEditor({
   clearError: () => void;
 }) {
   const recoveryStore = useDocumentRecovery();
+  const guardLeaving = useContext(DocumentLeaveGuard);
   const authorship = useMemo(
     () =>
       authorSession
@@ -196,6 +205,8 @@ export function useDocumentEditor({
   }, [editor, moveSource]);
   useLayoutEffect(() => {
     if (!editor) return;
+    if (!guardLeaving && recoveryStore.getState().entries.has(syncId))
+      recoveryStore.getState().discard(syncId);
     let lastPending: boolean | undefined;
     let lastDoc: typeof editor.state.doc | undefined;
     let lastCopy: { json: string; text: string } | undefined;
@@ -206,6 +217,10 @@ export function useDocumentEditor({
       const version = getVersion(editor.state);
       const doc = editor.state.doc;
       if (pending !== lastPending) onPendingChange?.(pending);
+      if (!guardLeaving) {
+        lastPending = pending;
+        return;
+      }
       // Metadata/selection transactions do not change the recovery copy. An
       // acknowledgement can change pending/version without changing the doc.
       if (pending) {
@@ -227,7 +242,7 @@ export function useDocumentEditor({
     };
     const detach = () => {
       capture();
-      recoveryStore.getState().detach(syncId);
+      if (guardLeaving) recoveryStore.getState().detach(syncId);
       onPendingChange?.(false);
     };
     capture();
@@ -238,7 +253,7 @@ export function useDocumentEditor({
       editor.off("transaction", capture);
       editor.off("destroy", detach);
     };
-  }, [editor, syncId, recoveryStore, onPendingChange]);
+  }, [editor, syncId, recoveryStore, onPendingChange, guardLeaving]);
   const [recovery, setRecovery] = useState<string | null>(null);
   useEffect(() => {
     if (suspended && editor)
@@ -249,11 +264,13 @@ export function useDocumentEditor({
   const [blocked, setBlocked] = useState(false);
   useBlocker({
     shouldBlockFn: () => {
+      if (!guardLeaving) return false;
       const pending = !!editor && sendableSteps(editor.state) !== null;
       if (pending) setBlocked(true);
       return pending;
     },
-    enableBeforeUnload: () => !!editor && sendableSteps(editor.state) !== null,
+    enableBeforeUnload: () =>
+      guardLeaving && !!editor && sendableSteps(editor.state) !== null,
   });
   const appliedFocus = useRef<{
     editor: typeof editor;

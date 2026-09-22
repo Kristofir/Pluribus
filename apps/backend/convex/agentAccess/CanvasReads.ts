@@ -72,6 +72,7 @@ export async function readAgentCanvas(ctx: QueryCtx, args: { token: string }) {
         geometry: image.geometry,
         generation: image.generation,
         name: image.name,
+        aiDescription: image.aiDescription,
       })),
     ],
   };

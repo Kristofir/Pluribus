@@ -7,15 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
 import CanvasPage from "../canvas/CanvasPage";
 import { DocumentRecoveryProvider } from "../documents/DocumentRecoveryProvider";
-import { InboxController } from "../inbox/InboxController";
 import { WorkspaceLayout } from "./WorkspaceLayout";
 import { WorkspaceTools } from "./WorkspaceTools";
 import { WorkspaceShare } from "./WorkspaceShare";
-import {
-  DocumentPanelSession,
-  type PanelDocument,
-} from "./DocumentPanelSession";
 import { DocumentParagraphLink } from "./DocumentParagraphLink";
+import { ChatOverlay } from "../chat/ChatOverlay";
 const route = getRouteApi("/workspaces/$workspaceId");
 export default function WorkspaceRoute() {
   const { workspaceId } = route.useParams(),
@@ -85,17 +81,9 @@ function WorkspaceSession({
   const navigate = useNavigate(),
     client = useConvex();
   const [panelOpen, setPanelOpen] = useState(false),
-    [surface, setSurface] = useState<"document" | "inbox" | "tools">("inbox"),
     [shareOpen, setShareOpen] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
-  const [replies, setReplies] = useState<PanelDocument[]>([]),
-    [activeId, setActiveId] = useState<string>();
-  const [notice, setNotice] = useState<string>(),
-    [reveal, setReveal] = useState<{
-      documentId: string;
-      paragraphId: string;
-      nonce: number;
-    }>();
+  const [notice, setNotice] = useState<string>();
   const openRequest = useRef(0);
   useEffect(
     () => () => {
@@ -144,42 +132,14 @@ function WorkspaceSession({
     );
   const w = view.data,
     paused = view.failed || accountPaused;
-  const active = replies.find((d) => d.documentId === activeId);
-  const show = (next: typeof surface) => {
+  const show = () => {
     openRequest.current++;
     setShareOpen(false);
-    setSurface(next);
     setPanelOpen(true);
   };
   const close = () => {
     openRequest.current++;
     setPanelOpen(false);
-  };
-  const openDraft = async (
-    documentId: Id<"documents">,
-    threadId: Id<"inboxThreads">,
-    title: string,
-  ) => {
-    const request = ++openRequest.current;
-    const descriptor = await client.query(api.Documents.describe, {
-      documentId,
-    });
-    if (request !== openRequest.current) return;
-    if (descriptor.role !== "reply") throw new Error("Expected reply document");
-    setReplies((previous) => [
-      ...previous.filter((d) => d.documentId !== documentId),
-      {
-        documentId,
-        generation: descriptor.generation,
-        title: title || "Reply",
-        kind: "reply",
-        threadId,
-      },
-    ]);
-    setActiveId(documentId);
-    setSurface("document");
-    setPanelOpen(true);
-    setReveal(undefined);
   };
   const openParagraph = async (reference: {
     documentId: string;
@@ -214,35 +174,7 @@ function WorkspaceSession({
         setNotice("This link targets a retired main document.");
         return;
       }
-      if (
-        descriptor.role === "reply" &&
-        !replies.some((d) => d.documentId === documentId)
-      ) {
-        const inbox = await client.query(api.Inbox.list, { workspaceId });
-        if (request !== openRequest.current) return;
-        const thread = inbox.threads.find(
-          (t) => t.draftDocumentId === documentId,
-        );
-        if (!thread) {
-          setNotice("The linked reply is unavailable in this inbox.");
-          return;
-        }
-        setReplies((previous) => [
-          ...previous.filter((d) => d.documentId !== documentId),
-          {
-            documentId,
-            generation: descriptor.generation,
-            title: thread.subject || "Reply",
-            kind: "reply",
-            threadId: thread.id,
-          },
-        ]);
-      }
-      setActiveId(documentId);
-      setSurface("document");
-      setPanelOpen(true);
-      setReveal({ ...reference, nonce: request });
-      setNotice(undefined);
+      setNotice("This link targets a retired reply document.");
     } catch {
       if (request === openRequest.current)
         setNotice(
@@ -256,14 +188,17 @@ function WorkspaceSession({
     <WorkspaceLayout
       name={w.name}
       canvas={
-        <CanvasPage workspaceId={workspaceId} onSelectionChange={onSelection} />
+        <div className="workspace-canvas-stack">
+          <CanvasPage
+            workspaceId={workspaceId}
+            onSelectionChange={onSelection}
+          />
+          <ChatOverlay workspaceId={workspaceId} paused={paused} />
+        </div>
       }
       panelOpen={panelOpen}
-      panelFocusKey={surface === "document" ? active?.documentId : surface}
-      panelReturnFocus={surface === "tools" ? "tools" : "inbox"}
       onDashboard={back}
-      onInbox={() => show("inbox")}
-      onTools={() => show("tools")}
+      onTools={show}
       shareOpen={shareOpen}
       onShare={() => setShareOpen((open) => !open)}
       onCloseShare={() => setShareOpen(false)}
@@ -297,42 +232,11 @@ function WorkspaceSession({
         ) : undefined
       }
       panel={
-        <>
-          {replies.map((doc) => (
-            <DocumentPanelSession
-              key={`${doc.documentId}:${doc.generation}`}
-              document={doc}
-              workspaceId={workspaceId}
-              active={
-                panelOpen &&
-                surface === "document" &&
-                doc.documentId === active?.documentId
-              }
-              paused={paused}
-              selected={selection}
-              onClose={close}
-              reveal={
-                reveal?.documentId === doc.documentId ? reveal : undefined
-              }
-            />
-          ))}
-          <div hidden={surface !== "inbox"} className="workspace-panel-session">
-            <InboxController
-              active={panelOpen && surface === "inbox"}
-              workspaceId={workspaceId}
-              onOpenDraft={openDraft}
-              onClose={close}
-              paused={paused}
-            />
-          </div>
-          <div hidden={surface !== "tools"} className="workspace-panel-session">
-            <WorkspaceTools
-              workspaceId={workspaceId}
-              onClose={close}
-              paused={paused}
-            />
-          </div>
-        </>
+        <WorkspaceTools
+          workspaceId={workspaceId}
+          onClose={close}
+          paused={paused}
+        />
       }
     />
   );

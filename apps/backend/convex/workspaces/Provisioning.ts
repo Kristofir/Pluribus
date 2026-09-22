@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx } from "../_generated/server";
-import { components, internal } from "../_generated/api";
+import { components } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 
 /** Panel documents retain canvas ownership without fabricated spatial geometry. */
@@ -79,7 +79,6 @@ export const provision = internalMutation({
       else if (prior.admin !== assignment.admin)
         throw new Error("Existing assignment differs; change it explicitly");
     }
-    await ctx.runMutation(internal.inbox.Provisioning.ensure, { workspaceId });
     return workspaceId;
   },
 });

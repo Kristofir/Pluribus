@@ -1,7 +1,9 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@pluribus/backend/api";
 import type { Id } from "@pluribus/backend/dataModel";
+import { oauthAttemptPending } from "../auth/OAuthAttempt";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { DocumentLeaveGuard } from "../documents/DocumentLeaveGuard";
 import {
   lazy,
   Suspense,
@@ -14,7 +16,13 @@ import "./LandingPage.css";
 
 const CanvasPage = lazy(() => import("../canvas/CanvasPage"));
 
-export function LandingPage({ account }: { account: ReactNode }) {
+export function LandingPage({
+  account,
+  deferAnonymousSignIn = false,
+}: {
+  account: ReactNode;
+  deferAnonymousSignIn?: boolean;
+}) {
   const auth = useConvexAuth();
   const user = useQuery(api.Users.current, auth.isAuthenticated ? {} : "skip");
   const { signIn } = useAuthActions();
@@ -28,14 +36,21 @@ export function LandingPage({ account }: { account: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (auth.isLoading || auth.isAuthenticated || signInStarted.current) return;
+    if (
+      auth.isLoading ||
+      auth.isAuthenticated ||
+      deferAnonymousSignIn ||
+      oauthAttemptPending() ||
+      signInStarted.current
+    )
+      return;
     signInStarted.current = true;
     void signIn("anonymous")
       .then(({ signingIn }) => {
         if (!signingIn) setError("Could not open the private canvas demo.");
       })
       .catch(() => setError("Could not open the private canvas demo."));
-  }, [auth.isAuthenticated, auth.isLoading, signIn]);
+  }, [auth.isAuthenticated, auth.isLoading, deferAnonymousSignIn, signIn]);
 
   useEffect(() => {
     if (!user?.isAnonymous || ensureStarted.current === user.id) return;
@@ -67,13 +82,15 @@ export function LandingPage({ account }: { account: ReactNode }) {
       <figure className="landing-preview" aria-label="Private demo canvas">
         {workspaceId ? (
           <Suspense fallback={<p role="status">Opening your canvas…</p>}>
-            <CanvasPage
-              key={workspaceId}
-              embedded
-              demo
-              workspaceId={workspaceId}
-              viewportStorageKey={`pluribus:viewport:landing:${workspaceId}`}
-            />
+            <DocumentLeaveGuard.Provider value={false}>
+              <CanvasPage
+                key={workspaceId}
+                embedded
+                demo
+                workspaceId={workspaceId}
+                viewportStorageKey={`pluribus:viewport:landing:${workspaceId}`}
+              />
+            </DocumentLeaveGuard.Provider>
           </Suspense>
         ) : (
           <div

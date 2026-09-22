@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import { useMutation, useConvexAuth, useQuery } from "convex/react";
 import { useNavigate } from "@tanstack/react-router";
+import { getRouteApi } from "@tanstack/react-router";
 import { api } from "@pluribus/backend/api";
 import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
 import { DashboardPage } from "./DashboardPage";
 import { Button } from "@/components/ui/Button";
 import { AuthPanel } from "../auth/AuthPanel";
+import { oauthAttemptPending } from "../auth/OAuthAttempt";
 import { LandingPage } from "./LandingPage";
+
+const homeRoute = getRouteApi("/");
 /** Claims only preassigned access; account creation itself never selects a workspace. */
 export function DashboardRoute() {
+  const search = homeRoute.useSearch();
   const auth = useConvexAuth(),
     claim = useMutation(api.Workspaces.claim),
     navigate = useNavigate();
@@ -18,6 +23,9 @@ export function DashboardRoute() {
     auth.isAuthenticated ? {} : "skip",
   );
   const [failure, setFailure] = useState<string>();
+  const [oauthCallbackPending, setOauthCallbackPending] = useState(() =>
+    oauthAttemptPending(search.code, search.authReturn),
+  );
   const retry = () => {
     setFailure(undefined);
     void claim({}).catch(() =>
@@ -36,7 +44,17 @@ export function DashboardRoute() {
     };
   }, [auth.isAuthenticated, claim, user]);
   if (!auth.isAuthenticated || user === undefined || user?.isAnonymous) {
-    return <LandingPage account={<AuthPanel />} />;
+    return (
+      <LandingPage
+        account={
+          <AuthPanel
+            onOAuthCallbackFailure={() => setOauthCallbackPending(false)}
+            onSignOut={() => setOauthCallbackPending(false)}
+          />
+        }
+        deferAnonymousSignIn={oauthCallbackPending}
+      />
+    );
   }
   return (
     <DashboardPage
@@ -54,7 +72,7 @@ export function DashboardRoute() {
       }
       account={
         <div className="flex flex-col items-start gap-3">
-          <AuthPanel />
+          <AuthPanel onSignOut={() => setOauthCallbackPending(false)} />
           {auth.isAuthenticated && (
             <Button
               intent="plain"

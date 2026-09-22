@@ -9,10 +9,8 @@ export function WorkspaceLayout({
   canvas,
   panel,
   panelOpen,
-  panelReturnFocus = "inbox",
   panelFocusKey,
   onDashboard,
-  onInbox,
   onTools,
   onShare,
   share,
@@ -26,10 +24,7 @@ export function WorkspaceLayout({
   panel: ReactNode;
   panelOpen: boolean;
   panelFocusKey?: string;
-  /** Fallback for direct links or an opener removed when switching surfaces. */
-  panelReturnFocus?: "inbox" | "tools";
   onDashboard: () => void;
-  onInbox: () => void;
   onTools?: () => void;
   onShare?: () => void;
   share?: ReactNode;
@@ -40,8 +35,6 @@ export function WorkspaceLayout({
   const panelHost = useRef<HTMLDivElement>(null);
   const previousFocusKey = useRef(panelFocusKey);
   const previousOpen = useRef(false);
-  const previousReturnFocus = useRef(panelReturnFocus);
-  const inboxTrigger = useRef<HTMLButtonElement>(null);
   const toolsTrigger = useRef<HTMLButtonElement>(null);
   const shareTrigger = useRef<HTMLButtonElement>(null);
   const shareHost = useRef<HTMLDivElement>(null);
@@ -65,10 +58,7 @@ export function WorkspaceLayout({
     };
   }, [shareOpen, onCloseShare]);
   useLayoutEffect(() => {
-    const fallback =
-      panelReturnFocus === "tools"
-        ? toolsTrigger.current
-        : inboxTrigger.current;
+    const fallback = toolsTrigger.current;
     const canReturnTo = (element: HTMLElement | null) =>
       !!element?.isConnected &&
       !panelHost.current?.contains(element) &&
@@ -87,8 +77,6 @@ export function WorkspaceLayout({
         Array.from(panelHost.current?.querySelectorAll<HTMLElement>("h2") ?? [])
           .find((heading) => heading.getClientRects().length > 0)
           ?.focus();
-    } else if (panelOpen && previousReturnFocus.current !== panelReturnFocus) {
-      opener.current = fallback;
     } else if (!panelOpen && previousOpen.current) {
       (canReturnTo(opener.current) ? opener.current : fallback)?.focus({
         preventScroll: true,
@@ -104,8 +92,7 @@ export function WorkspaceLayout({
         ?.focus();
     previousFocusKey.current = panelFocusKey;
     previousOpen.current = panelOpen;
-    previousReturnFocus.current = panelReturnFocus;
-  }, [panelOpen, panelReturnFocus, panelFocusKey]);
+  }, [panelOpen, panelFocusKey]);
   return (
     <main className="workspace-shell">
       <header className="workspace-header">
@@ -117,16 +104,6 @@ export function WorkspaceLayout({
           <h1>{name}</h1>
         </div>
         <nav aria-label="Workspace surfaces" className="workspace-actions">
-          <Button
-            ref={inboxTrigger}
-            intent="outline"
-            onPress={() => {
-              opener.current = inboxTrigger.current;
-              onInbox();
-            }}
-          >
-            Inbox
-          </Button>
           {onTools && (
             <Button
               ref={toolsTrigger}

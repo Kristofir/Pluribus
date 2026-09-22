@@ -1,7 +1,7 @@
 import { RemoteCursor } from "./RemoteCursor";
 import { ViewportPortal } from "@xyflow/react";
-import { guestProfile } from "@pluribus/core/presence/domain";
 import type { PresenceView } from "../presence/UsePresence";
+import { presenceProfile } from "../presence/PresenceProfile";
 import type { Node } from "@xyflow/react";
 export function CanvasPresence({
   presence,
@@ -16,8 +16,8 @@ export function CanvasPresence({
       {presence.members
         .filter((m) => m.guestId !== presence.identity?.guestId)
         .map((member) => {
-          const profile = guestProfile(member.guestId),
-            label = `${profile.name} · ${member.tabId.slice(0, 4)}`;
+          const profile = presenceProfile(member),
+            label = profile.activityLabel;
           const activity = presence.activities.filter(
             (a) => a.participationId === member.id,
           );

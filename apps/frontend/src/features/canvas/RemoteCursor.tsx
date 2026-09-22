@@ -21,7 +21,7 @@ export const RemoteCursor = memo(function RemoteCursor({
     const media = matchMedia("(prefers-reduced-motion: reduce)");
     const paint = (position: CursorPoint) => {
       if (element.current)
-        element.current.style.transform = `translate3d(${position.x}px, ${position.y - 3}px, 0)`;
+        element.current.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
     };
     const cancel = () => {
       if (frame.current !== null) cancelAnimationFrame(frame.current);
@@ -64,7 +64,14 @@ export const RemoteCursor = memo(function RemoteCursor({
       data-sequence={sequence}
       style={{ color }}
     >
-      ➤<span style={{ background: color }}>{label}</span>
+      <svg
+        className="remote-pointer-icon"
+        viewBox="0 0 18 22"
+        aria-hidden="true"
+      >
+        <path d="M1 1v17l4.5-4.2 3.6 7.2 3.2-1.6-3.5-7H16L1 1Z" />
+      </svg>
+      <span style={{ background: color }}>{label}</span>
     </div>
   );
 });

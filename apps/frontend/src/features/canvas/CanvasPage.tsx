@@ -629,7 +629,13 @@ const CanvasScene = memo(function CanvasScene({
           nodeClickDistance={documentDragThreshold}
           nodesDraggable={interactionEnabled}
           nodesConnectable={false}
-          panOnScroll
+          panOnDrag={demo ? false : canvasSelection.panOnDrag}
+          panActivationKeyCode={
+            demo ? null : canvasSelection.panActivationKeyCode
+          }
+          panOnScroll={!demo}
+          autoPanOnNodeDrag={!demo}
+          autoPanOnConnect={!demo}
           zoomOnScroll={false}
           zoomOnPinch
           deleteKeyCode={null}
@@ -650,7 +656,7 @@ const CanvasScene = memo(function CanvasScene({
           <MiniMap
             ariaLabel="Canvas overview"
             position="bottom-right"
-            pannable
+            pannable={!demo}
             zoomable
             style={{ width: 160, height: 104 }}
             bgColor="var(--overlay)"

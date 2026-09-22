@@ -2,7 +2,7 @@
 
 - **Project:** ConvexHackathon
 - **Event:** Convex All Gas Hackathon
-- **What it does:** React workspace with Google sign-in, a collaborative canvas and documents, and revocable guest collaboration links.
+- **What it does:** React workspace with Google sign-in, a collaborative canvas and documents, an OpenAI board agent, and revocable guest collaboration links.
 - **Live app:** https://courteous-horse-546.convex.site
 - **Repo:** https://github.com/Kristofir/Pluribus
 - **Frontend:** Convex static hosting
@@ -10,9 +10,9 @@
 - **Components:** @convex-dev/migrations, @convex-dev/prosemirror-sync, @convex-dev/presence, @convex-dev/static-hosting
 - **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime queries, document lifecycle and History
 - **Auth:** Convex Auth
-- **AI models:** gpt-4.1-mini (image descriptions; configured key required)
+- **AI models:** gpt-4.1-mini (image descriptions and board agent; configured key required)
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-22T11:02:18Z
+- **Last updated:** 2026-09-22T17:50:23Z
 
 ## Log
 
@@ -1189,3 +1189,45 @@ loaded the anonymous landing. Server-only provider variables were configured and
 the Demo workspace's AgentMail inbox reached ready. Google sign-in reaches Google
 but is blocked by an unregistered hosted callback; the Google account requires
 passkey confirmation before that OAuth client can be updated.
+
+### 2026-09-22T16:46:52Z — working tree
+
+The landing canvas no longer pans by scroll, Space or middle-button drag, edge
+auto-pan, or minimap drag. The full canvas keeps its navigation behavior. A
+local browser scroll left the landing viewport unchanged; 371 tests passed and
+the frontend build succeeded.
+
+### 2026-09-22T17:17:15Z — working tree
+
+Pending text in the reset-on-load landing demo no longer triggers a confirmation
+when reloading or leaving. Normal documents retain their navigation blocker and
+tab-lifetime recovery copy. A local note edit reloaded with no browser dialog;
+373 tests passed and the frontend build succeeded.
+
+### 2026-09-22T17:41:52Z — working tree
+
+Added a durable workspace chat overlay backed by an OpenAI board agent. The agent
+reuses the revocable MCP tool layer for canvas reads, Note edits, card creation,
+geometry, deletion, and conditional reversal, so writes keep existing access and
+Element History checks. A local read-only turn counted the live board correctly;
+full check passed 375 tests/one skipped and the production build passed.
+
+### 2026-09-22T17:50:23Z — working tree
+
+Replaced the agent launcher with a compact floating composer centered at the
+canvas bottom. The conversation expands above it and retains drafts when closed.
+Browser checks passed input, history reopening and draft retention; no agent turn
+was sent. Full check passed 375 tests/one skipped and the production build passed.
+
+### 2026-09-22 — Inbox retirement, working tree
+
+Removed Inbox navigation, email thread and reply editor UI, and mailbox creation
+from workspace provisioning. Former Inbox endpoints are internal-only. Historical
+email data remains stored; the canvas, sharing and agent chat remain available.
+
+### 2026-09-22 — Agent chat placement and reset, working tree
+
+Moved the workspace agent composer to the canvas lower-left and anchored the
+minimap in the lower-right. Added a shared Clear action that logically resets
+the visible conversation, revokes active chat grants, and prevents a late agent
+response from restoring cleared messages.

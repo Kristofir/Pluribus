@@ -1,9 +1,7 @@
-import {
-  guestProfile,
-  presenceParameters,
-} from "@pluribus/core/presence/domain";
+import { presenceParameters } from "@pluribus/core/presence/domain";
 import { Avatar } from "../../components/ui/Avatar";
 import type { PresenceView } from "./UsePresence";
+import { presenceProfile } from "./PresenceProfile";
 import "./Presence.css";
 export function PresenceRoster({ presence }: { presence: PresenceView }) {
   const grouped = new Map<string, typeof presence.members>();
@@ -15,7 +13,7 @@ export function PresenceRoster({ presence }: { presence: PresenceView }) {
   return (
     <div className="presence-bar" aria-label="Participants">
       {[...grouped].map(([id, sessions]) => {
-        const profile = guestProfile(id);
+        const profile = presenceProfile(sessions[0]);
         const label = `${profile.name}${id === presence.identity?.guestId ? " (you)" : ""} · ${sessions.every((s) => s.hidden) ? "away" : "active"}${sessions.length > 1 ? ` · ${sessions.length} tabs` : ""}`;
         return (
           <Avatar
@@ -27,7 +25,9 @@ export function PresenceRoster({ presence }: { presence: PresenceView }) {
             style={{ background: profile.color }}
             tabIndex={0}
             size="md"
-            initials={profile.name.slice(0, 1)}
+            src={profile.avatarUrl}
+            alt={profile.avatarUrl ? profile.name : undefined}
+            initials={profile.avatarUrl ? undefined : profile.initials}
           />
         );
       })}

@@ -3,10 +3,7 @@ import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { Step } from "@tiptap/pm/transform";
 import { getVersion, sendableSteps } from "prosemirror-collab";
-import {
-  guestProfile,
-  type InteractionEvent,
-} from "@pluribus/core/presence/domain";
+import { type InteractionEvent } from "@pluribus/core/presence/domain";
 import {
   confirmedSelection,
   displayRange,
@@ -16,6 +13,7 @@ import {
   type VersionedRange,
 } from "./PresenceMapping";
 import type { Member, RemoteActivity } from "../presence/Registry";
+import { presenceProfile } from "../presence/PresenceProfile";
 type Cursor = TextRange & { label: string; color: string };
 type Message = { range: VersionedRange; sequence: number; member: Member };
 /** Presence is plugin metadata/decorations only; it never adds document steps or history. */
@@ -87,12 +85,12 @@ export function createDocumentPresence(
         .slice(0, count)
         .map((step) => Step.fromJSON(editor!.schema, JSON.parse(step)));
       const range = displayRange(message.range, steps, editor.state),
-        profile = guestProfile(message.member.guestId);
+        profile = presenceProfile(message.member);
       if (range) {
         applied.set(id, message.sequence);
         update(id, {
           ...range,
-          label: `${profile.name} · ${message.member.tabId.slice(0, 4)}`,
+          label: profile.activityLabel,
           color: profile.color,
         });
       } else update(id, null);

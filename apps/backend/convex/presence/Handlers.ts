@@ -270,19 +270,34 @@ export async function roster(ctx: QueryCtx, args: { context: Context }) {
       return id ? ctx.db.get("presenceParticipations", id) : null;
     }),
   );
-  return rows.flatMap((row) =>
-    row && (row.generation ?? 0) === generation
-      ? [
-          {
-            id: row._id,
-            guestId: row.guestId,
-            tabId: row.tabId,
-            hidden: row.hidden,
-            focused: row.focused,
-          },
-        ]
-      : [],
+  const projected = await Promise.all(
+    rows.map(async (row) => {
+      if (!row || (row.generation ?? 0) !== generation) return null;
+      const browser = row.browserId
+        ? await ctx.db.get("presenceBrowsers", row.browserId)
+        : null;
+      const user = browser?.userId
+        ? await ctx.db.get("users", browser.userId)
+        : null;
+      const profile =
+        user && user.isAnonymous !== true
+          ? {
+              kind: "user" as const,
+              label: user.name?.trim() || "Pluribus member",
+              ...(user.image ? { avatarUrl: user.image } : {}),
+            }
+          : { kind: "anonymous" as const };
+      return {
+        id: row._id,
+        guestId: row.guestId,
+        tabId: row.tabId,
+        hidden: row.hidden,
+        focused: row.focused,
+        profile,
+      };
+    }),
   );
+  return projected.filter((row) => row !== null);
 }
 export async function activities(ctx: QueryCtx, args: { context: Context }) {
   const members = await roster(ctx, args);

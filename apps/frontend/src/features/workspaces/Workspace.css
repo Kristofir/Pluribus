@@ -210,8 +210,12 @@
 .workspace-panel-session[hidden] {
   display: none;
 }
-.workspace-canvas > .canvas {
+.workspace-canvas-stack,
+.workspace-canvas-stack > .canvas {
   height: 100%;
+}
+.workspace-canvas-stack {
+  position: relative;
 }
 /* The page treatment is specific to panel documents, never canvas cards. */
 .workspace-document-scroll {
