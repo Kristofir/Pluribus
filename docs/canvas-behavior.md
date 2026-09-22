@@ -9,7 +9,10 @@ background or any element, including document text, whether selected or editing.
 
 ## Canvas background
 
+The canvas has no header toolbar, theme picker or interaction-hint row. Workspace navigation remains in the workspace header.
+
 - **C2 — Local view:** Pan, zoom, selection and theme are personal. Element geometry and document text are shared.
+- **C3 — Minimap:** A theme-aware overview in the lower-right shows document bounds and the current viewport. Dragging the overview pans and scrolling over it zooms the local viewport; document geometry and content are unchanged.
 
 | Event                        | Condition                         | Behavior                               |
 | ---------------------------- | --------------------------------- | -------------------------------------- |
@@ -18,37 +21,36 @@ background or any element, including document text, whether selected or editing.
 | Two-finger trackpad movement | Pointer over background           | Pan the viewport.                      |
 | Pinch                        | Pointer over background           | Zoom the viewport.                     |
 
-Undecided: background drag versus marquee selection, modifier-click and double-click behavior.
+Primary-button drag on empty background draws a marquee; intersecting cards are selected.
+Space-drag or middle-button drag pans. The native browser context menu is suppressed throughout the canvas, its cards/paper and its custom context menu. Right-click the background opens the card-creation menu; Shift+F10 or the Context Menu key opens it at the canvas center when the canvas is focused. Document cards are created at that canvas position; Web Page creation retains it while URL/prompt are entered. Escape/outside click dismisses the menu. Toolbar create/delete buttons are omitted; Delete/Backspace removes selected cards. Shift-click toggles an element in the
+selection without entering document editing; inside an active editor, Shift-click
+keeps its normal text-selection behavior. Double-click behavior remains undecided.
 
 ## Shared element rules
 
 - **E1 — Geometry:** Each element has one saved position and size. Drag/resize previews and animation are temporary; the settled geometry persists after reload.
-- **E2 — Alignment:** Movement snaps edges and centers independently on each axis. Group snapping preserves member spacing. Resize snapping changes only the moving edges and respects size constraints.
-- **E3 — Snap feedback:** Show alignment guides while snapped. Alt/Option bypasses snapping immediately. Guides clear on release, cancellation or disconnect; target positions remain fixed during a gesture.
+- **E2 — Alignment:** Movement snaps edges and centers independently on each axis. Only targets intersecting the current viewport plus a 160-screen-pixel margin are eligible, rechecked while moving. Facing edges also snap to a 24-canvas-pixel gap when their perpendicular spans overlap; this applies to movement and resizing without visual guidelines. Group snapping preserves member spacing. Resize snapping changes only the moving edges and respects size constraints.
+- **E3 — Snap feedback:** Do not display alignment or spacing guidelines on the canvas. Snapping remains active. Alt/Option bypasses snapping immediately. Snap feedback clears on release, cancellation or disconnect; target positions remain fixed during a gesture.
 - **E4 — Motion:** Snap acquisition and release animate smoothly alongside short drag smoothing. Respect reduced motion. Current tuning: acquire within 6 screen pixels, release beyond 10, ease over 140ms regardless of zoom.
 - **E5 — Lifted:** Hovered or dragged elements scale to 1.015 with a subtle shadow. Stay lifted while either condition holds; return to rest when neither holds. This is visual only: saved geometry and snap targets do not change. Transition over 140ms; reduced motion removes the transition.
 
 - **E6 — Translation:** Element movement interpolates visually over 50ms; selection outlines move with it. Collaborator cursors play an 80ms buffer of receive-timestamped positions on animation frames. Pointer publishing targets 40ms between send starts with one request in flight and latest-only pending data. First appearance is immediate; no extrapolation, and gaps over 500ms reset the path. Reduced motion bypasses buffering. Saved geometry is unchanged.
 
-## Rectangles
+## Supported elements
 
-| Event                         | Condition                                   | Behavior                                                           |
-| ----------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| **Mouse / trackpad**          |                                             |                                                                    |
-| Pointer enters                | Over rectangle                              | Enter Lifted state.                                                |
-| Pointer leaves                | Not dragging                                | Return to resting appearance.                                      |
-| Drag starts / ends            | Element dragging                            | Stay Lifted during drag; on release remain Lifted only if hovered. |
-| Two-finger trackpad movement  | Pointer over rectangle                      | Pan the viewport.                                                  |
-| Pinch                         | Pointer over rectangle                      | Zoom the viewport.                                                 |
-| Click body                    | No selection modifier                       | Select rectangle; exit document text editing.                      |
-| Drag body                     | Editable                                    | Move with snapping; preserve spacing when moving a selected group. |
-| Drag resize control           | Selected and editable                       | Resize moving edges with snapping, within size limits.             |
-| Release drag                  | Moving or resizing                          | Save settled geometry; clear guides.                               |
-| **Keyboard**                  |                                             |                                                                    |
-| Press / release Alt or Option | Moving or resizing                          | Bypass / resume snapping immediately.                              |
-| Delete / Backspace            | Selected; focus outside a text input/editor | Delete selected element(s).                                        |
+Each canvas supports up to 100 active document cards. Removed cards and main/reply panel documents do not count toward this cap. Creation and restoration both enforce the cap.
+
+Document cards and workspace Web Pages are active spatial elements. Rectangles are retired: no
+creation, rendering, selection, movement, deletion, paragraph linking or agent
+context. Existing rectangle rows and historical receipts remain stored. Legacy
+requests and Undo/Redo cannot revive or mutate them; old rectangle-containing
+agent contexts require a fresh selection before reading or applying edits.
+
+## Element History
 
 When disconnected, dragging, resizing and deletion cannot change shared elements.
+
+Canvas Undo/Redo uses keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z or Ctrl+Y); no canvas Undo/Redo buttons are shown. History errors and Retry action remain available when needed.
 
 Undo/Redo outside text inputs applies personal Element History: one entry per
 created or deleted Element, or per move/resize gesture (including a group drag). Geometry
@@ -57,12 +59,37 @@ geometry and verified session continuity; otherwise it changes nothing and retir
 Own delete/restore cycles preserve earlier History; another session’s lifecycle
 changes invalidate it. Live gestures always retain their original write generation.
 
-Undecided: modifier-click selection rules, double-click and keyboard movement.
+Dragging a selected element moves the entire selection, including mixed Document
+and Web Page cards, preserving relative spacing. Delete or Backspace outside editors/inputs removes the selected elements. Pending
+text blocks the whole deletion before it starts; disconnect/busy guards apply.
+Deletion retains one History entry per element; a failure can leave a partial
+result and stops subsequent deletions. Group movement remains one History gesture.
+
+Undecided: double-click and keyboard movement.
+
+## Main document paper
+
+- **M1 — Identity:** One canonical main-document editor lives on the workspace canvas, centered at x=0 with its top at y=0. Opening Inbox, replies or tools keeps that editor mounted. There is no duplicate main-document sidebar editor.
+- **M2 — Geometry:** Paper width is 800 canvas pixels; height grows naturally with content. It cannot be selected, moved, resized or deleted and never enters Element History. Pan/zoom moves the view of the paper and surrounding cards together. Existing cards retain their saved positions; default card placement avoids the paper; explicit context-menu creation uses the clicked canvas position. Paper sits above unselected cards, while selected cards rise above it so overlapping cards can be selected with a marquee and moved.
+- **M3 — Navigation:** Initial view and Main document frame the paper top at a width-based zoom, independent of document length. Main document and clicking paper clear local element selection. Linked paragraphs pan into view and highlight without scrolling the outer workspace.
+
+| Event                       | Condition                  | Behavior                                     |
+| --------------------------- | -------------------------- | -------------------------------------------- |
+| **Mouse / trackpad**        |                            |                                              |
+| Click / drag text           | Paper editor available     | Place caret / select text; never move paper. |
+| Marquee / Shift-click       | Paper crossed or clicked   | Exclude paper from canvas selection.         |
+| Two-finger movement / pinch | Over paper                 | Pan / zoom the viewport.                     |
+| **Keyboard**                |                            |                                              |
+| Type / paste / Enter        | Paper focused and editable | Edit canonical text; extend paper height.    |
+| Delete / Backspace          | Paper editor focused       | Delete text only.                            |
+| Undo / Redo                 | Paper editor focused       | Use text history, never Element History.     |
+
+Formatting, collaboration, pending-text recovery and access-paused guards use the existing document session. Replies remain panel editors.
 
 ## Document cards
 
-- **D1 — Content:** Text directly on the card: no title bar, formatting toolbar or inset editor surface. Content may contain headings, lists and other text formatting.
-- **D2 — Interaction:** Outside editing, press anywhere on a card; release within 5 screen pixels to edit at that position, or move beyond 5 pixels to drag. Once dragging, returning to the start does not turn it into a click. While editing, text drag selects text; padding drag moves the card. Escape or clicking outside exits editing. Moving the card must not remount its editor or lose unsaved text.
+- **D1 — Content:** Text directly on the card: no title bar, formatting toolbar or inset editor surface. Content may contain headings, lists and other text formatting. Do not display loading placeholders or routine status text inside cards; actionable recovery controls remain available.
+- **D2 — Interaction:** Outside editing, press without Shift anywhere on a card; release within 5 screen pixels to edit at that position, or move beyond 5 pixels to drag. Once dragging, returning to the start does not turn it into a click. While editing, text drag selects text; padding drag moves the card. Escape or clicking outside exits editing. Moving the card must not remount its editor or lose unsaved text.
 - **D3 — Height:** Minimum height fits rendered content plus padding. Users can make the card taller without a fixed height cap. Overflowing new text grows the card; spare height is preserved. Deleting text does not automatically shrink it. Width changes must also respect the content minimum.
 
 | Event                              | Condition                                                             | Behavior                                                                                  |
@@ -96,7 +123,7 @@ Reconnection preserves the editor selection; only a new click-to-edit request pl
 Confirmed text synchronization clears prior sync errors. Snapshot maintenance failures do not imply saved text is pending.
 Temporary canvas interaction locks must not show document-sync warnings or shift card content.
 
-Undecided: modifier-click selection rules, card double-click behavior and keyboard movement.
+Undecided: card double-click behavior and keyboard movement.
 
 ### Document interaction flow
 
@@ -129,7 +156,9 @@ Selected editable rectangles and cards show resize controls. Exact control styli
 remains provisional; the custom corner-handle prototype was rejected. For either
 element, cancellation or disconnect clears alignment guides (E3).
 
-## Latest focused verification (2026-09-20)
+## Latest focused verification (2026-09-21)
+
+- **C3 — Pass (browser):** Built-in minimap visible in the lower-right with dark-theme colors. Dragging changed viewport translation; scrolling changed scale from 1 to 2.71321. Both document node styles and text remained identical. Light-theme visual review: **not checked**.
 
 - **D1/D2 — Pass (drag status):** Browser drag/release showed no document status message and preserved editor identity and text. Test geometry was restored with Undo. Projection tests distinguish interaction locks from read failures and verify recovery from both.
 
@@ -158,8 +187,113 @@ Before canvas/element work, read the affected rules. Afterward, report **pass**,
 alone does not establish that a browser interaction works.
 
 - Navigation: try trackpad pan and pinch.
-- Geometry/snapping: drag, group-drag and resize; check guides, Alt, reduced motion, multiple zoom levels and reload. Use focused geometry tests for constraints.
+- Geometry/snapping: drag, group-drag and resize; confirm no guidelines appear; check Alt, reduced motion, multiple zoom levels and reload. Use focused geometry tests for constraints.
 - Documents: edit, select text and drag padding; resize to minimum, add a line, add spare height, delete text and narrow the card.
 
 Run only the checks affected by the change. Record remaining gaps explicitly;
 do not claim complete conformance from passing unit tests alone.
+
+- **Document capacity — Pass (2026-09-21):** Backend regressions cover 100 visible cards, rejection of card 101, deletion freeing capacity, blocked/restored Undo and a 100-card History group. Browser confirmed Add document enabled with the two existing cards. Rendering performance with 100 live editors was **not checked**.
+
+## Web Pages
+
+- **W1 — Capture:** In a private workspace, Add web page accepts a public HTTP(S)
+  URL and a separate What to extract field in a local input card at the clicked canvas position.
+  Instructions are optional natural language, including desired format or column names.
+  No separate extraction format or column inputs are shown. Without instructions,
+  capture page content; with instructions, infer useful text/table shape and columns
+  server-side, honoring names given in prose. Format-only instructions are accepted.
+  Existing Sources editing uses the same form and deliberately clears legacy explicit
+  table settings when resubmitted; refresh preserves the current request configuration.
+  Existing captures/provenance remain unchanged until successful replacement.
+  Fetch creates the shared source; Escape before submission dismisses the local draft.
+  Fetching shows a pink/purple Paper MeshGradient with a centered globe and label.
+  Motion pauses offscreen, in hidden tabs and for reduced-motion preferences.
+  Ready cards show Web Content, title, URL and preview without footer controls.
+  Only the Details button opens the full read-only capture sheet; title and screenshot clicks do not. refresh/context controls live there.
+  Failed cards retain a details/retry action.
+- **W2 — Refresh:** Keep the last successful capture visible on the card and in the full panel while refreshing and after a
+  failed refresh. Replace it only on successful current-revision completion.
+  Retain the capture URL, prompt and timestamp as provenance. Refresh/retry uses the subscribed request revision; conflicts require review or waiting, never automatic replacement.
+  The details panel offers explicit Stop waiting for overdue or legacy busy requests.
+  Recovery never fetches automatically; Retry is a separate action after failure.
+  Missing deadlines are not labeled as confirmed timeouts.
+- **W3 — Geometry:** Web Pages share selection, alignment, movement and resize
+  behavior with other Elements. New cards start at 300×176. Minimum size is 300×132; maximum is 2000×2000.
+- **W4 — Lifecycle:** Workspace capacity is 20 active Web Pages, separate from
+  100 documents. Creation, move/resize and deletion use Element History. Delete
+  hides the source and frees its slot; Undo restores its identity, geometry and
+  capture if capacity permits. Deletion cancels in-flight captures; restoration
+  never starts an automatic fetch.
+- **W5 — Context:** Include in agent context selects the source for the workspace
+  agent tools. A retained successful capture remains available after refresh
+  failure. Capture bodies are source material, never collaborative documents.
+
+- **W6 — Capture rendering:** The full panel preserves both captured Markdown and
+  extraction JSON. Render paragraphs, headings, lists, safe links, code and Markdown
+  tables. Explicit CSV/JSON fences render supported flat tables amid surrounding text.
+  Auto CSV detection is conservative; View as can select CSV/JSON or Text/Markdown.
+  Flat JSON record arrays become tables; nested or unsupported JSON stays raw.
+  Valid empty results show No matches returned; malformed structured data shows a
+  parse message plus raw text. Original response exposes both unchanged fields.
+  Structured tables show at most 100 rows (with a notice); over 30 columns stays raw.
+  Marked inferred captures render validated text/context and ordered table rows; malformed
+  envelopes fall back to raw data with an error. Legacy schema-backed captures still
+  use saved capture columns and validated rows, never the
+  latest pending request schema. Compact previews omit layout/navigation/fenced data
+  conservatively; when nothing useful remains, offer Open capture, not a no-data claim.
+  Table cards show captured column names and open the full rows in the panel.
+  Canvas previews never diagnose truncated JSON/CSV. Raw HTML is not executed and
+  images embedded in captured Markdown are not loaded.
+
+- **W7 — Screenshot:** Show the accepted capture's above-the-fold screenshot in
+  the card and full panel. The image is always stacked above the text, including in short cards. The preview area matches the captured viewport's 8:5 aspect ratio. Cards grow to fit their content without internal scrolling; resizing cannot make
+  them shorter than their content. Content-driven height changes animate over180ms;
+  manual resizing is direct, and reduced motion disables the transition. Refreshing or failed refresh keeps the previous capture and image together.
+  A new successful capture without an image shows Preview unavailable; it never
+  borrows the previous image. Legacy captures without screenshot metadata omit the
+  image area. Loading and broken images retain readable text and an accessible fallback.
+
+Verification: backend tests cover authorization, atomic creation/History, bounded
+previews, refresh retention, late results, separate capacity and mixed-element Undo.
+Integrated browser acceptance is tracked separately from those tests.
+
+PM integrated verification passed Add → Fetching → Captured, full capture viewing,
+and Delete/Undo/Redo with exact retained content. Live drag/resize remains not checked.
+Web Page selections support the existing saved-paragraph link operation.
+
+PM live follow-up: marquee selected two newly created disposable Document Cards;
+Delete selected(2) removed both, two Undo restored both, and two Redo removed both.
+Only the two test IDs were selected/deleted. Original user cards were unchanged.
+
+Web Page redesign verification (2026-09-22): **W1 pass in disposable browser preview**
+for input, fetching shader, ready output and failure recovery. **W3 pass in domain tests**
+for compact geometry bounds. Full check and build pass. Live authenticated creation,
+trackpad gestures and resizing with the redesign: **not checked**.
+
+Recovery integration verification (2026-09-22): **W2 pass in mocked browser preview**
+for retained content, original provenance, explicit recovery, separate Retry and
+revision conflict feedback. No live provider or deployed-runtime check was performed.
+
+Structured rendering verification (2026-09-22): **W6 pass** in 12 parser/render
+regressions and disposable browser checks, independently reviewed by PM. Covers
+mixed prose/tables, CSV override, empty versus malformed, nested raw, original
+fields, safe links/HTML and bounded previews. Full check255tests/build pass.
+
+Earlier explicit-column experiment (superseded by instruction-only W1): **pass** in shared validation,
+17 focused frontend regressions and PM-accepted disposable browser checks for
+format-only rejection, explicit columns, stored capture order and neutral fallback.
+Integrated tests282/one skipped, architecture/types/build passed; formatting correction
+handled by backend owner. Live extraction quality was not checked.
+
+Instruction-only verification (2026-09-22): **W1/W6 pass** in 20 focused frontend
+regressions and PM browser acceptance for URL/instructions-only submission,
+format-only prose acceptance, and marked inferred text/context/ordered tables.
+Full check passes301tests/one skipped, architecture/types/format. Existing explicit
+column form is superseded; legacy capture rendering and raw originals remain.
+No live provider or inferred semantic-quality check was performed.
+
+Screenshot verification (2026-09-22): **W7 pass** in 11 focused screenshot/content
+tests and PM-reviewed disposable browser fixtures for compact/tall cards, panel
+image and broken-image fallback. Fixtures use an authored sample image; live
+provider screenshot capture and authenticated workspace behavior are not checked.

@@ -30,3 +30,12 @@ test("a release beyond the threshold is a drag even without a move event", () =>
   press.begin(1, { x: 0, y: 0 });
   expect(press.release(1, { x: 4, y: 4 })).toBe(false);
 });
+
+test("selection modifier never turns a card press into editing", () => {
+  const press = new DocumentPress();
+  press.begin(1, { x: 0, y: 0 }, true);
+  expect(press.release(1, { x: 0, y: 0 })).toBe(false);
+  press.begin(1, { x: 0, y: 0 });
+  expect(press.release(1, { x: 0, y: 0 }, true)).toBe(false);
+  expect(press.state).toBe("idle");
+});

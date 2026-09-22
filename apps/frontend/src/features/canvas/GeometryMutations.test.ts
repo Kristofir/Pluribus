@@ -40,12 +40,8 @@ test("geometry routes by kind, preserves both identities, and never guesses a mi
     generation: 3,
     change: { kind: "geometry", geometry },
   });
-  await sendGeometry(geometryTarget(rectangle), geometry, mutations);
-  expect(mutations.rectangle).toHaveBeenCalledExactlyOnceWith({
-    id: "rectangle",
-    generation: 1,
-    geometry,
-  });
+  expect(() => geometryTarget(rectangle)).toThrow("retired");
+  expect(mutations.rectangle).not.toHaveBeenCalled();
   expect(mutations.document).toHaveBeenCalledTimes(1);
 });
 

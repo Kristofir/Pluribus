@@ -165,3 +165,145 @@
     padding: 16px 20px;
   }
 }
+
+.workspace-panel-session {
+  height: 100%;
+  min-height: 0;
+}
+.workspace-panel-session[hidden] {
+  display: none;
+}
+.workspace-canvas > .canvas {
+  height: 100%;
+}
+/* The page treatment is specific to panel documents, never canvas cards. */
+.workspace-document-scroll {
+  padding: 28px 24px 40px;
+  background: color-mix(in oklab, var(--bg) 94%, var(--fg) 6%);
+  overscroll-behavior: contain;
+  scroll-padding-block: 24px;
+}
+.workspace-document-toolbar {
+  flex-shrink: 0;
+  background: var(--overlay);
+  border-bottom: 1px solid var(--border);
+}
+.workspace-document-toolbar:empty {
+  display: none;
+}
+.document-writing-surface,
+.workspace-document-secondary {
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+}
+.workspace-document-secondary {
+  margin-top: 24px;
+  font-size: 14px;
+}
+.workspace-document-secondary > details {
+  margin-top: 0;
+}
+.workspace-document-scroll .document-page {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: 0 2px 8px #00000008;
+}
+.workspace-document-scroll .document-page .tiptap {
+  padding: 44px 36px 64px;
+  min-height: max(360px, 60dvh);
+  font-size: 16px;
+  line-height: 1.65;
+}
+.workspace-document-scroll .document-page .tiptap:focus-visible {
+  outline: none;
+}
+.workspace-document-scroll .document-page:focus-within {
+  border-color: color-mix(in oklab, var(--fg) 25%, var(--border));
+}
+.workspace-document-scroll .document-page :is(h1, h2, h3) {
+  margin: 1.5em 0 0.6em;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.workspace-document-scroll .document-page p {
+  margin: 0 0 1em;
+}
+.workspace-document-scroll .document-page :is(ul, ol) {
+  margin: 0 0 1em;
+  padding-left: 1.5em;
+}
+.workspace-document-scroll .document-page li {
+  padding-left: 0.2em;
+  margin-block: 0.35em;
+}
+.workspace-document-scroll .document-page li > p {
+  margin-bottom: 0.35em;
+}
+.workspace-document-scroll .document-page .tiptap > :first-child {
+  margin-top: 0;
+}
+.workspace-document-scroll .document-page .tiptap > :last-child {
+  margin-bottom: 0;
+}
+.workspace-document-scroll .document-page pre {
+  padding: 16px;
+  margin-block: 1em;
+  background: var(--secondary);
+  border-radius: 4px;
+  font-size: 13px;
+}
+.workspace-document-scroll .document-page hr {
+  margin-block: 2em;
+  border-color: var(--border);
+}
+@media (max-width: 760px) {
+  .workspace-document-scroll {
+    padding: 16px 12px 28px;
+  }
+  .workspace-document-scroll .document-page .tiptap {
+    padding: 28px 22px 44px;
+  }
+}
+
+/* The main document is one growing sheet in canvas coordinates, not a scroll pane. */
+.canvas-paper-document.workspace-document-panel {
+  height: auto;
+  min-height: 1000px;
+  overflow: visible;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px #00000012;
+}
+.canvas-paper-document .workspace-document-scroll {
+  flex: none;
+  overflow: visible;
+  padding: 0;
+  background: transparent;
+}
+.canvas-paper-document .document-writing-surface,
+.canvas-paper-document .workspace-document-secondary {
+  max-width: none;
+}
+.canvas-paper-document .document-page {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.canvas-paper-document .document-page .tiptap {
+  min-height: 720px;
+  padding: 48px 64px 64px;
+}
+.canvas-paper-document .workspace-document-secondary {
+  margin: 0;
+  padding: 0 64px 36px;
+}
+.canvas-paper-document .workspace-panel-heading {
+  padding: 24px 32px;
+}
+.canvas-paper-document .document-formatting-toolbar {
+  padding-inline: 24px;
+}

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { DocumentToolbar } from "./DocumentToolbar";
 import { EditorContent, type Content, type AnyExtension } from "@tiptap/react";
 import { syncExtension } from "@convex-dev/prosemirror-sync/tiptap";
 import { useConvex } from "convex/react";
@@ -19,6 +21,8 @@ export function CollaborativeEditor({
   interactionEnabled = true,
   focusPoint,
   embedded = false,
+  presentation,
+  toolbarTarget,
   generation,
   suspended = false,
   paused = false,
@@ -29,6 +33,8 @@ export function CollaborativeEditor({
   interactionEnabled?: boolean;
   focusPoint?: { x: number; y: number } | null;
   embedded?: boolean;
+  presentation?: "document" | "card";
+  toolbarTarget?: HTMLElement | null;
   generation?: number;
   suspended?: boolean;
   paused?: boolean;
@@ -79,16 +85,18 @@ export function CollaborativeEditor({
     [transport, syncId, seed, suspended, author.session],
   );
   if (author.failed && !suspended)
-    return (
+    return presentation === "card" ? null : (
       <p role="alert">
         Could not establish author identity. Reload to retry; existing text is
         unchanged.
       </p>
     );
   if (!seed && snapshot.data?.content === null)
-    return <p role="alert">Document content is unavailable.</p>;
+    return presentation === "card" ? null : (
+      <p role="alert">Document content is unavailable.</p>
+    );
   if (!seed || !extension)
-    return (
+    return presentation === "card" ? null : (
       <p role={snapshot.failed ? "alert" : "status"}>
         {snapshot.failed
           ? "Document could not load. Other editors and their unsaved work remain open."
@@ -107,6 +115,8 @@ export function CollaborativeEditor({
       interactionEnabled={interactionEnabled}
       focusPoint={focusPoint}
       embedded={embedded}
+      presentation={presentation}
+      toolbarTarget={toolbarTarget}
       content={seed.content}
       extension={extension}
       error={error}
@@ -126,6 +136,8 @@ function DocumentEditor({
   interactionEnabled,
   focusPoint,
   embedded,
+  presentation,
+  toolbarTarget,
   content,
   extension,
   error,
@@ -137,6 +149,8 @@ function DocumentEditor({
   focusPoint?: { x: number; y: number } | null;
   authorSession: AuthorSession | null;
   embedded: boolean;
+  presentation?: "document" | "card";
+  toolbarTarget?: HTMLElement | null;
   syncId: string;
   suspended: boolean;
   paused: boolean;
@@ -197,7 +211,17 @@ function DocumentEditor({
         </div>
       )}
       {participate && !embedded && <PresenceRoster presence={presence} />}
-      {!embedded && (
+      {presentation === "document" &&
+        toolbarTarget &&
+        createPortal(
+          <DocumentToolbar
+            editor={editor}
+            disabled={disabled || !interactionEnabled}
+            historyDisabled={!!(authorSession && state?.pending)}
+          />,
+          toolbarTarget,
+        )}
+      {!embedded && presentation !== "document" && (
         <div
           className="document-toolbar"
           role="toolbar"
@@ -279,16 +303,18 @@ function DocumentEditor({
           {moveError && <span role="alert">{moveError}</span>}
         </div>
       )}
-      {(!embedded || readPaused || !connected || syncError) && (
-        <p role="status" className="document-status">
-          {status}
-        </p>
-      )}
+      {presentation !== "card" &&
+        (!embedded || readPaused || !connected || syncError) && (
+          <p role="status" className="document-status">
+            {status}
+          </p>
+        )}
       {syncError && (
         <p role="alert">
-          {state?.pending
-            ? "Keep this tab open to preserve pending edits."
-            : "Document updates could not be synchronized."}{" "}
+          {presentation !== "card" &&
+            (state?.pending
+              ? "Keep this tab open to preserve pending edits. "
+              : "Document updates could not be synchronized. ")}
           <button
             disabled={!connected || suspended || readPaused}
             onClick={retry}
@@ -297,13 +323,16 @@ function DocumentEditor({
           </button>
         </p>
       )}
-      {blocked && (
+      {blocked && presentation !== "card" && (
         <p role="alert">
           Wait for “Saved” before leaving. Your pending edits are still in this
           tab.
         </p>
       )}
-      <EditorContent editor={editor} className="document-paper" />
+      <EditorContent
+        editor={editor}
+        className={`document-paper${presentation === "document" ? " document-page" : ""}`}
+      />
     </>
   );
 }

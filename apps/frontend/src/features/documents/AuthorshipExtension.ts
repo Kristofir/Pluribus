@@ -1,4 +1,7 @@
-import { prepareParagraphIds, freshParagraphSlice } from "@pluribus/editor/paragraphs";
+import {
+  prepareParagraphIds,
+  freshParagraphSlice,
+} from "@pluribus/editor/paragraphs";
 import { Extension, type Editor } from "@tiptap/core";
 import { Fragment, Slice, type Node } from "@tiptap/pm/model";
 import {
@@ -94,7 +97,8 @@ export function createAuthorshipExtension(author: string, paragraphs = false) {
     extension: Extension.create({
       name: "authorship-policy",
       dispatchTransaction({ transaction, next }) {
-        if (paragraphs) prepareParagraphIds(transaction, () => crypto.randomUUID());
+        if (paragraphs)
+          prepareParagraphIds(transaction, () => crypto.randomUUID());
         attributeTransaction(transaction, this.editor.state, author);
         next(transaction);
       },
@@ -103,7 +107,10 @@ export function createAuthorshipExtension(author: string, paragraphs = false) {
           new Plugin({
             key,
             props: {
-              transformPasted: (slice, view) => paragraphs && !view.dragging ? freshParagraphSlice(slice) : slice,
+              transformPasted: (slice, view) =>
+                paragraphs && !view.dragging
+                  ? freshParagraphSlice(slice)
+                  : slice,
               decorations(state) {
                 if (!shown) return DecorationSet.empty;
                 const decorations: Decoration[] = [];

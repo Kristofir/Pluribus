@@ -1,3 +1,4 @@
+import { targetsInView } from "./SnapViewport";
 import {
   geometryBounds,
   resolveAlignment,
@@ -13,6 +14,7 @@ export type AlignmentGuide = {
   coordinate: number;
   from: number;
   to: number;
+  gap?: { from: number; to: number; at: number; size: number };
 };
 /** A gesture's targets and initial bounds are frozen. Candidates always come from unsnapped input. */
 export class AlignmentGesture {
@@ -34,6 +36,7 @@ export class AlignmentGesture {
     zoom: number,
     bypass: boolean,
     constraints: GeometryConstraints = {},
+    viewport?: Geometry,
   ) {
     for (const [id, { geometry }] of updates)
       if (this.initial.has(id)) this.candidates.set(id, geometry);
@@ -63,12 +66,18 @@ export class AlignmentGesture {
     }
     const result = bypass
       ? { geometry: raw, matches: [] }
-      : resolveAlignment(raw, this.targets, this.operation, {
-          acquire: 6 / zoom,
-          release: 10 / zoom,
-          previous: this.matches,
-          constraints,
-        });
+      : resolveAlignment(
+          raw,
+          viewport ? targetsInView(this.targets, viewport, zoom) : this.targets,
+          this.operation,
+          {
+            spacing: 24,
+            acquire: 6 / zoom,
+            release: 10 / zoom,
+            previous: this.matches,
+            constraints,
+          },
+        );
     const correction = {
       x: result.geometry.x - raw.x,
       y: result.geometry.y - raw.y,
@@ -82,7 +91,8 @@ export class AlignmentGesture {
       if (
         before?.targetId === after?.targetId &&
         before?.sourceAnchor === after?.sourceAnchor &&
-        before?.targetAnchor === after?.targetAnchor
+        before?.targetAnchor === after?.targetAnchor &&
+        before?.offset === after?.offset
       )
         continue;
       const size = axis === "x" ? "width" : "height";
@@ -107,6 +117,23 @@ export class AlignmentGesture {
       const perpendicular = match.axis === "x" ? "y" : "x";
       const size = match.axis === "x" ? "height" : "width";
       return {
+        gap: match.offset
+          ? {
+              from: Math.min(match.coordinate, match.coordinate - match.offset),
+              to: Math.max(match.coordinate, match.coordinate - match.offset),
+              at:
+                (Math.max(
+                  result.geometry[perpendicular],
+                  target.geometry[perpendicular],
+                ) +
+                  Math.min(
+                    result.geometry[perpendicular] + result.geometry[size],
+                    target.geometry[perpendicular] + target.geometry[size],
+                  )) /
+                2,
+              size: Math.abs(match.offset),
+            }
+          : undefined,
         axis: match.axis,
         coordinate: match.coordinate,
         from: Math.min(

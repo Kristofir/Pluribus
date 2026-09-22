@@ -4,6 +4,7 @@ import {
   useState,
   type RefObject,
   type PointerEvent,
+  type MouseEvent,
 } from "react";
 import { DocumentPress } from "./DocumentPress";
 
@@ -20,6 +21,7 @@ export function useDocumentInteraction(
   },
 ) {
   const press = useRef(new DocumentPress());
+  const textPress = useRef(false);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(
     null,
   );
@@ -34,7 +36,7 @@ export function useDocumentInteraction(
     const release = (event: globalThis.PointerEvent) => {
       const point = { x: event.clientX, y: event.clientY };
       if (
-        press.current.release(event.pointerId, point) &&
+        press.current.release(event.pointerId, point, event.shiftKey) &&
         current.current.editable &&
         card.current?.contains(event.target as Node)
       ) {
@@ -68,19 +70,31 @@ export function useDocumentInteraction(
     if (!editable) press.current.cancel();
   }, [editable]);
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
+    textPress.current = false;
     if (!editable || event.button !== 0 || !event.isPrimary) return;
     const target = event.target as HTMLElement;
     if (
       target.closest(".react-flow__resize-control, button, input, textarea, a")
     )
       return;
-    if (editing && target.closest(".document-card-content")) return;
+    if (editing && target.closest(".document-card-content")) {
+      textPress.current = true;
+      return;
+    }
     // Leave mouse events to React Flow; preventing pointerdown would suppress its drag start.
-    press.current.begin(event.pointerId, {
-      x: event.clientX,
-      y: event.clientY,
-    });
+    press.current.begin(
+      event.pointerId,
+      {
+        x: event.clientX,
+        y: event.clientY,
+      },
+      event.shiftKey,
+    );
     if (editing) activate(false);
   };
-  return { focusPoint, onPointerDown };
+  const onClick = (event: MouseEvent<HTMLElement>) => {
+    // A Shift-click inside an active editor extends text selection, not canvas selection.
+    if (textPress.current) event.stopPropagation();
+  };
+  return { focusPoint, onPointerDown, onClick };
 }

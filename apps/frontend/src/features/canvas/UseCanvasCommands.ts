@@ -1,3 +1,7 @@
+import { besideMainPaper } from "./MainPaperNode";
+import { sourceLimits } from "@pluribus/core/sources/domain";
+import { useReactFlow } from "@xyflow/react";
+import { documentLimits } from "@pluribus/core/canvas/domain";
 import { useCanvasScope } from "./CanvasScope";
 import {
   useCallback,
@@ -8,7 +12,6 @@ import {
   type RefObject,
 } from "react";
 import { useMutation } from "convex/react";
-import { useReactFlow } from "@xyflow/react";
 import type { StoreApi } from "zustand/vanilla";
 import { createElementHistory } from "./ElementHistory";
 import { api } from "@pluribus/backend/api";
@@ -16,7 +19,6 @@ import type { Id } from "@pluribus/backend/dataModel";
 import {
   type CanvasElement,
   type ElementId,
-  type RectangleColor,
 } from "@pluribus/core/canvas/domain";
 import type { CanvasState } from "./CanvasStore";
 
@@ -25,20 +27,22 @@ export function useCanvasCommands({
   connected,
   records,
   documentCount,
+  sourceCount,
   store,
   pendingEditors,
   surface,
-  color,
 }: {
   connected: boolean;
   records: CanvasElement[] | undefined;
   documentCount: number;
+  sourceCount: number;
   store: StoreApi<CanvasState<ElementId>>;
   pendingEditors: RefObject<Map<ElementId, boolean>>;
   surface: RefObject<HTMLDivElement | null>;
-  color: RectangleColor;
 }) {
-  const { workspaceId } = useCanvasScope();
+  const { workspaceId, mainPaper } = useCanvasScope();
+  const hasMainPaper = !!mainPaper;
+  const flow = useReactFlow();
   const open = useMutation(api.Canvas.openHistorySession);
   const apply = useMutation(api.Canvas.applyHistoryAction);
   const reverse = useMutation(api.Canvas.reverseHistoryAction);
@@ -48,7 +52,7 @@ export function useCanvasCommands({
   const [history] = useState(() =>
     createElementHistory(
       {
-        open: args => open({ ...args, workspaceId }),
+        open: (args) => open({ ...args, workspaceId }),
         apply,
         reverse,
         update,
@@ -78,88 +82,114 @@ export function useCanvasCommands({
     history.mount();
     return () => history.dispose();
   }, [history]);
-  const flow = useReactFlow();
   // Commands read the latest committed scene without changing identity on movement.
   const recordsRef = useRef(records);
   useLayoutEffect(() => {
     recordsRef.current = records;
   }, [records]);
-  const elementCount = records?.length ?? 0;
-  const addRectangle = useCallback(async () => {
-    if (
-      !connected ||
-      !surface.current ||
-      store.getState().historyPending ||
-      store.getState().gestures.size ||
-      history.store.getState().busy ||
-      history.store.getState().retry ||
-      !store.getState().beginCreate()
-    )
-      return;
-    const bounds = surface.current.getBoundingClientRect();
-    const offset = (elementCount % 5) * 24;
-    const center = flow.screenToFlowPosition({
-      x: bounds.left + bounds.width / 2 + offset,
-      y: bounds.top + bounds.height / 2 + offset,
-    });
-    try {
-      const accepted = await history.perform({
-        kind: "create",
-        element: {
-          kind: "rectangle",
-          geometry: {
-            x: center.x - 80,
-            y: center.y - 50,
-            width: 160,
-            height: 100,
+  const addDocument = useCallback(
+    async (position?: { x: number; y: number }) => {
+      if (
+        !connected ||
+        store.getState().historyPending ||
+        store.getState().gestures.size ||
+        history.store.getState().busy ||
+        history.store.getState().retry ||
+        !store.getState().beginCreate()
+      )
+        return;
+      try {
+        const accepted = await history.perform({
+          kind: "create",
+          element: {
+            kind: "document",
+            geometry: {
+              ...(position ??
+                (hasMainPaper
+                  ? besideMainPaper({ x: 80 + documentCount * 460, y: 80 }, 430)
+                  : { x: 80 + documentCount * 460, y: 80 })),
+              width: 430,
+              height: 500,
+            },
           },
-          color: color,
-        },
-      });
-      const entry = history.store.getState().undo.at(-1);
-      if (accepted && entry?.kind === "create" && entry.id)
-        store.getState().selectOnly(entry.id as string as ElementId);
-      store.getState().finishCreate();
-    } catch {
-      store.getState().finishCreate("Could not add a rectangle.");
-    }
-  }, [connected, surface, store, elementCount, flow, history, color]);
-
-  const addDocument = useCallback(async () => {
-    if (
-      !connected ||
-      store.getState().historyPending ||
-      store.getState().gestures.size ||
-      history.store.getState().busy ||
-      history.store.getState().retry ||
-      !store.getState().beginCreate()
-    )
-      return;
-    try {
-      const accepted = await history.perform({
-        kind: "create",
-        element: {
-          kind: "document",
-          geometry: {
-            x: 80 + documentCount * 460,
-            y: 80,
-            width: 430,
-            height: 500,
+        });
+        const entry = history.store.getState().undo.at(-1);
+        if (accepted && entry?.kind === "create" && entry.id)
+          store.getState().selectOnly(entry.id as string as ElementId);
+        store.getState().finishCreate();
+      } catch {
+        store
+          .getState()
+          .finishCreate(
+            `Could not add document. This canvas holds at most ${documentLimits.maxCount} active documents.`,
+          );
+      }
+    },
+    [connected, store, history, documentCount, hasMainPaper],
+  );
+  const addWebPage = useCallback(
+    async (
+      input: { url: string; prompt?: string },
+      position?: { x: number; y: number },
+    ) => {
+      if (
+        !workspaceId ||
+        sourceCount >= sourceLimits.maxCount ||
+        !connected ||
+        store.getState().historyPending ||
+        store.getState().gestures.size ||
+        history.store.getState().busy ||
+        history.store.getState().retry ||
+        !store.getState().beginCreate()
+      )
+        throw new Error("Canvas is busy or unavailable");
+      try {
+        const bounds = surface.current?.getBoundingClientRect();
+        const center = bounds
+          ? flow.screenToFlowPosition({
+              x: bounds.left + bounds.width / 2,
+              y: bounds.top + bounds.height / 2,
+            })
+          : { x: 280, y: 260 };
+        const accepted = await history.perform({
+          kind: "create",
+          element: {
+            kind: "source",
+            ...input,
+            geometry: {
+              ...(position ??
+                (hasMainPaper
+                  ? besideMainPaper(
+                      { x: center.x - 150, y: center.y - 88 },
+                      300,
+                    )
+                  : { x: center.x - 150, y: center.y - 88 })),
+              width: 300,
+              height: 176,
+            },
           },
-        },
-      });
-      const entry = history.store.getState().undo.at(-1);
-      if (accepted && entry?.kind === "create" && entry.id)
-        store.getState().selectOnly(entry.id as string as ElementId);
-      store.getState().finishCreate();
-    } catch {
-      store
-        .getState()
-        .finishCreate(
-          "Could not add document. This canvas holds at most two active documents.",
-        );
-    }
-  }, [connected, store, history, documentCount]);
+        });
+        if (!accepted)
+          throw new Error("Web Page was not accepted; check History");
+        const entry = history.store.getState().undo.at(-1);
+        if (entry?.kind === "create" && entry.id)
+          store.getState().selectOnly(entry.id as string as ElementId);
+        return entry?.kind === "create" ? entry.id : undefined;
+      } finally {
+        store.getState().finishCreate();
+      }
+    },
+    [
+      workspaceId,
+      connected,
+      store,
+      history,
+      flow,
+      surface,
+      sourceCount,
+      hasMainPaper,
+    ],
+  );
   const deleteSelection = useCallback(async () => {
     const records = recordsRef.current;
     const { selected, removing, setEditing } = store.getState();
@@ -192,7 +222,7 @@ export function useCanvasCommands({
           record &&
           !(await history.perform({
             kind: "delete",
-            id: record.id as string as Id<"canvasDocuments"> | Id<"rectangles">,
+            id: record.id as string as Id<"canvasDocuments"> | Id<"sources">,
             generation: record.generation,
           }))
         ) {
@@ -267,8 +297,8 @@ export function useCanvasCommands({
     store.getState().finishRemove([id]);
   }, [connected, history, pendingEditors, store, surface]);
   return {
-    addRectangle,
     addDocument,
+    addWebPage,
     deleteSelection,
     history,
     undoElement,

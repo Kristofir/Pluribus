@@ -54,7 +54,12 @@ export function useDocumentEditor({
   const recoveryStore = useDocumentRecovery();
   const authorship = useMemo(
     () =>
-      authorSession ? createAuthorshipExtension(authorSession.author, authorSession.paragraphs) : null,
+      authorSession
+        ? createAuthorshipExtension(
+            authorSession.author,
+            authorSession.paragraphs,
+          )
+        : null,
     [authorSession],
   );
   const [showAuthors, setShowAuthors] = useState(false);
@@ -333,9 +338,10 @@ export function useDocumentEditor({
         : saved
           ? "Saved"
           : "Saving…";
-  const disabled = !editor || !connected || suspended || readPaused;
+  const disabled =
+    !editor || !connected || suspended || readPaused || !interactionEnabled;
   function move() {
-    if (!editor) return;
+    if (!editor || disabled || state?.pending) return;
     setMoveError(null);
     if (!moveSource) {
       const { from, to } = editor.state.selection;

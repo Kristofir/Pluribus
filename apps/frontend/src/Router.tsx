@@ -74,8 +74,18 @@ const homeRoute = createRoute({
   component: App,
 });
 
-const adminRoute = createRoute({ getParentRoute: () => rootRoute, path: "/admin", component: lazyRouteComponent(() => import("./features/admin/AdminRoute")) });
-const workspaceRoute = createRoute({ getParentRoute: () => rootRoute, path: "/workspaces/$workspaceId", component: lazyRouteComponent(() => import("./features/workspaces/WorkspaceRoute")) });
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: lazyRouteComponent(() => import("./features/admin/AdminRoute")),
+});
+const workspaceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/workspaces/$workspaceId",
+  component: lazyRouteComponent(
+    () => import("./features/workspaces/WorkspaceRoute"),
+  ),
+});
 
 const documentRoute = createRoute({
   getParentRoute: () => rootRoute,

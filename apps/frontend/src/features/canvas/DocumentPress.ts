@@ -5,7 +5,9 @@ type Point = { x: number; y: number };
 export class DocumentPress {
   private start: (Point & { pointerId: number }) | null = null;
   state: "idle" | "pressed" | "dragging" = "idle";
-  begin(pointerId: number, point: Point) {
+  begin(pointerId: number, point: Point, selecting = false) {
+    this.cancel();
+    if (selecting) return;
     this.start = { ...point, pointerId };
     this.state = "pressed";
   }
@@ -17,10 +19,10 @@ export class DocumentPress {
     )
       this.state = "dragging";
   }
-  release(pointerId: number, point: Point) {
+  release(pointerId: number, point: Point, selecting = false) {
     if (!this.start || this.start.pointerId !== pointerId) return false;
     this.move(pointerId, point);
-    const click = this.state === "pressed";
+    const click = !selecting && this.state === "pressed";
     this.cancel();
     return click;
   }

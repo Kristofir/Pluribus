@@ -10,9 +10,11 @@ export function WorkspaceLayout({
   panel,
   panelOpen,
   panelReturnFocus = "mainDocument",
+  panelFocusKey,
   onDashboard,
   onMainDocument,
   onInbox,
+  onTools,
   notice,
 }: {
   name: string;
@@ -20,22 +22,30 @@ export function WorkspaceLayout({
   canvas: ReactNode;
   panel: ReactNode;
   panelOpen: boolean;
+  panelFocusKey?: string;
   /** Fallback for direct links or an opener removed when switching surfaces. */
-  panelReturnFocus?: "mainDocument" | "inbox";
+  panelReturnFocus?: "mainDocument" | "inbox" | "tools";
   onDashboard: () => void;
   onMainDocument: () => void;
   onInbox: () => void;
+  onTools?: () => void;
   notice?: ReactNode;
 }) {
   const panelHost = useRef<HTMLDivElement>(null);
+  const previousFocusKey = useRef(panelFocusKey);
   const previousOpen = useRef(false);
   const previousReturnFocus = useRef(panelReturnFocus);
   const mainTrigger = useRef<HTMLButtonElement>(null);
   const inboxTrigger = useRef<HTMLButtonElement>(null);
+  const toolsTrigger = useRef<HTMLButtonElement>(null);
   const opener = useRef<HTMLElement | null>(null);
   useLayoutEffect(() => {
     const fallback =
-      panelReturnFocus === "inbox" ? inboxTrigger.current : mainTrigger.current;
+      panelReturnFocus === "tools"
+        ? toolsTrigger.current
+        : panelReturnFocus === "inbox"
+          ? inboxTrigger.current
+          : mainTrigger.current;
     const canReturnTo = (element: HTMLElement | null) =>
       !!element?.isConnected &&
       !panelHost.current?.contains(element) &&
@@ -51,7 +61,9 @@ export function WorkspaceLayout({
       opener.current = canReturnTo(active) ? active : fallback;
       // Narrow screens replace the visible canvas; desktop keeps both surfaces available.
       if (window.matchMedia("(max-width: 760px)").matches)
-        panelHost.current?.querySelector<HTMLElement>("h2")?.focus();
+        Array.from(panelHost.current?.querySelectorAll<HTMLElement>("h2") ?? [])
+          .find((heading) => heading.getClientRects().length > 0)
+          ?.focus();
     } else if (panelOpen && previousReturnFocus.current !== panelReturnFocus) {
       opener.current = fallback;
     } else if (!panelOpen && previousOpen.current) {
@@ -59,9 +71,18 @@ export function WorkspaceLayout({
         preventScroll: true,
       });
     }
+    if (
+      panelOpen &&
+      previousFocusKey.current !== panelFocusKey &&
+      window.matchMedia("(max-width: 760px)").matches
+    )
+      Array.from(panelHost.current?.querySelectorAll<HTMLElement>("h2") ?? [])
+        .find((heading) => heading.getClientRects().length > 0)
+        ?.focus();
+    previousFocusKey.current = panelFocusKey;
     previousOpen.current = panelOpen;
     previousReturnFocus.current = panelReturnFocus;
-  }, [panelOpen, panelReturnFocus]);
+  }, [panelOpen, panelReturnFocus, panelFocusKey]);
   return (
     <main className="workspace-shell">
       <header className="workspace-header">
@@ -93,6 +114,18 @@ export function WorkspaceLayout({
           >
             Inbox
           </Button>
+          {onTools && (
+            <Button
+              ref={toolsTrigger}
+              intent="outline"
+              onPress={() => {
+                opener.current = toolsTrigger.current;
+                onTools();
+              }}
+            >
+              Sources & agents
+            </Button>
+          )}
           {account}
         </nav>
       </header>

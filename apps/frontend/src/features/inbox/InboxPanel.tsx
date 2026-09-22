@@ -14,6 +14,7 @@ export type ThreadView = {
   workspaceId: string;
   messages: readonly MailMessage[];
   draftDocumentId?: string;
+  subject?: string;
 };
 export function InboxPanel({
   threads,
@@ -24,6 +25,8 @@ export function InboxPanel({
   onOpenDraft,
   onClose,
   integrationNotice,
+  draftDisabled = false,
+  emptyState,
 }: {
   threads: readonly ThreadView[];
   selectedId?: string;
@@ -33,6 +36,8 @@ export function InboxPanel({
   onOpenDraft: (thread: ThreadView) => void;
   onClose: () => void;
   integrationNotice?: ReactNode;
+  draftDisabled?: boolean;
+  emptyState?: ReactNode;
 }) {
   const heading = useId();
   const selected = threads.find((thread) => thread.id === selectedId);
@@ -69,12 +74,15 @@ export function InboxPanel({
             Loading messages…
           </p>
         ) : threads.length === 0 ? (
-          <div className="p-6">
-            <h3 className="font-medium">No messages yet</h3>
-            <p className="text-sm text-muted-fg mt-2">
-              Messages will appear here when the connected inbox receives them.
-            </p>
-          </div>
+          (emptyState ?? (
+            <div className="p-6">
+              <h3 className="font-medium">No messages yet</h3>
+              <p className="text-sm text-muted-fg mt-2">
+                Messages will appear here when the connected inbox receives
+                them.
+              </p>
+            </div>
+          ))
         ) : (
           <>
             <nav
@@ -93,7 +101,9 @@ export function InboxPanel({
                   >
                     <span className="min-w-0 block">
                       <span className="block font-medium truncate">
-                        {last?.subject || "Untitled conversation"}
+                        {thread.subject ||
+                          last?.subject ||
+                          "Untitled conversation"}
                       </span>
                       <span className="block text-xs text-muted-fg truncate">
                         {last?.from ?? "No messages"}
@@ -136,7 +146,10 @@ export function InboxPanel({
                     </div>
                   </article>
                 ))}
-                <Button onPress={() => onOpenDraft(selected)}>
+                <Button
+                  isDisabled={draftDisabled}
+                  onPress={() => onOpenDraft(selected)}
+                >
                   {selected.draftDocumentId
                     ? "Open reply draft"
                     : "Start reply draft"}

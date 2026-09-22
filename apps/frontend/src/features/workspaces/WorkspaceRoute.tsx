@@ -1,29 +1,384 @@
-import { useState, useCallback } from "react";
+import { CanvasMainDocument } from "./CanvasMainDocument";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
-import { useConvexAuth } from "convex/react";
+import { useConvex, useConvexAuth } from "convex/react";
 import { api } from "@pluribus/backend/api";
 import type { Id } from "@pluribus/backend/dataModel";
+import { Button } from "@/components/ui/Button";
 import { useRetainedQuery } from "../../hooks/UseRetainedQuery";
 import CanvasPage from "../canvas/CanvasPage";
-import { CollaborativeEditor } from "../documents/CollaborativeEditor";
 import { DocumentRecoveryProvider } from "../documents/DocumentRecoveryProvider";
+import { InboxController } from "../inbox/InboxController";
+import type { SelectedPassage } from "../agentAccess/AgentAccessControls";
 import { WorkspaceLayout } from "./WorkspaceLayout";
-import { MainDocumentPanel } from "./MainDocumentPanel";
+import { WorkspaceTools } from "./WorkspaceTools";
+import {
+  DocumentPanelSession,
+  type PanelDocument,
+} from "./DocumentPanelSession";
+import { DocumentParagraphLink } from "./DocumentParagraphLink";
 const route = getRouteApi("/workspaces/$workspaceId");
 export default function WorkspaceRoute() {
- const {workspaceId} = route.useParams(), auth = useConvexAuth();
- const current = useRetainedQuery(api.Users.current,{});
- if (auth.isLoading || (auth.isAuthenticated && !current.data)) return <p role="status">Loading account…</p>;
- if (!auth.isAuthenticated) return <p>Sign in from the dashboard to open a workspace.</p>;
- return <DocumentRecoveryProvider key={`${workspaceId}:${current.data?.id}`}><WorkspaceSession workspaceId={workspaceId as Id<"workspaces">} /></DocumentRecoveryProvider>;
+  const { workspaceId } = route.useParams(),
+    auth = useConvexAuth(),
+    navigate = useNavigate();
+  const current = useRetainedQuery(
+    api.Users.current,
+    auth.isAuthenticated ? {} : "skip",
+  );
+  const back = (
+    <Button
+      intent="outline"
+      onPress={() => void navigate({ to: "/", search: {} })}
+    >
+      Return to dashboard
+    </Button>
+  );
+  if (auth.isLoading)
+    return (
+      <main className="workspace-dashboard">
+        <p role="status">Loading account…</p>
+      </main>
+    );
+  if (!auth.isAuthenticated)
+    return (
+      <main className="workspace-dashboard">
+        <header className="workspace-page-heading">
+          <div>
+            <p className="workspace-eyebrow">Workspace access</p>
+            <h1>Sign in to open this workspace</h1>
+          </div>
+        </header>
+        <p className="my-4">Use Google sign-in on the dashboard.</p>
+        {back}
+      </main>
+    );
+  if (!current.data)
+    return (
+      <main className="workspace-dashboard">
+        <p role={current.failed || current.data === null ? "alert" : "status"}>
+          {current.failed || current.data === null
+            ? "Your account could not be loaded. Return to the dashboard to check your sign-in."
+            : "Loading account…"}
+        </p>
+        {back}
+      </main>
+    );
+  return (
+    <DocumentRecoveryProvider key={`${workspaceId}:${current.data.id}`}>
+      <WorkspaceSession
+        workspaceId={workspaceId as Id<"workspaces">}
+        accountPaused={current.failed}
+      />
+    </DocumentRecoveryProvider>
+  );
 }
-function WorkspaceSession({workspaceId}:{workspaceId:Id<"workspaces">}) {
- const view = useRetainedQuery(api.Workspaces.open,{workspaceId}), navigate = useNavigate();
- const [panelOpen,setPanelOpen] = useState(true), [editing,setEditing] = useState(false);
- const [selection,setSelection] = useState<string[]>([]);
- const onSelection = useCallback((ids:string[])=>setSelection(ids),[]);
- if(view.failed) return <p role="alert">This workspace is unavailable or your access has changed. <button onClick={()=>void navigate({to:"/",search:{}})}>Return to dashboard</button></p>;
- if(!view.data) return <p role="status">Opening workspace…</p>;
- const w=view.data;
- return <WorkspaceLayout name={w.name} canvas={<CanvasPage workspaceId={workspaceId} onSelectionChange={onSelection}/>} panelOpen={panelOpen} onDashboard={()=>void navigate({to:"/",search:{}})} onMainDocument={()=>setPanelOpen(true)} onInbox={()=>setPanelOpen(true)} notice={selection.length ? `${selection.length} selected` : undefined} panel={<MainDocumentPanel title="Main document" kind="main" onClose={()=>{setPanelOpen(false);setEditing(false);}}><div onFocusCapture={()=>setEditing(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setEditing(false);}}><CollaborativeEditor key={`${w.mainDocumentId}:${w.mainGeneration}`} id={w.mainDocumentId} generation={w.mainGeneration} participate={panelOpen && editing} embedded /></div></MainDocumentPanel>} />;
+function WorkspaceSession({
+  workspaceId,
+  accountPaused,
+}: {
+  workspaceId: Id<"workspaces">;
+  accountPaused: boolean;
+}) {
+  const view = useRetainedQuery(api.Workspaces.open, { workspaceId }),
+    links = useRetainedQuery(api.Documents.links, { workspaceId });
+  const navigate = useNavigate(),
+    client = useConvex();
+  const [paperFocus, setPaperFocus] = useState(0);
+  const [panelOpen, setPanelOpen] = useState(false),
+    [surface, setSurface] = useState<"document" | "inbox" | "tools">(
+      "document",
+    );
+  const [selection, setSelection] = useState<string[]>([]),
+    [passages, setPassages] = useState<SelectedPassage[]>([]);
+  const [replies, setReplies] = useState<PanelDocument[]>([]),
+    [activeId, setActiveId] = useState<string>();
+  const [notice, setNotice] = useState<string>(),
+    [reveal, setReveal] = useState<{
+      documentId: string;
+      paragraphId: string;
+      nonce: number;
+    }>();
+  const openRequest = useRef(0);
+  useEffect(
+    () => () => {
+      openRequest.current++;
+    },
+    [],
+  );
+  const onSelection = useCallback(
+    (ids: string[]) =>
+      setSelection((previous) =>
+        previous.length === ids.length &&
+        previous.every((id, index) => id === ids[index])
+          ? previous
+          : ids,
+      ),
+    [],
+  );
+  const onSelectPassage = useCallback(
+    (passage: SelectedPassage, included: boolean) =>
+      setPassages((previous) => {
+        const other = previous.filter(
+          (p) =>
+            p.documentId !== passage.documentId ||
+            p.paragraphId !== passage.paragraphId,
+        );
+        return included ? [...other, passage] : other;
+      }),
+    [],
+  );
+  const back = () => void navigate({ to: "/", search: {} });
+  if (!view.data)
+    return (
+      <main className="workspace-dashboard">
+        <p role={view.failed ? "alert" : "status"}>
+          {view.failed
+            ? "This workspace is unavailable or your access has changed."
+            : "Opening workspace…"}
+        </p>
+        <Button onPress={back} intent="outline">
+          Return to dashboard
+        </Button>
+      </main>
+    );
+  const w = view.data,
+    paused = view.failed || accountPaused;
+  const main: PanelDocument = {
+    documentId: w.mainDocumentId,
+    generation: w.mainGeneration,
+    title: "Main document",
+    kind: "main",
+  };
+  const documents = [
+    main,
+    ...replies.filter((d) => d.documentId !== main.documentId),
+  ];
+  const active = documents.find((d) => d.documentId === activeId) ?? main;
+  const show = (next: typeof surface) => {
+    openRequest.current++;
+    setSurface(next);
+    setPanelOpen(true);
+  };
+  const close = () => {
+    openRequest.current++;
+    setPanelOpen(false);
+  };
+  const openDraft = async (
+    documentId: Id<"documents">,
+    threadId: Id<"inboxThreads">,
+    title: string,
+  ) => {
+    const request = ++openRequest.current;
+    const descriptor = await client.query(api.Documents.describe, {
+      documentId,
+    });
+    if (request !== openRequest.current) return;
+    if (descriptor.role !== "reply") throw new Error("Expected reply document");
+    setReplies((previous) => [
+      ...previous.filter((d) => d.documentId !== documentId),
+      {
+        documentId,
+        generation: descriptor.generation,
+        title: title || "Reply",
+        kind: "reply",
+        threadId,
+      },
+    ]);
+    setActiveId(documentId);
+    setSurface("document");
+    setPanelOpen(true);
+    setReveal(undefined);
+  };
+  const openParagraph = async (reference: {
+    documentId: string;
+    paragraphId: string;
+  }) => {
+    const request = ++openRequest.current;
+    setNotice("Opening linked paragraph…");
+    try {
+      const documentId = reference.documentId as Id<"documents">;
+      const target = await client.query(api.Documents.resolveParagraph, {
+        documentId,
+        paragraphId: reference.paragraphId,
+      });
+      if (request !== openRequest.current) return;
+      if (!target) {
+        setNotice(
+          "This paragraph was removed. The link does not point to a replacement.",
+        );
+        return;
+      }
+      const descriptor = await client.query(api.Documents.describe, {
+        documentId,
+      });
+      if (request !== openRequest.current) return;
+      if (descriptor.role === "card") {
+        setNotice(
+          "This link targets a canvas document. Open that card on the canvas; its editor is kept there.",
+        );
+        return;
+      }
+      if (
+        descriptor.role === "reply" &&
+        !replies.some((d) => d.documentId === documentId)
+      ) {
+        const inbox = await client.query(api.Inbox.list, { workspaceId });
+        if (request !== openRequest.current) return;
+        const thread = inbox.threads.find(
+          (t) => t.draftDocumentId === documentId,
+        );
+        if (!thread) {
+          setNotice("The linked reply is unavailable in this inbox.");
+          return;
+        }
+        setReplies((previous) => [
+          ...previous.filter((d) => d.documentId !== documentId),
+          {
+            documentId,
+            generation: descriptor.generation,
+            title: thread.subject || "Reply",
+            kind: "reply",
+            threadId: thread.id,
+          },
+        ]);
+      }
+      setActiveId(documentId);
+      setSurface("document");
+      setPanelOpen(descriptor.role !== "main");
+      setReveal({ ...reference, nonce: request });
+      setNotice(undefined);
+    } catch {
+      if (request === openRequest.current)
+        setNotice(
+          "The paragraph could not be opened. Your access or its document may have changed.",
+        );
+    }
+  };
+  const selectedLinks =
+    links.data?.filter((link) => selection.includes(link.elementId)) ?? [];
+  return (
+    <WorkspaceLayout
+      name={w.name}
+      canvas={
+        <CanvasPage
+          workspaceId={workspaceId}
+          onSelectionChange={onSelection}
+          paperFocus={paperFocus}
+          mainPaper={
+            <CanvasMainDocument
+              key={`${main.documentId}:${main.generation}`}
+              document={main}
+              workspaceId={workspaceId}
+              active
+              paused={paused}
+              selected={selection}
+              passages={passages}
+              onSelect={onSelectPassage}
+              onClose={close}
+              reveal={
+                reveal?.documentId === main.documentId ? reveal : undefined
+              }
+            />
+          }
+        />
+      }
+      panelOpen={panelOpen}
+      panelFocusKey={surface === "document" ? active.documentId : surface}
+      panelReturnFocus={
+        surface === "tools"
+          ? "tools"
+          : surface === "inbox" || active.kind === "reply"
+            ? "inbox"
+            : "mainDocument"
+      }
+      onDashboard={back}
+      onMainDocument={() => {
+        setActiveId(main.documentId);
+        setReveal(undefined);
+        close();
+        setPaperFocus((value) => value + 1);
+      }}
+      onInbox={() => show("inbox")}
+      onTools={() => show("tools")}
+      notice={
+        paused || notice || selectedLinks.length > 0 || links.failed ? (
+          <div className="space-y-1">
+            {paused && (
+              <p role="alert">
+                Workspace updates unavailable. Open editors and local text are
+                retained.
+              </p>
+            )}
+            {notice && <p role="status">{notice}</p>}
+            {links.failed && <p role="status">Paragraph links unavailable.</p>}
+            {!paused &&
+              !links.failed &&
+              selectedLinks.map((link) => (
+                <DocumentParagraphLink
+                  key={`${link.elementId}:${link.documentId}:${link.paragraphId}`}
+                  reference={link}
+                  label="Open linked paragraph"
+                  onOpen={(reference) => void openParagraph(reference)}
+                />
+              ))}
+          </div>
+        ) : undefined
+      }
+      panel={
+        <>
+          {documents
+            .filter((doc) => doc.kind === "reply")
+            .map((doc) => (
+              <DocumentPanelSession
+                key={`${doc.documentId}:${doc.generation}`}
+                document={doc}
+                workspaceId={workspaceId}
+                active={
+                  panelOpen &&
+                  surface === "document" &&
+                  doc.documentId === active.documentId
+                }
+                paused={paused}
+                selected={selection}
+                passages={passages}
+                onSelect={onSelectPassage}
+                onClose={close}
+                reveal={
+                  reveal?.documentId === doc.documentId ? reveal : undefined
+                }
+              />
+            ))}
+          <div hidden={surface !== "inbox"} className="workspace-panel-session">
+            <InboxController
+              active={panelOpen && surface === "inbox"}
+              workspaceId={workspaceId}
+              onOpenDraft={openDraft}
+              onClose={close}
+              paused={paused}
+            />
+          </div>
+          <div hidden={surface !== "tools"} className="workspace-panel-session">
+            <WorkspaceTools
+              workspaceId={workspaceId}
+              documentIds={documents.map((d) => d.documentId)}
+              selected={selection}
+              passages={passages}
+              onRemovePassage={(p) =>
+                setPassages((previous) =>
+                  previous.filter(
+                    (value) =>
+                      value.documentId !== p.documentId ||
+                      value.paragraphId !== p.paragraphId,
+                  ),
+                )
+              }
+              onClose={close}
+              paused={paused}
+            />
+          </div>
+        </>
+      }
+    />
+  );
 }

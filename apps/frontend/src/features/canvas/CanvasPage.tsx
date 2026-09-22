@@ -1,33 +1,69 @@
+import { CanvasCreateMenu } from "./CanvasCreateMenu";
+import {
+  MainPaper,
+  MainPaperViewport,
+  mainPaperNode,
+  mainPaperId,
+  type MainPaperNode,
+} from "./MainPaperNode";
+import { canvasSelection } from "./CanvasSelection";
+import { WebPageNodeCard } from "./WebPageNode";
+import { WebPageFetching } from "../sources/WebPageFetching";
+import { WebPageForm } from "../sources/WebPageForm";
+import { WebPageCapturePanel } from "../sources/WebPageCapturePanel";
+import { sourceLimits } from "@pluribus/core/sources/domain";
+import { documentLimits } from "@pluribus/core/canvas/domain";
 import { CanvasScope, useCanvasScope } from "./CanvasScope";
 import type { Id } from "@pluribus/backend/dataModel";
 import { documentDragThreshold } from "./DocumentPress";
-import { ThemePicker } from "../../components/ThemePicker";
-import { memo, useCallback, useEffect, useMemo, type ReactNode } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useStore } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import type { InteractionEvent } from "@pluribus/core/presence/domain";
 import { usePresence } from "../presence/UsePresence";
 import { PresenceRoster } from "../presence/PresenceRoster";
-import { AlignmentGuides } from "./AlignmentGuides";
 import { CanvasPresence } from "./CanvasPresence";
-import { Link } from "@tanstack/react-router";
 import {
   Background,
   Controls,
+  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   type Edge,
   type CoordinateExtent,
+  type NodeChange,
+  type Node,
+  type NodeProps,
 } from "@xyflow/react";
-import { rectangleLimits, geometryLimits } from "@pluribus/core/canvas/domain";
+import { geometryLimits } from "@pluribus/core/canvas/domain";
 import { DocumentCard } from "./DocumentNode";
 import type { CanvasNode } from "./UseCanvas";
-import { Rectangle } from "./RectangleNode";
 import { useCanvas } from "./UseCanvas";
 import "@xyflow/react/dist/style.css";
 import "./Canvas.css";
-const nodeTypes = { rectangle: Rectangle, document: DocumentCard };
+type WebPageDraftNode = Node<{ content: ReactNode }, "webPageDraft">;
+const webPageDraftId = "local-web-page-draft";
+function WebPageDraft({ data }: NodeProps<WebPageDraftNode>) {
+  return (
+    <section className="web-page-card" aria-label="New web page card">
+      {data.content}
+    </section>
+  );
+}
+type SceneNode = CanvasNode | MainPaperNode | WebPageDraftNode;
+const nodeTypes = {
+  document: DocumentCard,
+  source: WebPageNodeCard,
+  mainPaper: MainPaper,
+  webPageDraft: WebPageDraft,
+};
 
 const emptyEdges: Edge[] = [];
 const nodeExtent: CoordinateExtent = [
@@ -36,7 +72,10 @@ const nodeExtent: CoordinateExtent = [
 ];
 function Canvas() {
   const { workspaceId } = useCanvasScope();
-  const presence = usePresence({ kind: "canvas", id: workspaceId ?? "shared" }, true);
+  const presence = usePresence(
+    { kind: "canvas", id: workspaceId ?? "shared" },
+    true,
+  );
   const roster = useMemo(
     () => <PresenceRoster presence={presence} />,
     [
@@ -64,14 +103,32 @@ const CanvasScene = memo(function CanvasScene({
   presenceId: string | null;
   roster: ReactNode;
 }) {
-  const { onSelectionChange } = useCanvasScope();
+  const {
+    workspaceId,
+    onSelectionChange,
+    mainPaper,
+    paperFocus = 0,
+  } = useCanvasScope();
   const flow = useReactFlow();
+  const [addingWebPage, setAddingWebPage] = useState<{
+    x: number;
+    y: number;
+    sourceId?: string;
+  } | null>(null);
+  const [createMenu, setCreateMenu] = useState<{
+    screen: { x: number; y: number };
+    position: { x: number; y: number };
+  } | null>(null);
   const {
     nodes,
-    alignmentGuides,
     onNodesChange,
-    addRectangle,
     addDocument,
+    addWebPage,
+    sourceCount,
+    openSourceId,
+    setOpenSourceId,
+    includeSource,
+    interactionEnabled,
     documentCount,
     stopEditing,
     deleteSelection,
@@ -86,24 +143,128 @@ const CanvasScene = memo(function CanvasScene({
 
     surface,
   } = useCanvas(emit);
+  const creating = useStore(store, (state) => state.creating);
+  const openCreateMenu = (screen: { x: number; y: number }) => {
+    stopEditing();
+    setCreateMenu({ screen, position: flow.screenToFlowPosition(screen) });
+  };
   useEffect(() => {
     emit({ type: "selection-changed", elements: [...selected] });
     onSelectionChange?.([...selected]);
   }, [selected, emit, presenceId, onSelectionChange]);
+  useEffect(() => {
+    if (paperFocus === 0) return;
+    const current = store.getState();
+    current.setEditing(null);
+    current.select(
+      [...current.selected].map((id) => ({ id, selected: false })),
+    );
+  }, [paperFocus, store]);
   const onNodeClick = useCallback(
-    (_: unknown, node: CanvasNode) => {
-      if (node.type !== "document") stopEditing();
+    (event: React.MouseEvent, node: SceneNode) => {
+      if (event.shiftKey || node.type !== "document") stopEditing();
+      if (node.type === "mainPaper") {
+        const current = store.getState();
+        current.select(
+          [...current.selected].map((id) => ({ id, selected: false })),
+        );
+      }
     },
-    [stopEditing],
+    [stopEditing, store],
+  );
+  const draftReplaced =
+    !!addingWebPage?.sourceId &&
+    nodes.some((node) => node.id === addingWebPage.sourceId);
+  useEffect(() => {
+    if (draftReplaced) setAddingWebPage(null);
+  }, [draftReplaced]);
+  const sceneNodes = useMemo(() => {
+    const sceneNodes: SceneNode[] = mainPaper
+      ? [mainPaperNode(mainPaper), ...nodes]
+      : [...nodes];
+    if (addingWebPage && workspaceId && !draftReplaced)
+      sceneNodes.push({
+        id: webPageDraftId,
+        type: "webPageDraft",
+        position: addingWebPage,
+        width: 300,
+        draggable: false,
+        selectable: false,
+        deletable: false,
+        connectable: false,
+        zIndex: 1001,
+        data: {
+          content: (
+            <div
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                if (
+                  event.key === "Escape" &&
+                  !creating &&
+                  !addingWebPage.sourceId
+                )
+                  setAddingWebPage(null);
+              }}
+            >
+              {addingWebPage.sourceId ? (
+                <div style={{ height: 144, display: "flex" }}>
+                  <WebPageFetching />
+                </div>
+              ) : (
+                <WebPageForm
+                  compact
+                  disabled={
+                    !interactionEnabled || sourceCount >= sourceLimits.maxCount
+                  }
+                  onSubmit={async (input) => {
+                    const sourceId = await addWebPage(input, addingWebPage);
+                    setAddingWebPage((current) =>
+                      current ? { ...current, sourceId } : null,
+                    );
+                  }}
+                />
+              )}
+            </div>
+          ),
+        },
+      });
+    return sceneNodes;
+  }, [
+    mainPaper,
+    nodes,
+    addingWebPage,
+    workspaceId,
+    draftReplaced,
+    creating,
+    interactionEnabled,
+    sourceCount,
+    addWebPage,
+  ]);
+  const onSceneNodesChange = useCallback(
+    (changes: NodeChange<SceneNode>[]) => {
+      // Paper measurement/selection is local to React Flow and cannot become an element operation.
+      onNodesChange(
+        changes.filter((change) =>
+          "id" in change
+            ? change.id !== mainPaperId && change.id !== webPageDraftId
+            : change.item.id !== mainPaperId &&
+              change.item.id !== webPageDraftId,
+        ) as NodeChange<CanvasNode>[],
+      );
+    },
+    [onNodesChange],
   );
   return (
     <main
-      className="canvas"
+      onContextMenuCapture={(event) => event.preventDefault()}
+      className={workspaceId ? "canvas canvas-embedded" : "canvas"}
       tabIndex={-1}
       onPointerDownCapture={(event) => {
         if (
           event.target instanceof HTMLElement &&
-          !event.target.closest("input, textarea, [contenteditable=true]")
+          !event.target.closest(
+            "input, textarea, select, [contenteditable=true]",
+          )
         )
           event.currentTarget.focus({ preventScroll: true });
       }}
@@ -112,9 +273,28 @@ const CanvasScene = memo(function CanvasScene({
           event.defaultPrevented ||
           event.nativeEvent.isComposing ||
           (event.target instanceof HTMLElement &&
-            event.target.closest("input, textarea, [contenteditable=true]"))
+            event.target.closest(
+              "input, textarea, select, [contenteditable=true]",
+            ))
         )
           return;
+        if (
+          (event.key === "ContextMenu" ||
+            (event.shiftKey && event.key === "F10")) &&
+          !(
+            event.target instanceof Element &&
+            event.target.closest(".react-flow__node")
+          )
+        ) {
+          event.preventDefault();
+          const bounds = surface.current?.getBoundingClientRect();
+          if (bounds)
+            openCreateMenu({
+              x: bounds.left + bounds.width / 2,
+              y: bounds.top + bounds.height / 2,
+            });
+          return;
+        }
         if (
           (event.metaKey || event.ctrlKey) &&
           !event.altKey &&
@@ -130,7 +310,9 @@ const CanvasScene = memo(function CanvasScene({
           (event.key === "Delete" || event.key === "Backspace") &&
           !(
             event.target instanceof HTMLElement &&
-            event.target.closest("input, textarea, [contenteditable=true]")
+            event.target.closest(
+              "input, textarea, select, [contenteditable=true]",
+            )
           )
         ) {
           event.preventDefault();
@@ -138,21 +320,55 @@ const CanvasScene = memo(function CanvasScene({
         }
       }}
     >
-      <CanvasToolbar
-        store={store}
-        connected={connected}
-        nodeCount={nodes.length}
-        documentCount={documentCount}
-        addRectangle={addRectangle}
-        addDocument={addDocument}
-        deleteSelection={deleteSelection}
-      />
-      <ElementHistoryControls
+      {createMenu && (
+        <CanvasCreateMenu
+          point={createMenu.screen}
+          anchor={surface}
+          canDocument={
+            interactionEnabled &&
+            !creating &&
+            documentCount < documentLimits.maxCount
+          }
+          canWebPage={
+            interactionEnabled &&
+            !creating &&
+            sourceCount < sourceLimits.maxCount
+          }
+          hasWebPages={!!workspaceId}
+          onClose={() => setCreateMenu(null)}
+          onDocument={() => {
+            const position = createMenu.position;
+            setCreateMenu(null);
+            void addDocument(position);
+          }}
+          onWebPage={() => {
+            if (!addingWebPage) setAddingWebPage(createMenu.position);
+            setCreateMenu(null);
+          }}
+        />
+      )}
+      <ElementHistoryNotice
         history={history}
         connected={connected && pending === 0}
-        undo={undoElement}
-        redo={redoElement}
       />
+      {openSourceId && workspaceId && (
+        <div
+          className="canvas-source-panel"
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <WebPageCapturePanel
+            key={openSourceId}
+            id={openSourceId}
+            workspaceId={workspaceId}
+            included={selected.has(
+              openSourceId as string as import("@pluribus/core/canvas/domain").ElementId,
+            )}
+            onIncludeChange={(value) => includeSource(openSourceId, value)}
+            onClose={() => setOpenSourceId(null)}
+            disabled={!interactionEnabled}
+          />
+        </div>
+      )}
       {roster}
       <CanvasError store={store} queryFailed={queryFailed} />
       <div
@@ -169,18 +385,26 @@ const CanvasScene = memo(function CanvasScene({
         }
         onPointerLeave={() => emit({ type: "pointer-left" })}
       >
-        <ReactFlow<CanvasNode>
-          nodes={nodes}
+        <ReactFlow<SceneNode>
+          {...canvasSelection}
+          nodes={sceneNodes}
           onPaneClick={stopEditing}
+          onPaneContextMenu={(event) => {
+            event.preventDefault();
+            openCreateMenu({ x: event.clientX, y: event.clientY });
+          }}
+          onMoveStart={() => setCreateMenu(null)}
           onNodeClick={onNodeClick}
           onNodeDragStart={stopEditing}
+          onSelectionStart={stopEditing}
+          onSelectionDragStart={stopEditing}
           onlyRenderVisibleElements={false}
           edges={emptyEdges}
           nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
+          onNodesChange={onSceneNodesChange}
           nodeDragThreshold={documentDragThreshold}
           nodeClickDistance={documentDragThreshold}
-          nodesDraggable={connected}
+          nodesDraggable={interactionEnabled}
           nodesConnectable={false}
           panOnScroll
           zoomOnScroll={false}
@@ -190,10 +414,24 @@ const CanvasScene = memo(function CanvasScene({
           maxZoom={3}
           nodeExtent={nodeExtent}
         >
+          {mainPaper && (
+            <MainPaperViewport request={paperFocus} surface={surface} />
+          )}
           <CanvasActivity nodes={nodes} />
-          <AlignmentGuides guides={alignmentGuides} />
           <Background gap={24} size={1} />
           <Controls showInteractive={false} />
+          <MiniMap
+            ariaLabel="Canvas overview"
+            position="bottom-right"
+            pannable
+            zoomable
+            style={{ width: 160, height: 104 }}
+            bgColor="var(--overlay)"
+            nodeColor="var(--muted-fg)"
+            maskColor="color-mix(in srgb, var(--canvas-bg) 75%, transparent)"
+            maskStrokeColor="var(--ring)"
+            maskStrokeWidth={2}
+          />
         </ReactFlow>
       </div>
     </main>
@@ -201,92 +439,17 @@ const CanvasScene = memo(function CanvasScene({
 });
 
 type CanvasStore = ReturnType<typeof useCanvas>["store"];
-const CanvasToolbar = memo(function CanvasToolbar({
-  store,
-  connected,
-  nodeCount,
-  documentCount,
-  addRectangle,
-  addDocument,
-  deleteSelection,
-}: {
-  store: CanvasStore;
-  connected: boolean;
-  nodeCount: number;
-  documentCount: number;
-  addRectangle: () => Promise<void>;
-  addDocument: () => Promise<void>;
-  deleteSelection: () => Promise<void>;
-}) {
-  const { creating, selected, removing } = useStore(
-    store,
-    useShallow(({ creating, selected, removing }) => ({
-      creating,
-      selected,
-      removing,
-    })),
-  );
-  return (
-    <header className="canvas-toolbar">
-      <Link to="/" search={{}}>
-        Home
-      </Link>
-      <h1>Shared canvas</h1>
-      <ThemePicker />
-      <button
-        onClick={() => void addRectangle()}
-        disabled={
-          !connected || creating || nodeCount >= rectangleLimits.maxCount
-        }
-      >
-        Add rectangle
-      </button>
-      <button
-        onClick={() => void addDocument()}
-        disabled={!connected || creating || documentCount >= 2}
-      >
-        Add document
-      </button>
-      <button
-        onClick={() => void deleteSelection()}
-        disabled={!connected || !selected.size || !!removing.size}
-      >
-        Delete selected
-      </button>
-      {!connected && <span role="status">Disconnected — editing paused</span>}
-    </header>
-  );
-});
-function ElementHistoryControls({
+function ElementHistoryNotice({
   history,
   connected,
-  undo,
-  redo,
 }: {
   history: ReturnType<typeof useCanvas>["history"];
   connected: boolean;
-  undo: () => Promise<void>;
-  redo: () => Promise<void>;
 }) {
   const state = useStore(history.store);
+  if (!state.error && !state.retry) return null;
   return (
     <div className="canvas-history" aria-label="Element history">
-      <button
-        onClick={() => void undo()}
-        disabled={
-          !connected || state.busy || !!state.retry || !state.undo.length
-        }
-      >
-        Undo
-      </button>
-      <button
-        onClick={() => void redo()}
-        disabled={
-          !connected || state.busy || !!state.retry || !state.redo.length
-        }
-      >
-        Redo
-      </button>
       {state.error && <span role="alert">{state.error}</span>}
       {state.retry && (
         <button
@@ -322,14 +485,31 @@ const CanvasActivity = memo(function CanvasActivity({
   nodes: CanvasNode[];
 }) {
   const { workspaceId } = useCanvasScope();
-  const presence = usePresence({ kind: "canvas", id: workspaceId ?? "shared" }, true);
+  const presence = usePresence(
+    { kind: "canvas", id: workspaceId ?? "shared" },
+    true,
+  );
   return <CanvasPresence presence={presence} nodes={nodes} />;
 });
 
-export default function CanvasPage({ workspaceId, onSelectionChange }: { workspaceId?: Id<"workspaces">; onSelectionChange?: (ids: string[]) => void } = {}) {
+export default function CanvasPage({
+  workspaceId,
+  onSelectionChange,
+  mainPaper,
+  paperFocus,
+}: {
+  workspaceId?: Id<"workspaces">;
+  onSelectionChange?: (ids: string[]) => void;
+  mainPaper?: ReactNode;
+  paperFocus?: number;
+} = {}) {
   return (
-    <CanvasScope.Provider value={{ workspaceId, onSelectionChange }}>
-      <ReactFlowProvider key={workspaceId ?? "shared"}><Canvas /></ReactFlowProvider>
+    <CanvasScope.Provider
+      value={{ workspaceId, onSelectionChange, mainPaper, paperFocus }}
+    >
+      <ReactFlowProvider key={workspaceId ?? "shared"}>
+        <Canvas />
+      </ReactFlowProvider>
     </CanvasScope.Provider>
   );
 }

@@ -3,17 +3,18 @@ import type { api } from "@pluribus/backend/api";
 import type { Id } from "@pluribus/backend/dataModel";
 import type {
   CanvasElement,
-  RectangleElement,
   DocumentElement,
+  SourceElement,
   Geometry,
 } from "@pluribus/core/canvas/domain";
 
-export type GeometryTarget =
-  | Pick<RectangleElement, "kind" | "id" | "generation">
-  | Pick<DocumentElement, "kind" | "id" | "generation">;
+export type GeometryTarget = Pick<
+  DocumentElement | SourceElement,
+  "kind" | "id" | "generation"
+>;
 type Mutations = {
-  rectangle: (
-    args: FunctionArgs<typeof api.Canvas.updateGeometry>,
+  source?: (
+    args: Omit<FunctionArgs<typeof api.Sources.changeGeometry>, "workspaceId">,
   ) => Promise<boolean>;
   document: (
     args: FunctionArgs<typeof api.Canvas.changeDocument>,
@@ -23,11 +24,8 @@ type Mutations = {
 export function geometryTarget(element: CanvasElement): GeometryTarget {
   switch (element.kind) {
     case "rectangle":
-      return {
-        kind: element.kind,
-        id: element.id,
-        generation: element.generation,
-      };
+      throw new Error("Rectangle elements are retired");
+    case "source":
     case "document":
       return {
         kind: element.kind,
@@ -46,12 +44,14 @@ export function sendGeometry(
 ): Promise<boolean> {
   if (!target) return Promise.resolve(false);
   switch (target.kind) {
-    case "rectangle":
-      return mutations.rectangle({
-        id: target.id as string as Id<"rectangles">,
-        generation: target.generation,
-        geometry,
-      });
+    case "source":
+      return (
+        mutations.source?.({
+          id: target.id as string as Id<"sources">,
+          generation: target.generation,
+          geometry,
+        }) ?? Promise.resolve(false)
+      );
     case "document":
       return mutations.document({
         id: target.id as string as Id<"canvasDocuments">,
@@ -59,7 +59,7 @@ export function sendGeometry(
         change: { kind: "geometry", geometry },
       });
     default:
-      return unexpectedElement(target);
+      return Promise.resolve(false);
   }
 }
 function unexpectedElement(_element: never): never {

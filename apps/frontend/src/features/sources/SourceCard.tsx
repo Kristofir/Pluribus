@@ -1,14 +1,10 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { TextField } from "@/components/ui/TextField";
-import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { Label } from "react-aria-components/Label";
+import { WebPageForm, type WebPageInput } from "./WebPageForm";
 export type SourceView = {
   id: string;
   canvasId: string;
   url: string;
+  prompt?: string;
+  table?: { columns: string[] };
   status: "idle" | "fetching" | "ready" | "failed" | "unavailable";
   result?: string;
   error?: string;
@@ -20,13 +16,9 @@ export function SourceCard({
 }: {
   source?: SourceView;
   unavailableReason?: string;
-  onFetch: (input: { url: string; prompt?: string }) => Promise<void>;
+  onFetch: (input: WebPageInput) => Promise<void>;
 }) {
-  const [url, setUrl] = useState(source?.url ?? "");
-  const [prompt, setPrompt] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
-  const busy = submitting || source?.status === "fetching";
+  const busy = source?.status === "fetching";
   let safeUrl: string | undefined;
   try {
     const parsed = new URL(source?.url ?? "");
@@ -46,67 +38,16 @@ export function SourceCard({
           </p>
           <h2 className="text-lg font-semibold">Bring in a web page</h2>
         </div>
-        <Badge intent="secondary">
-          {busy ? "Fetching" : (source?.status ?? "Not fetched")}
-        </Badge>
       </header>
-      <form
-        className="space-y-4"
-        onSubmit={async (event) => {
-          event.preventDefault();
-          if (busy || unavailableReason) return;
-          setError(undefined);
-          try {
-            const parsed = new URL(url);
-            if (!["https:", "http:"].includes(parsed.protocol)) throw Error();
-          } catch {
-            setError("Enter a complete http or https URL.");
-            return;
-          }
-          setSubmitting(true);
-          try {
-            await onFetch({
-              url: url.trim(),
-              ...(prompt.trim() ? { prompt: prompt.trim() } : {}),
-            });
-          } catch {
-            setError(
-              "The request could not be completed. Check its status before trying again.",
-            );
-          } finally {
-            setSubmitting(false);
-          }
-        }}
-      >
-        <TextField
-          value={url}
-          onChange={setUrl}
-          type="url"
-          isRequired
-          isDisabled={busy}
-        >
-          <Label>Page URL</Label>
-          <Input placeholder="https://example.com/article" />
-        </TextField>
-        <TextField value={prompt} onChange={setPrompt} isDisabled={busy}>
-          <Label>
-            What would you like to extract?{" "}
-            <span className="text-muted-fg">Optional</span>
-          </Label>
-          <Textarea placeholder="Leave blank to retrieve the main page content." />
-        </TextField>
-        {unavailableReason && (
-          <p role="status" className="text-sm text-muted-fg">
-            {unavailableReason}
-          </p>
-        )}
-        <Button type="submit" isDisabled={busy || !!unavailableReason}>
-          {busy ? "Fetching source…" : "Fetch page"}
-        </Button>
-      </form>
-      {(error || source?.error) && (
-        <p role="alert" className="text-sm">
-          {error ?? source?.error}
+      <WebPageForm
+        initial={source}
+        disabled={busy || !!unavailableReason}
+        submitLabel="Fetch page"
+        onSubmit={onFetch}
+      />
+      {(unavailableReason || source?.error) && (
+        <p role="status" className="text-sm">
+          {unavailableReason ?? source?.error}
         </p>
       )}
       {source && (

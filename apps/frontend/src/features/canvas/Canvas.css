@@ -5,39 +5,9 @@
   background: var(--canvas-bg);
   color: var(--fg);
 }
-.canvas-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--overlay);
-  font-size: 14px;
-}
-.canvas-toolbar h1 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-right: auto;
-}
-.canvas-toolbar a {
-  text-decoration: underline;
-}
-.canvas-toolbar button {
-  padding: 7px 12px;
-  border: 1px solid var(--input);
-  border-radius: 6px;
-  background: var(--overlay);
-  cursor: pointer;
-}
-.canvas-toolbar button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.canvas-toolbar button:focus-visible,
-.canvas-toolbar a:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
+.canvas-embedded {
+  height: 100%;
+  min-height: 0;
 }
 .canvas-session {
   padding: 5px 8px;
@@ -46,24 +16,6 @@
 .canvas-surface {
   flex: 1;
   min-height: 0;
-}
-.canvas-rectangle {
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--canvas-card-border);
-  border-radius: 4px;
-}
-.canvas-blue {
-  background: var(--canvas-blue);
-}
-.canvas-coral {
-  background: var(--canvas-coral);
-}
-.canvas-gold {
-  background: var(--canvas-gold);
-}
-.canvas .react-flow__node.selected .canvas-rectangle {
-  outline: 2px solid var(--ring);
 }
 .canvas-error {
   padding: 8px 20px;
@@ -162,7 +114,19 @@
 .canvas .react-flow__attribution a {
   color: var(--muted-fg);
 }
-.canvas-toolbar button:hover:not(:disabled),
+.canvas .react-flow__minimap {
+  bottom: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+}
+.canvas .react-flow__minimap svg {
+  cursor: grab;
+}
+.canvas .react-flow__minimap svg:active {
+  cursor: grabbing;
+}
 .canvas-history button:hover:not(:disabled) {
   background: var(--accent);
 }
@@ -172,7 +136,6 @@
   outline-offset: 2px;
 }
 /* Lift the visual surface, leaving React Flow geometry and snap animation alone. */
-.canvas-rectangle,
 .canvas-document {
   transform: scale(1);
   transform-origin: center;
@@ -180,21 +143,16 @@
     transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 140ms ease-out;
 }
-.canvas .react-flow__node:hover > .canvas-rectangle,
 .canvas .react-flow__node:hover > .canvas-document,
-.canvas .react-flow__node.dragging > .canvas-rectangle,
 .canvas .react-flow__node.dragging > .canvas-document {
   transform: scale(1.015);
   box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
 }
-.dark .canvas .react-flow__node:hover > .canvas-rectangle,
 .dark .canvas .react-flow__node:hover > .canvas-document,
-.dark .canvas .react-flow__node.dragging > .canvas-rectangle,
 .dark .canvas .react-flow__node.dragging > .canvas-document {
   box-shadow: 0 6px 20px rgb(0 0 0 / 30%);
 }
 @media (prefers-reduced-motion: reduce) {
-  .canvas-rectangle,
   .canvas-document {
     transition: none;
   }
@@ -214,6 +172,60 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .canvas .react-flow__node {
+    transition: none;
+  }
+}
+
+.canvas {
+  position: relative;
+}
+.canvas-source-panel {
+  position: absolute;
+  right: 12px;
+  top: 76px;
+  bottom: 12px;
+  width: min(480px, calc(100% - 24px));
+  z-index: 20;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--overlay);
+  box-shadow: 0 8px 24px #0002;
+  overflow: auto;
+}
+.canvas-source-panel > .web-page-panel {
+  height: 100%;
+}
+
+.canvas .react-flow__selection {
+  background: color-mix(in srgb, var(--ring) 12%, transparent);
+  border: 1px solid var(--ring);
+}
+
+.canvas-main-paper {
+  pointer-events: auto;
+  width: 800px;
+  cursor: auto;
+  user-select: text;
+}
+.canvas .react-flow__node-mainPaper {
+  cursor: auto;
+  transition: none;
+}
+
+.web-page-node-content {
+  display: contents;
+}
+.canvas .react-flow__node-source {
+  transition:
+    transform 50ms linear,
+    height 180ms ease-out;
+}
+.canvas .react-flow__node-source:has([data-resizing="true"]) {
+  transition: transform 50ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .canvas .react-flow__node-source,
+  .canvas .react-flow__node-source:has([data-resizing="true"]) {
     transition: none;
   }
 }

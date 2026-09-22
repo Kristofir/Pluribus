@@ -70,3 +70,33 @@ test("group snapping cannot move a member beyond the coordinate limit", () => {
   expect(gesture.resolve(changes, 1, false, { maxX: 200 })).toEqual([]);
   expect(changes.get(b)!.geometry.x).toBe(200);
 });
+
+test("group spacing snaps its outer edge and reports the gap without changing member spacing", () => {
+  const gesture = new AlignmentGesture(
+    new Map([
+      [a, g],
+      [b, { ...g, x: 120 }],
+    ]),
+    [{ id: t, geometry: { ...g, x: 300 } }],
+    false,
+  );
+  const changes = new Map([
+    [a, { geometry: { ...g, x: 52 }, active: true }],
+    [b, { geometry: { ...g, x: 172 }, active: true }],
+  ]);
+  const guides = gesture.resolve(changes, 1, false);
+  expect(changes.get(a)!.geometry.x).toBe(56);
+  expect(changes.get(b)!.geometry.x).toBe(176);
+  expect(guides.find((g) => g.axis === "x")!.gap).toEqual({
+    from: 276,
+    to: 300,
+    at: 50,
+    size: 24,
+  });
+  const bypass = new Map([
+    [a, { geometry: { ...g, x: 52 }, active: true }],
+    [b, { geometry: { ...g, x: 172 }, active: true }],
+  ]);
+  expect(gesture.resolve(bypass, 1, true)).toEqual([]);
+  expect(bypass.get(a)!.geometry.x).toBe(52);
+});

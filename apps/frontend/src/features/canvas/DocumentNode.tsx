@@ -61,6 +61,7 @@ export const DocumentCard = memo(function DocumentCard({
       ref={card}
       className={`canvas-document document-drag-handle${data.editing ? " is-editing" : ""}`}
       onPointerDown={interaction.onPointerDown}
+      onClick={interaction.onClick}
       onKeyDownCapture={(event) => {
         if (
           event.key === "Escape" &&
@@ -89,6 +90,7 @@ export const DocumentCard = memo(function DocumentCard({
           <CollaborativeEditor
             key={data.generation}
             embedded
+            presentation="card"
             interactionEnabled={data.editing && data.editable}
             focusPoint={interaction.focusPoint}
             id={data.documentId}

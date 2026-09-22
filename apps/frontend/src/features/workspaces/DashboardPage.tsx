@@ -6,6 +6,7 @@ export type WorkspaceSummary = { id: string; name: string; canvasId: string };
 export function DashboardPage({
   workspaces,
   loading,
+  signedOut = false,
   error,
   account,
   onOpen,
@@ -13,6 +14,7 @@ export function DashboardPage({
 }: {
   workspaces: readonly WorkspaceSummary[];
   loading: boolean;
+  signedOut?: boolean;
   error?: string;
   account?: ReactNode;
   onOpen: (workspace: WorkspaceSummary) => void;
@@ -42,6 +44,11 @@ export function DashboardPage({
         <p role="status" className="workspace-empty">
           Loading your workspaces…
         </p>
+      ) : signedOut ? (
+        <div className="workspace-empty">
+          <h2>Sign in to your workspaces</h2>
+          <p>Use Google sign-in above to see the workspaces assigned to you.</p>
+        </div>
       ) : workspaces.length === 0 ? (
         <div className="workspace-empty">
           <h2>No workspaces assigned yet</h2>

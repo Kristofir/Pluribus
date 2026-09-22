@@ -16,7 +16,6 @@ import { api } from "@pluribus/backend/api";
 import { useReactFlow, type NodeChange } from "@xyflow/react";
 import { AlignmentGesture, type AlignmentGuide } from "./AlignmentGesture";
 import {
-  rectangleColors,
   geometryLimits,
   type Geometry,
   type CanvasElement,
@@ -29,7 +28,8 @@ import type { Id } from "@pluribus/backend/dataModel";
 import { useCanvasCommands } from "./UseCanvasCommands";
 import { useSnapAnimation } from "./UseSnapAnimation";
 import type { InteractionEvent } from "@pluribus/core/presence/domain";
-import { rectangleElement, documentElement } from "./ElementProjection";
+import { sourceElement, webPageView } from "./WebPageProjection";
+import { documentElement } from "./ElementProjection";
 import {
   geometryTarget,
   sendGeometry,
@@ -83,17 +83,26 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     };
   }, []);
   const manipulation = useRef(new Map<string, "drag" | "resize">());
-  const rectangleQuery = useRetainedQuery(api.Canvas.list, { workspaceId });
   const cardQuery = useRetainedQuery(api.Canvas.documentCards, { workspaceId });
-  const rectangles = rectangleQuery.data;
   const cards = cardQuery.data;
-  const queryFailed = rectangleQuery.failed || cardQuery.failed;
+  const sourceQuery = useRetainedQuery(
+    api.Sources.cards,
+    workspaceId ? { workspaceId } : "skip",
+  );
+  const sourceRows = sourceQuery.data;
+  const [openSourceId, setOpenSourceId] = useState<Id<"sources"> | null>(null);
+  const queryFailed = cardQuery.failed || sourceQuery.failed;
   const records = useMemo<CanvasElement[] | undefined>(
     () =>
-      rectangles && cards
-        ? [...rectangles.map(rectangleElement), ...cards.map(documentElement)].map(r => ({ ...r, canvasId: workspaceId ?? "shared" }))
+      cards && (!workspaceId || sourceRows)
+        ? [
+            ...cards
+              .map(documentElement)
+              .map((r) => ({ ...r, canvasId: workspaceId ?? "shared" })),
+            ...(sourceRows ?? []).map(sourceElement),
+          ]
         : undefined,
-    [rectangles, cards, workspaceId],
+    [cards, sourceRows, workspaceId],
   );
   const recordsRef = useRef(records);
   useLayoutEffect(() => {
@@ -105,7 +114,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const geometryTargets = useRef(new Map<ElementId, GeometryTarget>());
   const pendingEditors = useRef(new Map<ElementId, boolean>());
   const changeDocument = useMutation(api.Canvas.changeDocument);
-  const update = useMutation(api.Canvas.updateGeometry);
+  const changeSource = useMutation(api.Sources.changeGeometry);
   const connection = useConvexConnectionState();
   const online = useSyncExternalStore(subscribeOnline, getOnline);
   const connected =
@@ -116,8 +125,11 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const [store] = useState(() =>
     createCanvasStore<ElementId>((id, geometry) =>
       sendGeometry(geometryTargets.current.get(id), geometry, {
-        rectangle: args => update({ ...args, workspaceId }),
-        document: args => changeDocument({ ...args, workspaceId }),
+        document: (args) => changeDocument({ ...args, workspaceId }),
+        source: (args) =>
+          workspaceId
+            ? changeSource({ ...args, workspaceId })
+            : Promise.resolve(false),
       }),
     ),
   );
@@ -145,10 +157,6 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
   const pending =
     Number(state.historyPending) +
     [...gestures.values()].filter((g) => g.sending || g.queued).length;
-  const [session] = useState(() => ({
-    id: crypto.randomUUID(),
-    color: rectangleColors[Math.floor(Math.random() * rectangleColors.length)],
-  }));
   const surface = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -196,11 +204,11 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         geometryTargets.current.delete(id);
       }
     }
-  }, [rectangles, cards, store]);
+  }, [records, store]);
 
   const {
-    addRectangle,
     addDocument,
+    addWebPage,
     deleteSelection,
     history,
     undoElement,
@@ -209,10 +217,10 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     connected,
     records,
     documentCount: cards?.length ?? 0,
+    sourceCount: sourceRows?.length ?? 0,
     store,
     pendingEditors,
     surface,
-    color: session.color,
   });
   const [geometryGesture] = useState(() => createCanvasGesture(history));
   useEffect(() => () => geometryGesture.dispose(), [geometryGesture]);
@@ -237,12 +245,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     (id: ElementId, generation: number, height: number) => {
       if (!Number.isFinite(height)) return;
       const record = recordsRef.current?.find((record) => record.id === id);
-      if (
-        record?.kind !== "document" ||
-        record.removed ||
-        record.generation !== generation
-      )
-        return;
+      if (!record || record.removed || record.generation !== generation) return;
       contentHeights.current.set(id, { generation, height });
       const current = store.getState();
       if (!current.enabled || current.removing.has(id)) return;
@@ -273,6 +276,19 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     for (const [id, minimum] of contentHeights.current)
       reportContentHeight(id, minimum.generation, minimum.height);
   }, [records, gestures, geometryGesture, reportContentHeight]);
+  const includeSource = useCallback(
+    (id: string, included: boolean) => {
+      store.getState().select([{ id: id as ElementId, selected: included }]);
+    },
+    [store],
+  );
+  const sourceViews = useMemo(
+    () =>
+      new Map(
+        (sourceRows ?? []).map((row) => [String(row.id), webPageView(row)]),
+      ),
+    [sourceRows],
+  );
   const nodes = projectNodes(
     records,
     state,
@@ -280,6 +296,14 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     {
       pending: reportPending,
       contentHeight: reportContentHeight,
+      sources: workspaceId
+        ? {
+            workspaceId,
+            views: sourceViews,
+            open: setOpenSourceId,
+            include: includeSource,
+          }
+        : undefined,
     },
   );
   const snapAnimation = useSnapAnimation(surface, nodes, connected);
@@ -324,7 +348,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
           const updates = (records ?? [])
             .filter((r) => initial.has(r.id))
             .map((r) => ({
-              id: r.id as string as Id<"rectangles"> | Id<"canvasDocuments">,
+              id: r.id as string as Id<"canvasDocuments"> | Id<"sources">,
               generation: r.generation,
               geometry: initial.get(r.id)!,
             }));
@@ -382,10 +406,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
           active = change.resizing ?? active;
         }
         const minimum = contentHeights.current.get(record.id);
-        if (
-          record.kind === "document" &&
-          minimum?.generation === record.generation
-        )
+        if (minimum?.generation === record.generation)
           geometry.height = Math.max(geometry.height, minimum.height);
         updates.set(record.id, { geometry, active });
       }
@@ -394,35 +415,42 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
         const first = records?.find((record) => gesture.initial.has(record.id));
         const minimum = first && contentHeights.current.get(first.id);
         const resizing = gesture.resizing;
+        const view = flow.getViewport();
+        const viewport = {
+          x: -view.x / view.zoom,
+          y: -view.y / view.zoom,
+          width: (surface.current?.clientWidth ?? 0) / view.zoom,
+          height: (surface.current?.clientHeight ?? 0) / view.zoom,
+        };
         const guides = gesture.resolve(
           updates,
           flow.getZoom(),
           altPressed.current,
           {
             minWidth: resizing
-              ? first?.kind === "document"
-                ? 360
-                : geometryLimits.minSize
+              ? first?.kind === "source"
+                ? 300
+                : first?.kind === "document"
+                  ? 360
+                  : geometryLimits.minSize
               : 0,
             minHeight: resizing
               ? Math.max(
-                  geometryLimits.minSize,
-                  first?.kind === "document" &&
-                    minimum?.generation === first.generation
+                  first?.kind === "source" ? 132 : geometryLimits.minSize,
+                  first && minimum?.generation === first.generation
                     ? minimum.height
                     : 0,
                 )
               : 0,
             maxWidth: resizing ? geometryLimits.maxSize : Infinity,
             maxHeight:
-              resizing && first?.kind === "rectangle"
-                ? geometryLimits.maxSize
-                : Infinity,
+              first?.kind === "source" ? geometryLimits.maxSize : Infinity,
             minX: -geometryLimits.maxCoordinate,
             maxX: geometryLimits.maxCoordinate,
             minY: -geometryLimits.maxCoordinate,
             maxY: geometryLimits.maxCoordinate,
           },
+          viewport,
         );
         const active = [...updates.values()].some((value) => value.active);
         if (gesture.motion)
@@ -447,7 +475,7 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
       if (updates.size && geometryGesture.busy) {
         geometryGesture.stage(
           [...updates].map(([id, value]) => ({
-            id: id as string as Id<"rectangles"> | Id<"canvasDocuments">,
+            id: id as string as Id<"canvasDocuments"> | Id<"sources">,
             generation: geometryTargets.current.get(id)!.generation,
             geometry: value.geometry,
           })),
@@ -513,10 +541,15 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     queryFailed,
     nodes,
     addDocument,
+    addWebPage,
+    sourceCount: sourceRows?.length ?? 0,
+    openSourceId,
+    setOpenSourceId,
+    includeSource,
+    interactionEnabled,
     documentCount: cards?.length ?? 0,
     stopEditing,
     onNodesChange,
-    addRectangle,
     deleteSelection,
     history,
     undoElement,
@@ -525,7 +558,6 @@ export function useCanvas(emit: (event: InteractionEvent) => void) {
     selected,
     removing,
     pending,
-    session,
     surface,
   };
 }
