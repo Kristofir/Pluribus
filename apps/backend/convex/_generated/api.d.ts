@@ -186,4 +186,5 @@ export declare const components: {
   migrations: import("@convex-dev/migrations/_generated/component.js").ComponentApi<"migrations">;
   presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
   prosemirrorSync: import("@convex-dev/prosemirror-sync/_generated/component.js").ComponentApi<"prosemirrorSync">;
+  staticHosting: import("@convex-dev/static-hosting/_generated/component.js").ComponentApi<"staticHosting">;
 };

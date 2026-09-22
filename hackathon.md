@@ -3,16 +3,16 @@
 - **Project:** ConvexHackathon
 - **Event:** Convex All Gas Hackathon
 - **What it does:** React workspace with Google sign-in, a collaborative canvas and documents, and revocable guest collaboration links.
-- **Live app:** not deployed
+- **Live app:** https://courteous-horse-546.convex.site
 - **Repo:** https://github.com/Kristofir/Pluribus
 - **Frontend:** Convex static hosting
-- **Convex deployment:** not deployed
-- **Components:** @convex-dev/migrations, @convex-dev/prosemirror-sync, @convex-dev/presence
+- **Convex deployment:** https://courteous-horse-546.convex.cloud
+- **Components:** @convex-dev/migrations, @convex-dev/prosemirror-sync, @convex-dev/presence, @convex-dev/static-hosting
 - **Convex features:** auth schema and indexes, queries, auth actions and mutations, HTTP actions, realtime queries, document lifecycle and History
 - **Auth:** Convex Auth
 - **AI models:** gpt-4.1-mini (image descriptions; configured key required)
 - **Started:** 2026-09-02T19:44:18Z
-- **Last updated:** 2026-09-22T10:48:37Z
+- **Last updated:** 2026-09-22T11:02:18Z
 
 ## Log
 
@@ -1179,3 +1179,13 @@ author label on hover. The current viewer's own text and unattributed legacy
 text remain neutral; the effect does not alter synced document content. A
 focused authorship test and full check passed (371 tests, one skipped); the
 frontend build passed. Browser appearance was not checked in this run.
+
+### 2026-09-22T11:02:18Z — working tree
+
+Published the committed app to the public repository and deployed its backend
+and Vite frontend to one Convex cloud development deployment with the static
+hosting component. The live home and deep route return HTML, and a browser check
+loaded the anonymous landing. Server-only provider variables were configured and
+the Demo workspace's AgentMail inbox reached ready. Google sign-in reaches Google
+but is blocked by an unregistered hosted callback; the Google account requires
+passkey confirmation before that OAuth client can be updated.

@@ -140,9 +140,13 @@ Run `npm run codegen` when bindings need regeneration; `convex dev` normally doe
 this automatically. Convex-managed instructions can be refreshed with
 `npx convex ai-files install` from `apps/backend`.
 
-The intended frontend host is Convex static hosting (`convex.site`). Hosting and
-production deployment are not configured. Verify sign-in and add resource-level
-authorization before exposing private product data or product write APIs.
+The public demo runs on Convex static hosting at
+https://courteous-horse-546.convex.site, backed by the matching cloud development
+deployment. From `apps/backend`, `npx convex dev --once` pushes backend changes;
+`npx @convex-dev/static-hosting upload --build-command 'npm run build --workspace=@pluribus/frontend' --dist ../frontend/dist`
+builds and uploads the frontend to that development deployment. Google sign-in
+still needs the hosted callback added to the Google OAuth client; see
+`docs/authentication.md`. Production deployment is not configured.
 
 ## Collaborative document
 

@@ -73,3 +73,16 @@ relative paths with `SITE_URL`. Keep that exact-origin policy rather than allowi
 arbitrary frontend origins. Restart any sign-in begun before changing the setting;
 do not reuse or share its callback code. Google completes OAuth at the backend
 callback URI, which remains unchanged on port 3211.
+
+### Hosted demo (2026-09-22)
+
+The cloud development backend and static frontend share
+`https://courteous-horse-546.convex.site`. Its `SITE_URL`, signing keys, and Google
+client credentials are configured on the Convex deployment. A hosted sign-in
+attempt reaches Google but fails with `redirect_uri_mismatch`. Add the exact
+redirect URI
+`https://courteous-horse-546.convex.site/api/auth/callback/google` and JavaScript
+origin `https://courteous-horse-546.convex.site` to the existing Google web OAuth
+client in project `pluribus-508119`, then start a fresh sign-in. Google Cloud
+Console required account passkey confirmation, so this edit and the resulting
+authenticated browser check remain pending.
